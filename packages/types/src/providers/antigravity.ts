@@ -1,0 +1,85 @@
+import type { ModelInfo } from "../model.js"
+
+export type AntigravityModelId = keyof typeof antigravityModels
+
+export const antigravityDefaultModelId: AntigravityModelId = "gemini-3.1-pro-low"
+
+export const antigravityModels = {
+    "gemini-3.1-pro-low": {
+        maxTokens: 65_536,
+        contextWindow: 1_048_576,
+        supportsImages: true,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
+        supportsReasoningEffort: ["low"],
+        reasoningEffort: "low",
+        supportsTemperature: true,
+        defaultTemperature: 1,
+        inputPrice: 0,
+        outputPrice: 0,
+        preferredIndex: 0,
+    },
+    "gemini-3.1-pro-high": {
+        maxTokens: 65_536,
+        contextWindow: 1_048_576,
+        supportsImages: true,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
+        supportsReasoningEffort: ["high"],
+        reasoningEffort: "high",
+        supportsTemperature: true,
+        defaultTemperature: 1,
+        inputPrice: 0,
+        outputPrice: 0,
+        preferredIndex: 1,
+    },
+    "gemini-3-flash": {
+        maxTokens: 65_536,
+        contextWindow: 1_048_576,
+        supportsImages: true,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
+        supportsTemperature: true,
+        defaultTemperature: 1,
+        inputPrice: 0,
+        outputPrice: 0,
+        preferredIndex: 2,
+    },
+    "gemini-2.5-flash": {
+        maxTokens: 64_000,
+        contextWindow: 1_048_576,
+        supportsImages: true,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
+        inputPrice: 0,
+        outputPrice: 0,
+        preferredIndex: 3,
+    },
+    "claude-sonnet-4-6": {
+        maxTokens: 8192,
+        contextWindow: 200_000,
+        supportsImages: true,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
+        inputPrice: 0,
+        outputPrice: 0,
+    },
+    "claude-sonnet-4-6-thinking": {
+        maxTokens: 8192,
+        contextWindow: 200_000,
+        supportsImages: true,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
+        inputPrice: 0,
+        outputPrice: 0,
+    },
+    "claude-opus-4-6-thinking": {
+        maxTokens: 32768, // Updated maxTokens to match provider file
+        contextWindow: 200_000,
+        supportsImages: true,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
+        inputPrice: 0,
+        outputPrice: 0,
+    },
+} as const satisfies Record<string, ModelInfo>

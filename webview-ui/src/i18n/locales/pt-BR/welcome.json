@@ -1,0 +1,45 @@
+{
+	"greeting": "Olá, eu sou o Kade!",
+	"introduction": "<strong>Kade é o principal agente de codificação autônomo.</strong> Prepare-se para arquitetar, codificar, depurar e aumentar sua produtividade como nunca antes. Para continuar, o Kade necessita de uma chave API.",
+	"notice": "Para começar, esta extensão precisa de um provedor de API.",
+	"start": "Vamos lá!",
+	"routers": {
+		"requesty": {
+			"description": "Seu roteador LLM otimizado",
+			"incentive": "$1 de crédito grátis"
+		},
+		"openrouter": {
+			"description": "Uma interface unificada para LLMs"
+		},
+		"roo": {
+			"description": "Os melhores modelos gratuitos para começar",
+			"incentive": "Experimente o Roo gratuitamente"
+		}
+	},
+	"chooseProvider": "Para fazer sua mágica, o Kade precisa de uma chave API.",
+	"providerSignup": {
+		"rooCloudProvider": "Provedor Roo Code Cloud",
+		"rooCloudDescription": "A maneira mais simples de usar o Roo. Uma combinação selecionada de modelos gratuitos e pagos a baixo custo",
+		"learnMore": "saiba mais",
+		"useAnotherProvider": "Usar outro provedor",
+		"useAnotherProviderDescription": "Digite uma chave API e comece.",
+		"noApiKeys": "Não quer lidar com chaves? Escolha o Provedor Roo Code Cloud.",
+		"getStarted": "Começar"
+	},
+	"waitingForCloud": {
+		"heading": "Levando você para Roo Code Cloud...",
+		"description": "Conclua o registro no seu navegador e você retornará aqui automaticamente.",
+		"noPrompt": "Se você não for solicitado a abrir uma URL, <clickHere>clique aqui</clickHere>.",
+		"havingTrouble": "Se você completou o registro mas está tendo problemas, <clickHere>clique aqui</clickHere>.",
+		"pasteUrl": "Cole a URL de callback do seu navegador:",
+		"invalidURL": "Isso não parece uma URL de callback válida. Copie o que o Roo Code Cloud está mostrando no seu navegador.",
+		"goBack": "Voltar"
+	},
+	"startRouter": "Recomendamos usar um roteador LLM:",
+	"startCustom": "Ou você pode trazer sua própria chave API:",
+	"telemetry": {
+		"helpImprove": "Ajude a melhorar o Kade",
+		"helpImproveMessage": "O Kade coleta dados de erros e uso para nos ajudar a corrigir bugs e melhorar a extensão. Esta telemetria não coleta código, prompts ou informações pessoais. Você pode desativar isso nas <settingsLink>configurações</settingsLink>."
+	},
+	"importSettings": "Importar configurações"
+}

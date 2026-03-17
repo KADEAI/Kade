@@ -1,0 +1,49 @@
+{
+	"compilerOptions": {
+		"types": [
+			"vitest/globals"
+		],
+		"esModuleInterop": true,
+		"experimentalDecorators": true,
+		"forceConsistentCasingInFileNames": true,
+		"isolatedModules": true,
+		"lib": [
+			"es2022",
+			"esnext.disposable",
+			"DOM"
+		],
+		"module": "esnext",
+		"moduleResolution": "Bundler",
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noUnusedLocals": false,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"sourceMap": true,
+		"strict": true,
+		"target": "ES2022",
+		"useDefineForClassFields": true,
+		"useUnknownInCatchVariables": false,
+		"baseUrl": ".",
+		"paths": {
+			"@roo-code/*": [
+				"../packages/*/src/index.ts"
+			]
+		}
+	},
+	"include": [
+		"."
+	],
+	"watchOptions": {
+		"watchFile": "useFsEvents",
+		"watchDirectory": "useFsEvents",
+		"fallbackPolling": "dynamicPriority",
+		"synchronousWatchDirectory": true,
+		"excludeDirectories": [
+			"**/node_modules",
+			"**/dist",
+			"**/.turbo"
+		]
+	}
+}

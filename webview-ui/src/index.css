@@ -1,0 +1,1884 @@
+/**
+ * Normally we'd import tailwind with the following:
+ *
+ * @import "tailwindcss";
+ *
+ * However, we need to customize the preflight styles since the extension's
+ * current UI assumes there's no CSS resetting or normalization.
+ *
+ * We're excluding tailwind's default preflight and importing our own, which
+ * is based on the original:
+ * https://github.com/tailwindlabs/tailwindcss/blob/main/packages/tailwindcss/preflight.css
+ *
+ * Reference: https://tailwindcss.com/docs/preflight
+ */
+
+@layer theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "./preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "./kilocode.css";
+
+@plugin "tailwindcss-animate";
+
+@theme {
+  --font-display: var(--vscode-font-family);
+
+  --text-xs: calc(var(--vscode-font-size) * 0.85);
+  --text-sm: calc(var(--vscode-font-size) * 0.9);
+  --text-base: var(--vscode-font-size);
+  --text-lg: calc(var(--vscode-font-size) * 1.1);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--vscode-button-background, #007acc);
+  --color-primary-foreground: var(--vscode-button-foreground, #ffffff);
+  --color-secondary: var(--vscode-button-secondaryBackground, #3a3d41);
+  --color-secondary-foreground: var(
+    --vscode-button-secondaryForeground,
+    #ffffff
+  );
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /**
+	 * Allow VSCode colors to be used with Tailwind.
+	 */
+
+  --color-vscode-foreground: var(--vscode-foreground);
+
+  --color-vscode-editor-foreground: var(--vscode-editor-foreground);
+  --color-vscode-editor-background: var(--vscode-editor-background);
+
+  --color-vscode-editorGroup-border: var(--vscode-editorGroup-border);
+
+  --color-vscode-editorWarning-foreground: var(
+    --vscode-editorWarning-foreground
+  );
+  --color-vscode-editorWarning-background: var(
+    --vscode-editorWarning-background
+  );
+
+  --color-vscode-button-foreground: var(--vscode-button-foreground);
+  --color-vscode-button-background: var(--vscode-button-background);
+  --color-vscode-button-secondaryForeground: var(
+    --vscode-button-secondaryForeground
+  );
+  --color-vscode-button-secondaryBackground: var(
+    --vscode-button-secondaryBackground
+  );
+  --color-vscode-button-hoverBackground: var(--vscode-button-hoverBackground);
+  --color-vscode-button-secondaryHoverBackground: var(
+    --vscode-button-secondaryHoverBackground
+  );
+
+  --color-vscode-dropdown-foreground: var(--vscode-dropdown-foreground);
+  --color-vscode-dropdown-background: var(--vscode-dropdown-background);
+  --color-vscode-dropdown-border: var(--vscode-dropdown-border);
+
+  --color-vscode-input-foreground: var(--vscode-input-foreground);
+  --color-vscode-input-background: var(--vscode-input-background);
+  --color-vscode-input-border: var(--vscode-input-border, transparent);
+  /* Some themes don't have a border color, so we can fallback to transparent */
+
+  /* kilocode_change: subtle focus ring instead of harsh border */
+  --color-vscode-focusBorder: color-mix(
+    in srgb,
+    var(--primary) 50%,
+    transparent
+  );
+
+  --color-vscode-badge-foreground: var(--vscode-badge-foreground);
+  --color-vscode-badge-background: var(--vscode-badge-background);
+
+  --color-vscode-notifications-foreground: var(
+    --vscode-notifications-foreground
+  );
+  --color-vscode-notifications-background: var(
+    --vscode-notifications-background
+  );
+  --color-vscode-notifications-border: var(--vscode-notifications-border);
+
+  --color-vscode-descriptionForeground: var(--vscode-descriptionForeground);
+  --color-vscode-errorForeground: var(--vscode-errorForeground);
+
+  --color-vscode-list-hoverForeground: var(--vscode-list-hoverForeground);
+  --color-vscode-list-hoverBackground: var(--vscode-list-hoverBackground);
+  --color-vscode-list-focusBackground: var(--vscode-list-focusBackground);
+  --color-vscode-list-activeSelectionBackground: var(
+    --vscode-list-activeSelectionBackground
+  );
+  --color-vscode-list-activeSelectionForeground: var(
+    --vscode-list-activeSelectionForeground
+  );
+
+  --color-vscode-toolbar-hoverBackground: var(--vscode-toolbar-hoverBackground);
+  --color-vscode-toolbar-hoverOutline: var(--vscode-toolbar-hoverOutline);
+
+  --color-vscode-panel-border: var(--vscode-panel-border);
+
+  --color-vscode-sideBar-foreground: var(--vscode-sideBar-foreground);
+  --color-vscode-sideBar-background: var(--vscode-sideBar-background);
+  --color-vscode-sideBar-border: var(--vscode-sideBar-border);
+
+  --color-vscode-sideBarSectionHeader-foreground: var(
+    --vscode-sideBarSectionHeader-foreground
+  );
+  --color-vscode-sideBarSectionHeader-background: var(
+    --vscode-sideBarSectionHeader-background
+  );
+  --color-vscode-sideBarSectionHeader-border: var(
+    --vscode-sideBarSectionHeader-border
+  );
+
+  --color-vscode-titleBar-activeForeground: var(
+    --vscode-titleBar-activeForeground
+  );
+  --color-vscode-titleBar-inactiveForeground: var(
+    --vscode-titleBar-inactiveForeground
+  );
+
+  --color-vscode-charts-green: var(--vscode-charts-green);
+  --color-vscode-charts-red: var(--vscode-charts-red);
+  --color-vscode-charts-yellow: var(--vscode-charts-yellow);
+
+  --color-vscode-inputValidation-infoForeground: var(
+    --vscode-inputValidation-infoForeground
+  );
+  --color-vscode-inputValidation-infoBackground: var(
+    --vscode-inputValidation-infoBackground
+  );
+  --color-vscode-inputValidation-infoBorder: var(
+    --vscode-inputValidation-infoBorder
+  );
+
+  --color-vscode-widget-border: var(--vscode-widget-border);
+  --color-vscode-widget-shadow: var(--vscode-widget-shadow);
+
+  --color-vscode-textLink-foreground: var(--vscode-textLink-foreground);
+
+  --color-vscode-textCodeBlock-background: var(
+    --vscode-textCodeBlock-background
+  );
+
+  --color-vscode-editorHoverWidget-foreground: var(
+    --vscode-editorHoverWidget-foreground
+  );
+  --color-vscode-editorHoverWidget-background: var(
+    --vscode-editorHoverWidget-background
+  );
+  --color-vscode-editorHoverWidget-border: var(
+    --vscode-editorHoverWidget-border
+  );
+
+  --color-vscode-banner-background: var(--vscode-banner-background);
+  --color-vscode-banner-foreground: var(--vscode-banner-foreground);
+
+  --color-glass-background: rgba(30, 30, 35, 0.7);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+  --color-cyber-purple: hsl(260, 100%, 75%);
+  --color-electric-cyan: hsl(190, 100%, 70%);
+  --background-omni-gradient: linear-gradient(135deg, #a855f7, #06b6d4);
+}
+
+@keyframes shimmer-omni {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.33);
+    opacity: 0;
+  }
+
+  80%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(0.8);
+  }
+
+  50% {
+    transform: scale(1);
+  }
+
+  100% {
+    transform: scale(0.8);
+  }
+}
+
+.glass-card {
+  background: var(--color-glass-background);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--color-glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.shimmer-text {
+  background: var(--background-omni-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-omni 5s infinite linear;
+}
+
+.pulse-animation {
+  position: relative;
+  width: 12px;
+  height: 12px;
+}
+
+.pulse-animation::before {
+  content: "";
+  position: absolute;
+  width: 300%;
+  height: 300%;
+  left: -100%;
+  top: -100%;
+  border-radius: 50%;
+  background-color: var(--color-electric-cyan);
+  animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+}
+
+.pulse-animation::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  background-color: var(--color-cyber-purple);
+  border-radius: 50%;
+  animation: pulse-dot 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+}
+
+/* Animations removed — instant display prevents flash on mount/remount */
+.animate-stagger-in,
+.animate-tool-entry {
+  /* Just fade in, no vertical translation that causes scroll jank */
+  animation: tool-fade-in 0.15s ease-out forwards;
+  transform: none !important;
+}
+
+@keyframes tool-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@layer base {
+  :root {
+    --background: var(--vscode-editor-background);
+    --foreground: var(--vscode-editor-foreground);
+    --card: var(--vscode-editor-background);
+    --card-foreground: var(--vscode-editor-foreground);
+    --popover: var(--vscode-menu-background, var(--vscode-editor-background));
+    --popover-foreground: var(
+      --vscode-menu-foreground,
+      var(--vscode-editor-foreground)
+    );
+    --primary: var(--vscode-button-background);
+    --primary-foreground: var(--vscode-button-foreground);
+    --secondary: var(--vscode-button-secondaryBackground);
+    --secondary-foreground: var(--vscode-button-secondaryForeground);
+    --muted: var(--vscode-disabledForeground);
+    --muted-foreground: var(--vscode-descriptionForeground);
+    --accent: var(--vscode-list-hoverBackground);
+    --accent-foreground: var(--vscode-list-hoverForeground);
+    --destructive: var(--vscode-errorForeground);
+    --destructive-foreground: var(--vscode-button-foreground);
+    --border: var(--vscode-input-border, transparent);
+    /* --border gets theme value or transparent fallback */
+    --input: var(--vscode-input-background);
+    --ring: var(--vscode-input-border);
+    --chart-1: var(--vscode-charts-red);
+    --chart-2: var(--vscode-charts-blue);
+    --chart-3: var(--vscode-charts-yellow);
+    --chart-4: var(--vscode-charts-orange);
+    --chart-5: var(--vscode-charts-green);
+    --radius: 0.5rem;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Higher specififty than VSCode's theme and root. */
+  /* Used for baseline theme overrides, but avoid using for styling. */
+
+  body {
+    --vscode-input-border: var(--border);
+  }
+
+  /* kilocode_change start */
+  a {
+    color: var(--vscode-textLink-foreground);
+  }
+
+  /* kilocode_change end */
+}
+
+@layer components {
+  /* Border Styles */
+  .border,
+  .border-r,
+  .border-l,
+  .border-t,
+  .border-b,
+  .border-x,
+  .border-y {
+    border-color: var(--border);
+  }
+
+  /* Code Block Styles */
+  pre,
+  code {
+    background-color: var(--vscode-textCodeBlock-background);
+  }
+
+  /* Search result highlighting */
+  .history-item-highlight {
+    text-decoration: underline;
+  }
+
+  /* Global Blockquote Theme */
+  blockquote {
+    background-color: var(--vscode-textBlockQuote-background);
+    padding: 0.75rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+    border-left: 2px solid var(--vscode-textBlockQuote-border);
+  }
+
+  blockquote > p {
+    margin: 0.5rem 0;
+  }
+
+  blockquote > p:first-child {
+    margin-top: 0;
+  }
+
+  blockquote > p:last-child {
+    margin-bottom: 0;
+  }
+}
+
+/* kilocode_change start: Cursor blink animation for voice recording */
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+/* kilocode_change end */
+
+/* kilocode_change start - Rounded inputs */
+vscode-text-field::part(control),
+vscode-text-area::part(control),
+vscode-dropdown::part(control),
+vscode-dropdown::part(listbox) {
+  border-radius: 6px !important;
+}
+
+/* Ensure decorated text fields also follow the rounding standard */
+.rounded-round,
+.rounded-round::after,
+.rounded-round::before {
+  border-radius: 24px !important;
+}
+
+/* Fix for containers that might clip the rounded corners */
+.dropdown-container,
+.vscode-text-field-container {
+  border-radius: 24px !important;
+}
+
+/* Specific fix for the input element inside the web component */
+vscode-text-field input,
+vscode-text-area textarea {
+  border-radius: 24px !important;
+}
+
+/* kilocode_change end */
+/* kilocode_change end */
+/* kilocode_change end */
+
+/* Form Element Focus States */
+
+textarea:focus {
+  outline: 1.5px solid var(--vscode-focusBorder, #007fd4);
+}
+
+.focus\:outline-0 {
+  outline: 0 !important;
+  /* Allow tailwind to override the `textarea:focus` rule */
+}
+
+/**
+ * Use vscode native scrollbar styles
+ * https://github.com/gitkraken/vscode-gitlens/blob/b1d71d4844523e8b2ef16f9e007068e91f46fd88/src/webviews/apps/home/home.scss
+ */
+
+html {
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1;
+}
+
+@font-face {
+  font-family: "Apple Color Emoji";
+  src: url("./assets/fonts/AppleColorEmoji_WindowsCompatible.ttf")
+    format("truetype");
+  font-display: swap;
+}
+
+body,
+#root {
+  margin: 0;
+  font-family:
+    var(--vscode-font-family), "Apple Color Emoji", "Noto Color Emoji",
+    "Segoe UI Emoji", sans-serif;
+  line-height: 1.25;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1,
+    "clig" 1,
+    "calt" 1;
+  font-variant-ligatures: common-ligatures contextual;
+  font-optical-sizing: auto;
+  font-synthesis: none;
+}
+
+img,
+svg,
+canvas,
+video {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: smooth;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+svg {
+  shape-rendering: geometricPrecision;
+  text-rendering: optimizeLegibility;
+}
+
+@supports (font-smooth: always) {
+  body,
+  #root {
+    font-smooth: always;
+  }
+}
+
+@media (min-resolution: 2dppx) {
+  body,
+  #root {
+    text-rendering: geometricPrecision;
+  }
+
+  img,
+  svg,
+  canvas,
+  video {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+body.scrollable,
+.scrollable,
+body.code-block-scrollable,
+.code-block-scrollable {
+  border-color: transparent;
+  /* transition inhibited to avoid fighting with JS timeout */
+  overflow-anchor: none;
+}
+
+.scrollbar-visible.scrollable,
+.scrollbar-visible .scrollable {
+  border-color: var(--vscode-scrollbarSlider-background);
+}
+
+.scrollable::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.scrollable::-webkit-scrollbar-track {
+  background: transparent;
+  margin-bottom: calc(var(--chat-area-height, 0) - 23px);
+}
+
+.scrollable::-webkit-scrollbar-thumb {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-scrollbarSlider-background) 40%,
+    transparent
+  );
+  border-radius: 100px !important;
+  border: 3px solid transparent;
+  /* Slightly more space for the "floating" feel */
+  background-clip: padding-box;
+
+  /* Silky smooth GPU-friendly transition */
+  transition:
+    background-color 0.15s cubic-bezier(0.2, 0, 0, 1),
+    border-width 0.15s ease-out;
+
+  /* Add a subtle inner sheen to make it look "beautiful" and expensive */
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
+}
+
+.scrollable::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-scrollbarSlider-hoverBackground) 60%,
+    transparent
+  );
+  border-width: 2px;
+  /* Subtle minimalist expansion */
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--vscode-foreground) 8%, transparent);
+  /* Brighter sheen on interaction */
+}
+
+.scrollable::-webkit-scrollbar-thumb:active {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-scrollbarSlider-activeBackground) 80%,
+    transparent
+  );
+  border-width: 1.5px;
+  /* Fullest expansion when grabbed */
+  transition:
+    background-color 0.05s ease-out,
+    border-width 0.05s ease-out;
+}
+
+.scrollable::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/**
+ * Fix VSCode ignoring webkit scrollbar modifiers
+ * https://github.com/microsoft/vscode/issues/213045
+ */
+@supports selector(::-webkit-scrollbar) {
+  html {
+    scrollbar-color: unset;
+  }
+}
+
+/**
+ * The above scrollbar styling uses some transparent background color magic to accomplish its animation. However this doesn't play nicely with SyntaxHighlighter, so we need to set a background color for the code blocks' horizontal scrollbar. This actually has the unintended consequence of always showing the scrollbar which I prefer since it makes it more obvious that there is more content to scroll to.
+ */
+
+.code-block-scrollable::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.code-block-scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.code-block-scrollable::-webkit-scrollbar-thumb {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-scrollbarSlider-background) 40%,
+    transparent
+  );
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.code-block-scrollable::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-scrollbarSlider-hoverBackground) 65%,
+    transparent
+  );
+}
+
+.code-block-scrollable::-webkit-scrollbar-thumb:active {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-scrollbarSlider-activeBackground) 85%,
+    transparent
+  );
+}
+
+.code-block-scrollable::-webkit-scrollbar-corner {
+  background-color: transparent;
+}
+
+/**
+ * Add a way to hide scrollbars.
+ */
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari and Opera */
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-scrollbarSlider-background) 40%,
+    transparent
+  );
+  border-radius: 100px;
+  border: 4px solid transparent;
+  background-clip: padding-box;
+  transition:
+    background-color 0.15s cubic-bezier(0.2, 0, 0, 1),
+    border-width 0.15s ease-out;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-scrollbarSlider-hoverBackground) 60%,
+    transparent
+  );
+  border-width: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-scrollbarSlider-activeBackground) 80%,
+    transparent
+  );
+  border-width: 2px;
+  transition:
+    background-color 0.05s ease-out,
+    border-width 0.05s ease-out;
+}
+
+/* Shimmer animation for thinking blocks */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  background-size: 200px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Enhanced thinking block animations */
+@keyframes thinking-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
+  }
+}
+
+@keyframes content-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reasoning-content.is-streaming {
+  animation: thinking-glow 3s ease-in-out infinite;
+}
+
+.reasoning-content.is-streaming * {
+  animation: content-fade-in 0.5s ease-out;
+}
+
+/**
+ * Dropdown label
+ * https://github.com/microsoft/vscode-webview-ui-toolkit/tree/main/src/dropdown#with-label
+ */
+
+.dropdown-container {
+  box-sizing: border-box;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.dropdown-container label {
+  display: block;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  font-size: var(--vscode-font-size);
+  line-height: normal;
+  margin-bottom: 2px;
+}
+
+/* Fix dropdown double scrollbar overflow */
+
+#api-provider > div > ul {
+  overflow: unset;
+}
+
+/* Fix scrollbar in dropdown */
+
+vscode-dropdown::part(listbox) {
+  border-color: var(--vscode-scrollbarSlider-background);
+  transition: none;
+  scrollbar-color: var(--vscode-scrollbarSlider-background) transparent;
+}
+
+/* Faded icon buttons in textfields */
+.input-icon-button {
+  cursor: pointer;
+  opacity: 0.65;
+}
+
+.input-icon-button:hover {
+  opacity: 1;
+}
+
+.input-icon-button.disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.input-icon-button.disabled:hover {
+  opacity: 0.4;
+}
+
+/* Context mentions */
+
+.mention-context-textarea-highlight {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-badge-foreground) 30%,
+    transparent
+  );
+  border-radius: 3px;
+  box-shadow: 0 0 0 0.5px
+    color-mix(in srgb, var(--vscode-badge-foreground) 30%, transparent);
+  color: transparent;
+}
+
+.mention-context-highlight {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-badge-foreground) 15%,
+    transparent
+  );
+  border-radius: 6px;
+  padding: 1px 4px;
+  font-family: var(--font-mono);
+}
+
+.mention-context-highlight-with-shadow {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-badge-foreground) 15%,
+    transparent
+  );
+  border-radius: 3px;
+  padding: 1px 4px;
+  box-shadow: 0 0 0 0.5px
+    color-mix(in srgb, var(--vscode-badge-foreground) 30%, transparent);
+  font-family: var(--font-mono);
+}
+
+/**
+ * vscrui Overrides / Hacks
+ */
+
+.vscrui-checkbox__listbox > ul {
+  max-height: unset !important;
+}
+
+.vscrui-checkbox svg {
+  min-width: 16px;
+  min-height: 16px;
+}
+
+/**
+ * @shadcn/ui Overrides / Hacks
+ */
+
+input[cmdk-input]:focus {
+  outline: none;
+}
+
+/**
+ * Markdown
+ */
+
+.custom-markdown > pre {
+  background-color: transparent !important;
+}
+
+/*
+ * Use geometric precision for codicons to avoid blurriness
+ */
+
+.codicon[class*="codicon-"] {
+  text-rendering: geometricPrecision !important;
+}
+
+/*
+ * Fix the color of <a> in ChatView
+/**
+ * Custom animations for UI elements
+ */
+
+/* duplicate tool-entry removed — single definition above */
+
+/**
+ */
+
+@keyframes streaming-text-fade {
+  0% {
+    opacity: 0;
+    filter: blur(3px);
+    transform: scale(0.97);
+  }
+
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+@keyframes settings-panel-in {
+  from {
+    transform: scale(0.95) translateY(4px);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes settings-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Transition utilities */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.transition-colors {
+  transition-property:
+    color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* DiffView code font: use VS Code editor font and enable ligatures */
+.diff-view,
+.diff-view pre,
+.diff-view code,
+.diff-view .hljs {
+  font-family:
+    var(--vscode-editor-font-family), ui-monospace, SFMono-Regular, Menlo,
+    Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-variant-ligatures: contextual;
+  font-feature-settings:
+    "calt" 1,
+    "liga" 1;
+}
+
+/* DiffView background tints via CSS classes instead of inline styles */
+.diff-content-inserted {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-diffEditor-insertedTextBackground) 70%,
+    transparent
+  );
+}
+
+.diff-content-removed {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-diffEditor-removedTextBackground) 70%,
+    transparent
+  );
+}
+
+.diff-content-context {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-editorGroup-border) 100%,
+    transparent
+  );
+}
+
+/* kilocode_change start - STT preview text styling */
+.stt-preview-text {
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* kilocode_change end - STT preview text styling */
+
+/* kilocode_change start - Animated Gradient */
+@keyframes rainbow-move {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.rainbow-border {
+  position: relative;
+  border-color: transparent !important;
+}
+
+.rainbow-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  /* border width */
+  background: linear-gradient(to right, #3b82f6, #a855f7, #ec4899, #3b82f6);
+  background-size: 200% auto;
+  animation: rainbow-move 3s linear infinite;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* kilocode_change end - Animated Gradient */
+
+/* ========================================
+   Advanced Thinking Indicator Animations
+   ======================================== */
+
+/* Thinking pulse animation */
+@keyframes thinking-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+.animate-thinking-pulse {
+  animation: thinking-pulse 2s ease-in-out infinite;
+}
+
+/* Thinking spin animation */
+@keyframes thinking-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-thinking-spin {
+  animation: thinking-spin 1s linear infinite;
+}
+
+/* Thinking bounce animation */
+@keyframes thinking-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-thinking-bounce {
+  animation: thinking-bounce 0.6s ease-in-out infinite;
+}
+
+/* Thinking glow animation */
+@keyframes thinking-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(150, 150, 150, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 8px rgba(150, 150, 150, 0.3);
+  }
+}
+
+.animate-thinking-glow {
+  animation: thinking-glow 2s ease-in-out infinite;
+}
+
+/* Phase progress bar animation */
+@keyframes phase-progress {
+  0% {
+    width: 0%;
+  }
+
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-phase-progress {
+  animation: phase-progress 1.5s ease-in-out infinite;
+}
+
+/* Thinking indicator wave effect */
+@keyframes wave {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+}
+
+.thinking-wave {
+  position: relative;
+}
+
+.thinking-wave::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, currentColor 0%, transparent 70%);
+  opacity: 0.2;
+  animation: wave 2s ease-in-out infinite;
+}
+
+/* Particle animation for thinking */
+@keyframes particle-float {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(var(--tx, 10px), var(--ty, -10px)) scale(0);
+    opacity: 0;
+  }
+}
+
+.thinking-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+/* API request thinking indicator pulse */
+@keyframes api-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(150, 150, 150, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(150, 150, 150, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(150, 150, 150, 0);
+  }
+}
+
+.animate-api-pulse {
+  animation: api-pulse 1.5s ease-out infinite;
+}
+
+/* Tool execution progress animation */
+@keyframes tool-progress {
+  0% {
+    width: 0%;
+  }
+
+  50% {
+    width: 70%;
+  }
+
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-tool-progress {
+  animation: tool-progress 2s ease-in-out infinite;
+}
+
+/* Multi-step thinking indicator */
+.thinking-steps {
+  display: flex;
+  gap: 4px;
+}
+
+.thinking-step {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--vscode-descriptionForeground);
+  opacity: 0.4;
+  transition: all 0.3s ease;
+}
+
+.thinking-step.active {
+  opacity: 1;
+  background: var(--vscode-foreground);
+  animation: step-pulse 1s ease-in-out infinite;
+}
+
+.thinking-step.completed {
+  opacity: 0.7;
+  background: var(--vscode-charts-green);
+}
+
+@keyframes step-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.3);
+  }
+}
+
+/* Cost estimation indicator */
+.cost-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-editorGroup-border);
+  font-size: calc(var(--vscode-font-size) * 0.85);
+}
+
+.cost-indicator.estimating {
+  animation: cost-fade 1s ease-in-out infinite;
+}
+
+@keyframes loading-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.loading-bar {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #e0e0e0 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: loading-sweep 2s ease-in-out infinite;
+}
+
+/* Shared shimmer text style used by active tool/dropdown headers */
+.loading-shimmer-pure-text,
+.loading-shimmer {
+  --text-primary: var(--vscode-descriptionForeground);
+  --text-secondary: var(--text-primary);
+  --shimmer-contrast: #ffffffbf;
+  background: var(--text-secondary)
+    linear-gradient(
+      to right,
+      transparent 0%,
+      var(--shimmer-contrast) 40%,
+      var(--shimmer-contrast) 60%,
+      transparent 100%
+    );
+  -webkit-text-fill-color: transparent;
+  background-position: -100% 0;
+  background-repeat: no-repeat;
+  background-size: 50% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: loading-shimmer 2s steps(48, end) infinite;
+  display: inline-block;
+}
+
+.vscode-dark .loading-shimmer-pure-text,
+.vscode-dark .loading-shimmer {
+  --text-secondary: var(--text-primary);
+  --shimmer-contrast: #0009;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .loading-shimmer-pure-text,
+  .loading-shimmer {
+    --text-secondary: color-mix(in srgb, var(--text-primary) 55%, transparent);
+  }
+
+  .vscode-dark .loading-shimmer-pure-text,
+  .vscode-dark .loading-shimmer {
+    --text-secondary: color-mix(in srgb, var(--text-primary) 45%, transparent);
+  }
+}
+
+@keyframes loading-shimmer {
+  0% {
+    background-position: -100% 0;
+  }
+
+  100% {
+    background-position: 250% 0;
+  }
+}
+
+/* Token counter animation */
+.token-counter {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: calc(var(--vscode-font-size) * 0.8);
+  color: var(--vscode-descriptionForeground);
+}
+
+.token-counter.counting .token-count {
+  animation: token-bounce 0.3s ease;
+}
+
+@keyframes token-bounce {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Responsive thinking indicator */
+@media (max-width: 600px) {
+  .thinking-steps {
+    gap: 2px;
+  }
+
+  .thinking-step {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  .thinking-step {
+    background: var(--vscode-foreground);
+    opacity: 1;
+  }
+
+  .animate-thinking-glow {
+    box-shadow: 0 0 0 2px var(--vscode-foreground);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-thinking-pulse,
+  .animate-thinking-spin,
+  .animate-thinking-bounce,
+  .animate-thinking-glow,
+  .animate-phase-progress,
+  .thinking-wave::before,
+  .thinking-particle,
+  .animate-api-pulse,
+  .animate-tool-progress,
+  .thinking-step.active {
+    animation: none;
+  }
+
+  .loading-shimmer-pure-text,
+  .loading-shimmer {
+    animation: none;
+  }
+}
+
+/* Thinking stream dots animation */
+@keyframes stream-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.thinking-stream-dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.thinking-stream-dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: stream-dot 1.4s ease-in-out infinite;
+}
+
+.thinking-stream-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.thinking-stream-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinking-stream-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Elapsed time display */
+.thinking-elapsed {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: calc(var(--vscode-font-size) * 0.8);
+  color: var(--vscode-descriptionForeground);
+  background: var(--vscode-editor-background);
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--vscode-editorGroup-border);
+}
+
+/* Progress ring styles */
+.thinking-progress-ring {
+  transform: rotate(-90deg);
+}
+
+.thinking-progress-ring circle {
+  transition: stroke-dashoffset 0.35s;
+  transform-origin: 50% 50%;
+}
+
+/* High-fidelity Chat Composer */
+.chat-composer-shell {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--vscode-dropdown-background) 86%, #0f0f0f) 0%,
+    color-mix(in srgb, var(--vscode-input-background) 92%, #1d1d1d) 100%
+  );
+  border: 1px solid
+    color-mix(in srgb, var(--vscode-focusBorder) 80%, transparent);
+  box-shadow:
+    0 25px 80px rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(255, 255, 255, 0.04) inset,
+    0 0 30px rgba(255, 255, 255, 0.04) inset;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  overflow: hidden;
+}
+
+.chat-composer-shell::before,
+.chat-composer-shell::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.chat-composer-shell::before {
+  inset: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.02)
+  );
+  opacity: 0.4;
+}
+
+.chat-composer-shell::after {
+  width: 280px;
+  height: 280px;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -60%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.25),
+    transparent 55%
+  );
+  filter: blur(40px);
+}
+
+.chat-composer-floating {
+  transform-style: preserve-3d;
+  will-change: transform, filter;
+  transition:
+    transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 160ms ease;
+}
+
+.chat-composer-floating:focus-within,
+.chat-composer-floating:hover {
+  transform: translate3d(0, -2px, 0) scale(1.002);
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.4),
+    0 0 45px rgba(96, 165, 250, 0.18);
+}
+
+.chat-composer-highlight-layer {
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 5px 18px rgba(0, 0, 0, 0.25));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0)
+  );
+}
+
+/* kilocode_change: Removed experimental anchored scroll classes that caused visual artifacts */
+
+/* kilocode_change start - Button Shimmer */
+.shimmer-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 150%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.5) 40%,
+    rgba(255, 255, 255, 0.5) 60%,
+    transparent 100%
+  );
+  transform: skewX(-25deg);
+  animation: shimmer-btn 3s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer-btn {
+  0% {
+    left: -150%;
+  }
+
+  25% {
+    left: 150%;
+  }
+
+  100% {
+    left: 150%;
+  }
+}
+
+/* kilocode_change end */
+
+.dot-pattern {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(var(--vscode-foreground-rgb), 0.15) 1px,
+    transparent 0
+  );
+  background-size: 16px 16px;
+}
+
+/* Bubble glow effect for authentic bubble appearance */
+.bubble-glow {
+  box-shadow:
+    inset -4px -4px 8px rgba(255, 255, 255, 0.3),
+    inset 4px 4px 8px rgba(0, 0, 0, 0.1),
+    0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Slow pulse animation for bubbles */
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 0.08;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.15;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 12s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Floating animations for dispersed mist bubbles */
+@keyframes float-1 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+    transform: translate(60px, -40px) scale(1.08);
+  }
+
+  50% {
+    transform: translate(-40px, 60px) scale(0.92);
+  }
+
+  75% {
+    transform: translate(80px, 20px) scale(1.04);
+  }
+}
+
+@keyframes float-2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(-80px, 50px) scale(1.12);
+  }
+
+  66% {
+    transform: translate(70px, -30px) scale(0.88);
+  }
+}
+
+@keyframes float-3 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  20% {
+    transform: translate(50px, 70px) scale(1.1);
+  }
+
+  40% {
+    transform: translate(-60px, -50px) scale(0.9);
+  }
+
+  60% {
+    transform: translate(90px, 30px) scale(1.06);
+  }
+
+  80% {
+    transform: translate(-30px, 60px) scale(0.94);
+  }
+}
+
+@keyframes float-4 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+    transform: translate(-70px, -60px) scale(1.08);
+  }
+
+  50% {
+    transform: translate(40px, 80px) scale(0.92);
+  }
+
+  75% {
+    transform: translate(-50px, 40px) scale(1.04);
+  }
+}
+
+@keyframes float-5 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  30% {
+    transform: translate(80px, -50px) scale(1.1);
+  }
+
+  60% {
+    transform: translate(-60px, 70px) scale(0.9);
+  }
+}
+
+@keyframes float-6 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(-90px, -40px) scale(1.08);
+  }
+}
+
+@keyframes float-7 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(70px, 60px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-50px, -70px) scale(0.9);
+  }
+}
+
+@keyframes float-8 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+    transform: translate(-40px, 80px) scale(1.06);
+  }
+
+  50% {
+    transform: translate(60px, -60px) scale(0.94);
+  }
+
+  75% {
+    transform: translate(-80px, 40px) scale(1.02);
+  }
+}
+
+.animate-float-1 {
+  animation: float-1 20s ease-in-out infinite;
+}
+
+.animate-float-2 {
+  animation: float-2 25s ease-in-out infinite;
+}
+
+.animate-float-3 {
+  animation: float-3 30s ease-in-out infinite;
+}
+
+.animate-float-4 {
+  animation: float-4 22s ease-in-out infinite;
+}
+
+.animate-float-5 {
+  animation: float-5 28s ease-in-out infinite;
+}
+
+.animate-float-6 {
+  animation: float-6 18s ease-in-out infinite;
+}
+
+.animate-float-7 {
+  animation: float-7 24s ease-in-out infinite;
+}
+
+.animate-float-8 {
+  animation: float-8 26s ease-in-out infinite;
+}
+
+/* Animation delay utilities for staggered mist effects */
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+.animation-delay-6000 {
+  animation-delay: 6s;
+}
+
+.animation-delay-8000 {
+  animation-delay: 8s;
+}
+
+.animation-delay-10000 {
+  animation-delay: 10s;
+}
+
+.animation-delay-12000 {
+  animation-delay: 12s;
+}
+
+.animation-delay-14000 {
+  animation-delay: 14s;
+}
+
+.animation-delay-16000 {
+  animation-delay: 16s;
+}

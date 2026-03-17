@@ -1,0 +1,335 @@
+{
+	"welcome": {
+		"greeting": "Willkommen bei Kade!",
+		"introText1": "Kade ist ein kostenloser Open-Source-KI-Coding-Agent.",
+		"introText2": "Er funktioniert mit den neuesten KI-Modellen wie Claude Sonnet 4.5, Gemini 2.5 Pro, GPT-5 und über 450 weiteren.",
+		"introText3": "Erstelle ein kostenloses Konto und erhalte $20 Bonusguthaben bei deiner ersten Aufladung.",
+		"ctaButton": "Loslegen",
+		"manualModeButton": "Eigenen API-Schlüssel verwenden",
+		"alreadySignedUp": "Bereits registriert?",
+		"loginText": "Hier anmelden"
+	},
+	"lowCreditWarning": {
+		"addCredit": "Guthaben hinzufügen",
+		"lowBalance": "Ihr Kade Guthaben ist niedrig",
+		"newOrganization": "Verwendest du Kade für die Arbeit?"
+	},
+	"pagination": {
+		"previous": "Zurück",
+		"next": "Weiter",
+		"page": "Seite {{page}} / {{count}}"
+	},
+	"invalidModel": {
+		"alphaPeriodEnded": "🎉 Die Alpha-Phase für {{model}} ist beendet! Wechsle zu einem anderen Modell, um fortzufahren.",
+		"notAllowedForTeam": "⚠️ Deine Organisation erlaubt die Nutzung des {{model}} Modells nicht. Wechsle zu einem anderen Modell, um fortzufahren.",
+		"modelUnavailable": "⚠️ Das Modell {{model}} ist nicht verfügbar. Wechsle zu einem anderen Modell, um fortzufahren.",
+		"continueWith": "Weiter mit {{model}}",
+		"continue": "Weiter"
+	},
+	"pricing": {
+		"costUnknown": "Kosten unbekannt",
+		"costUnknownDescription": "Der API-Anbieter hat keine Kostendaten bereitgestellt oder die Anfrage wurde abgebrochen.",
+		"freeModelsLink": "Kostenlose und Budget-Modelloptionen entdecken"
+	},
+	"notifications": {
+		"toolRequest": "Werkzeuganfrage wartet auf Genehmigung",
+		"browserAction": "Browseraktion wartet auf Genehmigung",
+		"command": "Befehl wartet auf Genehmigung"
+	},
+	"settings": {
+		"sections": {
+			"mcp": "MCP-Server"
+		},
+		"provider": {
+			"account": "Kade Konto",
+			"apiKey": "Kade API-Schlüssel",
+			"login": "Bei Kade anmelden",
+			"logout": "Von Kade abmelden",
+			"automaticFetch": "Die neuesten Modelle sind automatisch in Kade verfügbar. Wenn du dir nicht sicher bist, welches Modell du wählen sollst, funktioniert Kade am besten mit den empfohlenen Modellen, die oben in <strong>fetter Schrift</strong> aufgeführt sind.",
+			"providerRouting": {
+				"title": "Anbieter-Routing",
+				"managedByOrganization": "Anbieter-Routing auf Organisationsebene verwalten",
+				"createOrganization": "Organisation erstellen, um Anbieter-Routing zu verwalten",
+				"description": "Kade leitet Anfragen an die besten verfügbaren Anbieter für dein Modell weiter. Standardmäßig werden Anfragen über die Top-Anbieter verteilt, um die Betriebszeit zu maximieren. Du kannst jedoch einen bestimmten Anbieter für dieses Modell auswählen.",
+				"sorting": {
+					"default": "Standard-Anbieter-Sortierung",
+					"price": "Anbieter mit niedrigeren Preisen bevorzugen",
+					"throughput": "Anbieter mit höherem Durchsatz bevorzugen",
+					"latency": "Anbieter mit niedrigerer Latenz bevorzugen"
+				},
+				"dataCollection": {
+					"default": "Keine Datenrichtlinie festgelegt",
+					"allowFree": "Prompt-Training erlauben (nur kostenlos)",
+					"allow": "Prompt-Training erlauben",
+					"deny": "Prompt-Training verweigern",
+					"zdr": "Keine Datenspeicherung"
+				}
+			}
+		},
+		"modelInfo": {
+			"contextWindow": "Kontextfenster",
+			"providerBreakdown": "Anbieter-Preis- und Funktionsübersicht",
+			"averageKadeCodeCost": "Das sind die durchschnittlichen tatsächlichen Ausgaben für Kade mit diesem Modell in der letzten Woche. Sie können niedriger sein als der angegebene Preis aufgrund der Nutzung des Prompt-Caches.",
+			"table": {
+				"provider": "Anbieter",
+				"context": "Der Endpunkt kann diese Anzahl von Token verarbeiten (Eingabe + Ausgabe).",
+				"inputPrice": "Kosten pro Million Token für den Prompt.",
+				"outputPrice": "Kosten pro Million Token für die Vervollständigung.",
+				"cacheReadPrice": "Kosten pro Million Token für das Lesen aus dem Cache.",
+				"cacheWritePrice": "Kosten pro Million Token für das Schreiben in den Cache."
+			}
+		},
+		"contextManagement": {
+			"allowVeryLargeReads": {
+				"label": "Sehr große Dateilesevorgänge erlauben",
+				"description": "Wenn aktiviert, führt Kade sehr große Datei- oder MCP-Ausgabelesevorgänge durch, auch wenn eine hohe Wahrscheinlichkeit besteht, das Kontextfenster zu überschreiten (Inhaltsgröße >80% des Kontextfensters)."
+			}
+		},
+		"systemNotifications": {
+			"label": "Systembenachrichtigungen aktivieren",
+			"description": "Wenn aktiviert, sendet Kade Systembenachrichtigungen für wichtige Ereignisse wie Aufgabenabschluss oder Fehler.",
+			"testButton": "Benachrichtigung testen",
+			"testTitle": "Kade",
+			"testMessage": "Dies ist eine Testbenachrichtigung von Kade."
+		},
+		"terminal": {
+			"commandGenerator": {
+				"provider": "Generator für Terminal-Befehle",
+				"apiConfigId": {
+					"label": "API-Konfiguration",
+					"current": "Aktuelle Konfiguration verwenden",
+					"description": "Wähle aus, welche API-Konfiguration für die Generierung von Terminal-Befehlen verwendet werden soll. Belasse es bei \"Aktuelle Konfiguration verwenden\", um Ihre Standardeinstellungen zu nutzen."
+				}
+			}
+		},
+		"codeIndex": {
+			"embeddingBatchSizeLabel": "Embedding-Stapelgröße",
+			"embeddingBatchSizeDescription": "Anzahl der Code-Segmente, die für die Embedding-Generierung und Vektorspeicher-Upserts zusammengefasst werden. Höhere Werte können die Indizierungsgeschwindigkeit verbessern, aber den Speicherverbrauch erhöhen. Niedrigere Werte reduzieren den Speicherverbrauch, können aber die Indizierung verlangsamen.",
+			"scannerMaxBatchRetriesLabel": "Scanner Max. Stapel-Wiederholungen",
+			"scannerMaxBatchRetriesDescription": "Maximale Anzahl von Wiederholungsversuchen für einen fehlgeschlagenen Stapel während des Verzeichnis-Scans. Höhere Werte erhöhen die Widerstandsfähigkeit gegen vorübergehende Fehler, können aber die Indizierung verlangsamen, wenn Fehler bestehen bleiben. Niedrigere Werte schlagen schneller fehl, können aber Inhalte bei temporären Problemen überspringen."
+		}
+	},
+	"chat": {
+		"condense": {
+			"wantsToCondense": "Kade möchte deine Unterhaltung zusammenfassen",
+			"condenseConversation": "Unterhaltung zusammenfassen"
+		},
+		"seeNewChanges": "Neue Änderungen anzeigen",
+		"revertNewChanges": "Neue Änderungen rückgängig machen",
+		"confirmRevertChanges": "Änderungen rückgängig machen bestätigen",
+		"cancelRevertChanges": "Änderungen rückgängig machen abbrechen"
+	},
+	"newTaskPreview": {
+		"task": "Aufgabe"
+	},
+	"profile": {
+		"title": "Profil",
+		"dashboard": "Dashboard",
+		"logOut": "Abmelden",
+		"currentBalance": "AKTUELLES GUTHABEN",
+		"loading": "Lädt...",
+		"organization": "Organisation",
+		"personal": "Persönlich",
+		"shop": {
+			"title": "Credits kaufen",
+			"popular": "Beliebt",
+			"credits": "Credits",
+			"action": "Jetzt kaufen",
+			"viewAll": "Alle Preisoptionen anzeigen"
+		},
+		"detailedUsage": "Detaillierte Nutzung",
+		"createOrganization": "Organisation erstellen, um detaillierte Nutzung zu verfolgen"
+	},
+	"docs": "Dokumentation",
+	"rules": {
+		"tooltip": "Kade Regeln & Workflows verwalten",
+		"ariaLabel": "Kade Regeln",
+		"tabs": {
+			"rules": "Regeln",
+			"workflows": "Workflows"
+		},
+		"description": {
+			"rules": "Regeln ermöglichen es dir, Kade Anweisungen zu geben, die es in allen Modi und für alle Prompts befolgen soll. Sie sind eine dauerhafte Möglichkeit, Kontext und Präferenzen für alle Unterhaltungen in deinem Arbeitsbereich oder global einzubeziehen.",
+			"workflows": "Workflows sind eine vorbereitete Vorlage für eine Unterhaltung. Workflows ermöglichen es dir, Prompts zu definieren, die du häufig verwendest, und können eine Reihe von Schritten enthalten, um Kade durch sich wiederholende Aufgaben zu führen, wie das Bereitstellen eines Dienstes oder das Einreichen einer PR. Um einen Workflow aufzurufen, tippe",
+			"workflowsInChat": "im Chat."
+		},
+		"sections": {
+			"globalRules": "Globale Regeln",
+			"workspaceRules": "Arbeitsbereich-Regeln",
+			"globalWorkflows": "Globale Workflows",
+			"workspaceWorkflows": "Arbeitsbereich-Workflows"
+		},
+		"validation": {
+			"invalidFileExtension": "Nur .md, .txt oder keine Dateierweiterung erlaubt"
+		},
+		"placeholders": {
+			"workflowName": "workflow-name (.md, .txt oder keine Erweiterung)",
+			"ruleName": "regel-name (.md, .txt oder keine Erweiterung)"
+		},
+		"newFile": {
+			"newWorkflowFile": "Neue Workflow-Datei...",
+			"newRuleFile": "Neue Regel-Datei..."
+		}
+	},
+	"taskTimeline": {
+		"tooltip": {
+			"messageTypes": {
+				"browser_action_launch": "Browser-Start",
+				"browser_action_result": "Browser-Aktionsergebnis",
+				"browser_action": "Browser-Aktion",
+				"command": "Befehlsausführung",
+				"completion_result": "Fertigstellungsergebnis",
+				"condense_context": "Kontext verdichten",
+				"command_output": "Befehlsausgabe",
+				"error": "Fehlermeldung",
+				"reasoning": "KI-Denken",
+				"mcp_server_response": "MCP-Server-Antwort",
+				"checkpoint_saved": "Kontrollpunkt gespeichert",
+				"text": "KI-Antwort",
+				"unknown": "unbekannter Nachrichtentyp",
+				"tool": "Werkzeugnutzung",
+				"use_mcp_server": "MCP-Server-Nutzung",
+				"followup": "Nachfrage",
+				"user": "Nutzerfeedback"
+			},
+			"clickToScroll": "{{messageType}} (#{{messageNumber}}) ansehen"
+		}
+	},
+	"userFeedback": {
+		"editCancel": "Abbrechen",
+		"send": "Senden",
+		"restoreAndSend": "Wiederherstellen & Senden"
+	},
+	"ideaSuggestionsBox": {
+		"newHere": "Neu hier?",
+		"suggestionText": "<suggestionButton>Klick hier</suggestionButton> für eine coole Idee, dann drück auf <sendIcon /> und schau zu, wie ich Magie wirke!",
+		"ideas": {
+			"idea1": "Erstelle eine rotierende, leuchtende 3D-Kugel, die auf Mausbewegungen reagiert. Lass die App im Browser laufen.",
+			"idea2": "Erstelle eine Portfolio-Website für einen Python-Softwareentwickler",
+			"idea3": "Erstelle ein Finanz-App-Mockup im Browser. Dann teste, ob es funktioniert",
+			"idea4": "Erstelle eine Verzeichnis-Website mit den aktuell besten AI-Videogenerierungsmodellen",
+			"idea5": "Erstelle einen CSS-Gradienten-Generator, der benutzerdefinierte Stylesheets exportiert und eine Live-Vorschau zeigt",
+			"idea6": "Generiere Karten, die beim Hovern schön dynamischen Inhalt offenbaren",
+			"idea7": "Erstelle ein beruhigendes interaktives Sternfeld, das sich mit Mausgesten bewegt"
+		}
+	},
+	"ghost": {
+		"title": "Autocomplete",
+		"settings": {
+			"triggers": "Auslöser",
+			"model": "Modell",
+			"provider": "Provider",
+			"enableAutoTrigger": {
+				"label": "Pausieren zum Vervollständigen",
+				"description": "Wenn aktiviert, löst Kade automatisch Autocomplete aus, wenn du aufhörst zu tippen. Dies kann für schnelle Korrekturen und Vorschläge nützlich sein."
+			},
+			"autoTriggerDelay": {
+				"label": "Auto-Auslöseverzögerung",
+				"description": "Die Verzögerung in Sekunden, bevor Kade Autocomplete auslöst, nachdem du aufgehört hast zu tippen. Eine kürzere Verzögerung bedeutet schnellere Vorschläge, kann aber ressourcenintensiver sein."
+			},
+			"enableQuickInlineTaskKeybinding": {
+				"label": "Schnellaufgabe ({{keybinding}})",
+				"description": "Brauchst du nur eine schnelle Änderung? Wähle etwas Code aus (oder auch nicht!) und drücke Cmd+I. Beschreibe dein Ziel in einfachem Deutsch (\"erstelle eine React-Komponente mit diesen Props\", \"füge Fehlerbehandlung zu dieser Funktion hinzu\"), und erhalte mehrere, sofort verwendbare Vorschläge direkt in deinem Editor. <DocsLink>Tastenkombination bearbeiten</DocsLink>"
+			},
+			"enableSmartInlineTaskKeybinding": {
+				"label": "Manuelle Autovervollständigung ({{keybinding}})",
+				"description": "Brauchst du eine schnelle Korrektur, Vervollständigung oder Refaktorierung? Kade wird den umgebenden Kontext nutzen, um sofortige Verbesserungen anzubieten und dich im Flow zu halten. <DocsLink>Tastenkombination bearbeiten</DocsLink>"
+			},
+			"keybindingNotFound": "nicht gefunden",
+			"noModelConfigured": "Kein geeignetes Autocomplete-Modell gefunden. Bitte konfiguriere einen Provider in den API-Einstellungen.",
+			"configureAutocompleteProfile": "Verwende ein beliebiges Modell, indem du zu Profilen gehst und ein Profil vom Profiltyp Autocomplete konfigurierst.",
+			"enableChatAutocomplete": {
+				"label": "Chat-Eingabe-Autovervollständigung",
+				"description": "Wenn aktiviert, wird Kade Vervollständigungen vorschlagen, während Sie im Chat-Eingabefeld tippen. Drücken Sie Tab, um Vorschläge zu akzeptieren."
+			},
+			"snooze": {
+				"label": "Autocomplete pausieren",
+				"description": "Autocomplete-Vorschläge vorübergehend für eine bestimmte Dauer pausieren.",
+				"button": "Pausieren",
+				"unsnooze": "Fortsetzen",
+				"currentlySnoozed": "Autocomplete ist derzeit pausiert.",
+				"duration": {
+					"1min": "1 Minute",
+					"5min": "5 Minuten",
+					"15min": "15 Minuten",
+					"30min": "30 Minuten",
+					"1hour": "1 Stunde"
+				}
+			}
+		}
+	},
+	"virtualProvider": {
+		"title": "Virtuelle Kontingent-Fallback-Anbieter-Einstellungen",
+		"description": "Konfiguriere eine Liste von Profilen, jedes mit eigenen Kontingentbeschränkungen. Wenn die Kontingentbeschränkungen eines Anbieters erreicht sind, wird das nächste Profil in der Liste verwendet, bis keines mehr übrig ist.",
+		"profileLabel": "Profil {{number}}",
+		"primaryProfileLabel": "Profil {{number}} (Primär)",
+		"moveProfileUp": "Profil nach oben verschieben",
+		"moveProfileDown": "Profil nach unten verschieben",
+		"removeProfile": "Profil entfernen",
+		"selectProfilePlaceholder": "Profil auswählen...",
+		"addProfile": "Profil hinzufügen",
+		"noProfilesAvailable": "Keine Profile verfügbar. Bitte konfigurieren Sie zuerst mindestens ein nicht-virtuelles Anbieterprofil.",
+		"dangerZoneTitle": "Gefahrenbereich",
+		"dangerZoneDescription": "Diese Aktionen sind destruktiv und können nicht rückgängig gemacht werden.",
+		"clearUsageData": "Nutzungsdaten löschen",
+		"confirmClearTitle": "Bist du sicher?",
+		"confirmClearDescription": "Dies wird alle gespeicherten Nutzungsdaten für virtuelle Anbieter dauerhaft löschen. Diese Aktion kann nicht rückgängig gemacht werden.",
+		"tokensLabel": "Token",
+		"perHour": "Pro Stunde",
+		"perMinute": "Pro Minute",
+		"requestsLabel": "Anfragen",
+		"perDay": "Pro Tag"
+	},
+	"toolCallStyle": {
+		"title": "Tool-Call-Stil",
+		"description": "Wähle aus, wie Tool-Calls im System-Prompt formatiert werden. JSON ist derzeit experimentell und hauptsächlich für Nutzer gedacht, die an der Weiterentwicklung interessiert sind.",
+		"automatic": "Lass Kade entscheiden",
+		"xml": "XML",
+		"json": "JSON"
+	},
+	"imageWarnings": {
+		"modelNoImageSupport": "Bilder werden vom aktuellen Modell nicht unterstützt.",
+		"maxImagesReached": "Maximal 20 Bilder pro Nachricht. Entfernen Sie einige Bilder, um weitere hinzuzufügen.",
+		"imagesRemovedNoSupport": "Bilder entfernt, vom Modell nicht unterstützt."
+	},
+	"memoryWarning": {
+		"message": "Speicherauslastung liegt bei {{percentage}}%. Bitte starte deine IDE neu, um Abstürze zu vermeiden."
+	},
+	"marketplace": {
+		"mcp": {
+			"description": "Diese MCP-Server werden von der Community gepflegt. Klicken Sie <1>hier</1>, um Ihre eigenen MCP-Einstellungen zu bearbeiten."
+		},
+		"modes": {
+			"description": "Diese Modi werden von der Community bereitgestellt. Klicken Sie <1>hier</1>, um Ihre eigenen benutzerdefinierten Modi zu bearbeiten."
+		}
+	},
+	"modes": {
+		"shareModesNewBanner": "Neu: Modi teilen durch Erstellen einer Organisation"
+	},
+	"deviceAuth": {
+		"title": "Bei Kade anmelden",
+		"step1": "Öffne die folgende URL in deinem Browser",
+		"step2": "Überprüfe den Code und autorisiere dieses Gerät in deinem Browser",
+		"scanQr": "Oder scanne diesen QR-Code mit deinem Handy",
+		"openBrowser": "Browser öffnen",
+		"copyUrl": "URL kopieren",
+		"waiting": "Warte auf Autorisierung...",
+		"timeRemaining": "Code läuft ab in {{time}}",
+		"success": "Erfolgreich angemeldet!",
+		"authenticatedAs": "Authentifiziert als {{email}}",
+		"error": "Authentifizierungsfehler",
+		"unknownError": "Ein Fehler ist aufgetreten. Bitte versuche es erneut.",
+		"cancel": "Abbrechen",
+		"retry": "Erneut versuchen",
+		"tryAgain": "Erneut versuchen",
+		"cancelled": "Authentifizierung abgebrochen",
+		"initiating": "Authentifizierung wird gestartet..."
+	},
+	"speechToText": {
+		"startRecording": "Spracheingabe starten",
+		"stopRecording": "Spracheingabe beenden",
+		"unavailableBoth": "Spracherkennung ist nicht verfügbar. Es erfordert einen gültigen OpenAI-Anbieter und FFmpeg muss installiert sein.",
+		"unavailableFfmpegNotInstalled": "Sprache-zu-Text ist nicht verfügbar. Installieren Sie FFmpeg, um Sprachtranskription zu nutzen.",
+		"unavailableOpenAiKeyMissing": "Sprache-zu-Text ist nicht verfügbar. Es erfordert einen gültigen OpenAI-Anbieter mit einem API-Schlüssel, um Sprachtranskription zu nutzen."
+	}
+}

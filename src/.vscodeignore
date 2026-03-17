@@ -1,0 +1,164 @@
+# VS Code extension packaging ignore file
+
+# CRITICAL: Exclude ALL source files - only ship compiled dist/
+**/*
+!dist/**
+!webview-ui/build/**
+!webview-ui/audio/**
+!webview-ui/providers/**
+!assets/**
+!package.json
+!package.nls*.json
+!README.md
+!CHANGELOG.md
+!LICENSE
+!walkthrough/**
+
+# Explicitly exclude source directories
+src/**
+core/**
+api/**
+services/**
+utils/**
+integrations/**
+shared/**
+activate/**
+workers/**
+webview-ui/src/**
+webview-ui/node_modules/**
+webview-ui/public/**
+
+# Exclude TypeScript source files
+*.ts
+*.tsx
+!dist/**/*.ts
+tsconfig*.json
+vitest.config.ts
+vitest.setup.ts
+
+# Exclude build configs
+esbuild.mjs
+eslint.config.mjs
+turbo.json
+obfuscation-config.js
+obfuscation-config.ts
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Development files
+.git/
+.gitignore
+.husky/
+.changeset/
+.turbo/
+.devcontainer/
+
+# Testing
+coverage/
+.nyc_output/
+*.test.js
+*.test.ts
+test/
+tests/
+__tests__/
+*.spec.js
+*.spec.ts
+test-llm-autocompletion/**
+
+# Logs and debug files
+logs/
+*.log
+debug_output*
+errors.txt
+errors.log
+http_out.txt
+openrouter_out.txt
+lines.txt
+sample*.txt
+
+# Temporary files
+.tmp/
+temp/
+tmp/
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Package manager files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+.npm
+.yarn/
+
+# Configuration and documentation files that shouldn't be in extension
+README.md
+CHANGELOG.md
+LICENSE
+CONTRIBUTING.md
+.eslintrc*
+.prettierrc*
+tsconfig.json
+turbo.json
+flake.lock
+flake.nix
+
+# Large asset folders
+assets/
+public/
+static/
+
+# Workspace files
+apps/
+packages/
+extras/
+scripts/
+deps/
+
+# Backup and miscellaneous files
+.backup_before_update/
+.crush/
+.roo/
+.zencoder/
+.zenflow/
+.kilocode/
+.agent/
+
+# Large binary and data files
+*.wasm
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Documentation and guides
+TOOL_DEVELOPMENT_GUIDE.md
+system_prompt*.md
+issue.html
+sample.md
+20-line-text.txt
+sample9line.txt
+
+# Test and development scripts
+test_mv.ts
+unified-tools*.ts
+SearchFilesTool.ts
+edit.css
+index.html
+
+# Config files
+config.plist
+.vite-port
+
+# Temporary SDK checks
+temp_sdk_check/

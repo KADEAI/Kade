@@ -1,0 +1,219 @@
+.history-top-view-container {
+    position: relative;
+    width: calc(100% - 9px);
+    margin: 4px auto 6px;
+    background: #1e1e1e;
+    border: 0px solid #333;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 10000;
+    animation: slide-down-fade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-testid="chat-view"]:not(.empty-state-active) .history-top-view-container {
+    margin-top: 2px;
+    margin-bottom: 6px;
+    max-height: min(1000px, 80vh) !important;
+}
+
+@keyframes slide-down-fade {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.top-view-header {
+    display: flex;
+    align-items: center;
+    padding: 4px 3px;
+    background: #252525ff;
+    gap: 8px;
+}
+
+.header-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    background: rgba(65, 65, 65, 0.2);
+    padding: 5px 10px;
+    border-radius: 10px;
+    border: 0px solid rgba(255, 255, 255, 0.08);
+    min-width: 0;
+}
+
+.header-workspace-label {
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-left: 8px;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 200px;
+}
+
+.header-search .codicon {
+    color: #888;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.header-search-input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    flex: 1;
+    min-width: 0;
+    outline: none;
+    font-family: inherit;
+    font-size: 12px;
+    caret-color: transparent;
+}
+
+.header-search-input:focus {
+    caret-color: #fff;
+}
+
+.header-search-input::placeholder {
+    color: #666;
+}
+
+.top-view-list {
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1 1 auto;
+    background: #252525ff;
+}
+
+.compact-session-item {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    margin: 0 3.3px;
+    cursor: pointer;
+    gap: 8px;
+    height: 31px;
+    border-radius: 8px;
+    transition: background-color 0.1s;
+}
+
+.compact-session-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.compact-session-item.active {
+    background-color: rgba(0, 127, 212, 0.15);
+}
+
+.compact-item-left {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.status-icon-compact {
+    font-size: 14px;
+    color: #666;
+}
+
+.compact-session-item.active .status-icon-compact {
+    color: #007fd4;
+}
+
+.compact-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.compact-item-title {
+    color: #979797ff;
+    font-size: 12.2px;
+    font-weight: 472;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.compact-session-item.active .compact-item-title:not(.sub-agent-item-title) {
+    color: #fff;
+}
+
+.compact-item-right {
+    flex-shrink: 0;
+}
+
+.compact-item-time {
+    font-size: 11px;
+    color: #555;
+    margin-left: 12px;
+}
+
+.empty-state-compact {
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    font-size: 12px;
+}
+
+/* Custom Scrollbar */
+.top-view-list::-webkit-scrollbar {
+    width: 10px;
+}
+
+.top-view-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.top-view-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 90px;
+    border: 2px solid #252525;
+}
+
+.top-view-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.sub-agents-section {
+    margin-bottom: 4px;
+}
+
+.sub-agents-header, .section-header {
+    user-select: none;
+    transition: background-color 0.1s;
+}
+
+.sub-agents-header:hover, .section-header:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.sub-agent-item-title {
+    font-weight: 700 !important;
+    color: #3794ef !important;
+}
+
+.compact-session-item.active .sub-agent-item-title {
+    color: #3794ef !important;
+}
+
+.regular-tasks-section {
+    position: relative;
+}

@@ -1,0 +1,2228 @@
+import * as vscode from "vscode"
+import * as fs from "node:fs"
+import * as path from "node:path"
+import { readApiMessages, saveApiMessages, saveTaskMessages } from "../../task-persistence"
+import { readTaskMessages } from "../../task-persistence/taskMessages"
+import { getTaskDirectoryPath } from "../../../utils/storage"
+import { t } from "i18next"
+import { AgentRegistry } from "./AgentRegistry"
+import { renameMapKey } from "./mapUtils"
+import {
+	buildParallelModeWorktreePath,
+	parseParallelModeBranch,
+	parseParallelModeWorktreePath,
+	isParallelModeCompletionMessage,
+	parseParallelModeCompletionBranch,
+} from "./parallelModeParser"
+import { findKilocodeCli, type CliDiscoveryResult } from "./CliPathResolver"
+import { canInstallCli, getCliInstallCommand, getLocalCliInstallCommand, getLocalCliBinDir } from "./CliInstaller"
+import { CliProcessHandler, type CliProcessHandlerCallbacks } from "./CliProcessHandler"
+import type { StreamEvent, KilocodeStreamEvent, KilocodePayload, WelcomeStreamEvent } from "./CliOutputParser"
+import { extractRawText, tryParsePayloadJson } from "./askErrorParser"
+import { RemoteSessionService } from "./RemoteSessionService"
+import { KilocodeEventProcessor } from "./KilocodeEventProcessor"
+import type { RemoteSession, AgentSession, PendingSession } from "./types"
+import { getUri } from "../../webview/getUri"
+import { getNonce } from "../../webview/getNonce"
+import { getViteDevServerConfig } from "../../webview/getViteDevServerConfig"
+import { getRemoteUrl } from "../../../services/code-index/managed/git-utils"
+import { normalizeGitUrl } from "./normalizeGitUrl"
+import type { ClineMessage } from "@roo-code/types"
+import type { ProviderSettings } from "@roo-code/types"
+import {
+	captureAgentManagerOpened,
+	captureAgentManagerSessionStarted,
+	captureAgentManagerSessionCompleted,
+	captureAgentManagerSessionStopped,
+	captureAgentManagerSessionError,
+	captureAgentManagerLoginIssue,
+	getPlatformDiagnostics,
+} from "./telemetry"
+import type { HistoryItem } from "@roo-code/types"
+import type { ClineProvider } from "../../webview/ClineProvider"
+import { extractSessionConfigs, MAX_VERSION_COUNT } from "./multiVersionUtils"
+import { SessionManager } from "../../../shared/kilocode/cli-sessions/core/SessionManager"
+import { WorkspaceGitService } from "./WorkspaceGitService"
+import { SessionTerminalManager } from "./SessionTerminalManager"
+import { Task } from "../../task/Task"
+import { RooCodeEventName } from "@roo-code/types"
+import simpleGit from "simple-git"
+import * as os from "os"
+import { OPENAI_CODEX_CREDENTIALS_KEY } from "../../../integrations/openai-codex/oauth"
+
+/**
+ * AgentManagerProvider
+ *
+ * Manages the Agent Manager webview panel and orchestrates kilocode agents.
+ * Each agent runs as a CLI process using `kilocode --auto --json`.
+ */
+export class AgentManagerProvider implements vscode.Disposable {
+	public static readonly viewType = "kilo-code.AgentManagerPanel"
+	private static instance: AgentManagerProvider | undefined
+
+	private panel: vscode.WebviewPanel | undefined
+	private disposables: vscode.Disposable[] = []
+	private registry: AgentRegistry
+	private remoteSessionService: RemoteSessionService
+	private processHandler: CliProcessHandler
+	private eventProcessor: KilocodeEventProcessor
+	private terminalManager: SessionTerminalManager
+	private activeTasks: Map<string, Task> = new Map()
+	private sessionMessages: Map<string, ClineMessage[]> = new Map()
+	// Track first api_req_started per session to filter user-input echoes
+	private firstApiReqStarted: Map<string, boolean> = new Map()
+	// Track the current workspace's git URL for filtering sessions
+	private currentGitUrl: string | undefined
+	private lastAuthErrorMessage: string | undefined
+	// Track process start times to filter out replayed history events
+	private processStartTimes: Map<string, number> = new Map()
+	// Track currently sending message per session (for one-at-a-time constraint)
+	private sendingMessageMap: Map<string, string> = new Map()
+	// Cache remote sessions to allow creating local entries when selected
+	private remoteSessions: RemoteSession[] = []
+
+	// In-memory cache of workspace config to prevent race conditions with globalState
+	private workspaceConfigCache: any = undefined
+
+	// Team update callback
+	private sessionUpdateCallbacks: ((session: AgentSession) => void)[] = []
+
+	constructor(
+		private readonly context: vscode.ExtensionContext,
+		private readonly outputChannel: vscode.OutputChannel,
+		private readonly provider: ClineProvider,
+	) {
+		AgentManagerProvider.instance = this
+		this.registry = new AgentRegistry()
+		this.remoteSessionService = new RemoteSessionService({ outputChannel })
+		this.terminalManager = new SessionTerminalManager(this.registry, this.outputChannel)
+
+		// Initialize config cache
+		this.workspaceConfigCache = this.context.globalState.get("agent_manager_workspace_config") || {}
+
+		// Initialize currentGitUrl from workspace
+		void this.initializeCurrentGitUrl()
+
+		const isDevelopment = this.context.extensionMode === vscode.ExtensionMode.Development
+
+		const callbacks: CliProcessHandlerCallbacks = {
+			onLog: (message) => this.outputChannel.appendLine(`[AgentManager] ${message}`),
+			// Only enable verbose debug logging in development mode
+			onDebugLog: isDevelopment
+				? (message) => this.outputChannel.appendLine(`[AgentManager] ${message}`)
+				: undefined,
+			onSessionLog: (sessionId, line) => this.log(sessionId, line),
+			onStateChanged: () => this.postStateToWebview(),
+			onPendingSessionChanged: (pendingSession) => {
+				this.postMessage({ type: "agentManager.pendingSession", pendingSession })
+			},
+			onStartSessionFailed: (error) => {
+				this.postMessage({ type: "agentManager.startSessionFailed" })
+				if (error?.type === "payment_required") {
+					this.showPaymentRequiredPrompt(error.payload ?? { text: error.message })
+					return
+				}
+				if (error?.type === "api_req_failed") {
+					this.handleStartSessionApiFailure(error)
+					return
+				}
+				this.showCliError(error)
+			},
+			onChatMessages: (sessionId, messages) => {
+				this.postMessage({ type: "agentManager.chatMessages", sessionId, messages })
+			},
+			onSessionCreated: (sawApiReqStarted: boolean, folderId?: string) => {
+				// Initialize messages for the new session with the initial prompt
+				const sessions = this.registry.getSessions()
+				if (sessions.length > 0) {
+					const latestSession = sessions[0]
+					// Add initial prompt as user_feedback message
+					// The extension doesn't emit user_feedback for the initial prompt,
+					// so we add it here when the session is created
+					const initialMessage: ClineMessage = {
+						ts: latestSession.startTime,
+						type: "say",
+						say: "user_feedback",
+						text: latestSession.prompt,
+					}
+					this.sessionMessages.set(latestSession.sessionId, [initialMessage])
+					// Transfer api_req_started flag captured during pending phase
+					// This ensures KilocodeEventProcessor knows the user echo already happened
+					if (sawApiReqStarted) {
+						this.firstApiReqStarted.set(latestSession.sessionId, true)
+					}
+
+					// Associate with folder if it was started from a specific folder context
+					if (folderId) {
+						this.outputChannel.appendLine(`[AgentManager] Associating session ${latestSession.sessionId} with folder ${folderId}`)
+						const config: any = this.getWorkspaceConfig()
+						const sessionToFolder = config.sessionToFolder || {}
+						sessionToFolder[latestSession.sessionId] = folderId
+						const newConfig = { ...config, sessionToFolder }
+						this.updateWorkspaceConfig(newConfig)
+						this.postMessage({ type: "agentManager.workspaceConfig", config: newConfig })
+					} else {
+						this.outputChannel.appendLine(`[AgentManager] Session ${latestSession.sessionId} created without folder association`)
+					}
+
+					// Track session started telemetry
+					captureAgentManagerSessionStarted(
+						latestSession.sessionId,
+						latestSession.parallelMode?.enabled ?? false,
+					)
+				}
+			},
+			onSessionCompleted: (sessionId) => {
+				// Notify webview state machine of completion when process exits successfully
+				// This ensures the state machine transitions to completed state
+				// (needed because completion_result events from CLI stdout can be truncated)
+				this.postMessage({
+					type: "agentManager.stateEvent",
+					sessionId,
+					eventType: "ask_completion_result",
+				})
+			},
+			onPaymentRequiredPrompt: (payload) => this.showPaymentRequiredPrompt(payload),
+			onSessionRenamed: (oldId, newId, folderId) => this.handleSessionRenamed(oldId, newId, folderId),
+		}
+
+		this.processHandler = new CliProcessHandler(this.registry, callbacks)
+		this.eventProcessor = new KilocodeEventProcessor({
+			processHandler: this.processHandler,
+			registry: this.registry,
+			sessionMessages: this.sessionMessages,
+			firstApiReqStarted: this.firstApiReqStarted,
+			log: (sessionId, line) => this.log(sessionId, line),
+			postChatMessages: (sessionId, messages) =>
+				this.postMessage({ type: "agentManager.chatMessages", sessionId, messages }),
+			postState: () => this.postStateToWebview(),
+			postStateEvent: (sessionId, payload) =>
+				this.postMessage({ type: "agentManager.stateEvent", sessionId, ...payload }),
+			onPaymentRequiredPrompt: (payload) => this.showPaymentRequiredPrompt(payload),
+		})
+	}
+
+	private getWorkspaceConfig(): any {
+		if (this.workspaceConfigCache === undefined) {
+			this.workspaceConfigCache = this.context.globalState.get("agent_manager_workspace_config") || {}
+		}
+		return this.workspaceConfigCache
+	}
+
+	private updateWorkspaceConfig(config: any): void {
+		this.workspaceConfigCache = config
+		void this.context.globalState.update("agent_manager_workspace_config", config)
+	}
+
+	/**
+	 * Open or focus the Agent Manager panel
+	 */
+	public async openPanel(): Promise<void> {
+		if (this.panel) {
+			this.panel.reveal(vscode.ViewColumn.One)
+			return
+		}
+
+		this.panel = vscode.window.createWebviewPanel(
+			AgentManagerProvider.viewType,
+			"Agent Manager",
+			vscode.ViewColumn.One,
+			{
+				enableScripts: true,
+				retainContextWhenHidden: true,
+				localResourceRoots: [this.context.extensionUri],
+			},
+		)
+
+		this.panel.iconPath = {
+			light: vscode.Uri.joinPath(this.context.extensionUri, "assets", "icons", "kilo-light.svg"),
+			dark: vscode.Uri.joinPath(this.context.extensionUri, "assets", "icons", "kilo-dark.svg"),
+		}
+
+		this.panel.webview.html =
+			this.context.extensionMode === vscode.ExtensionMode.Development
+				? await this.getHMRHtmlContent(this.panel.webview)
+				: this.getHtmlContent(this.panel.webview)
+
+		this.panel.webview.onDidReceiveMessage((message) => this.handleMessage(message), null, this.disposables)
+
+		this.panel.onDidDispose(
+			() => {
+				this.panel = undefined
+				this.stopAllAgents()
+			},
+			null,
+			this.disposables,
+		)
+
+		this.outputChannel.appendLine("Agent Manager panel opened")
+
+		// Track Agent Manager panel opened
+		captureAgentManagerOpened()
+	}
+
+	/** Rename session key in all session-keyed maps when provisional session is upgraded. */
+	private handleSessionRenamed(oldId: string, newId: string, folderId?: string): void {
+		this.outputChannel.appendLine(`[AgentManager] Renaming session: ${oldId} -> ${newId}`)
+
+		renameMapKey(this.sessionMessages, oldId, newId)
+		renameMapKey(this.firstApiReqStarted, oldId, newId)
+		renameMapKey(this.processStartTimes, oldId, newId)
+		renameMapKey(this.sendingMessageMap, oldId, newId)
+
+		// Update workspace config to migrate folder association
+		const config: any = this.getWorkspaceConfig()
+
+		// Priority 1: Use explicitly passed folderId (captured at creation time)
+		// Priority 2: Use existing mapping from sessionToFolder (if it was saved during provisional phase)
+		const targetFolderId = folderId || (config.sessionToFolder ? config.sessionToFolder[oldId] : undefined)
+
+		if (targetFolderId) {
+			this.outputChannel.appendLine(`[AgentManager] Persisting folder association for ${newId} -> ${targetFolderId}`)
+			const sessionToFolder = { ...config.sessionToFolder }
+			sessionToFolder[newId] = targetFolderId
+
+			// Clean up old ID mapping if it existed
+			if (sessionToFolder[oldId]) {
+				delete sessionToFolder[oldId]
+			}
+
+			const newConfig = { ...config, sessionToFolder }
+			this.updateWorkspaceConfig(newConfig)
+			this.postMessage({ type: "agentManager.workspaceConfig", config: newConfig })
+		} else {
+			this.outputChannel.appendLine(`[AgentManager] No folder association found for ${oldId} or ${newId}`)
+		}
+
+		const messages = this.sessionMessages.get(newId)
+		if (messages) {
+			this.postMessage({ type: "agentManager.chatMessages", sessionId: newId, messages })
+		}
+
+		const session = this.registry.getSession(newId)
+		if (session) {
+			this.notifySessionUpdate(session)
+		}
+	}
+
+	private notifySessionUpdate(session: AgentSession): void {
+		this.sessionUpdateCallbacks.forEach((cb) => cb(session))
+	}
+
+	private handleMessage(message: { type: string;[key: string]: unknown }): void {
+		this.outputChannel.appendLine(`Agent Manager received message: ${JSON.stringify(message)}`)
+
+		try {
+			switch (message.type) {
+				case "agentManager.webviewReady":
+					this.postStateToWebview()
+					const workspaceConfig = this.getWorkspaceConfig()
+					this.outputChannel.appendLine(`[AgentManager] webviewReady - Sending workspace config: ${JSON.stringify(workspaceConfig)}`)
+					this.postMessage({ type: "agentManager.workspaceConfig", config: workspaceConfig })
+					void this.fetchAndPostRemoteSessions()
+					break
+				case "agentManager.startSession":
+					void this.handleStartSession(message)
+					break
+				case "agentManager.stopSession":
+					// this.stopAgentSession(message.sessionId as string)
+					// Handle active Task stop
+					const task = this.activeTasks.get(message.sessionId as string)
+					if (task) {
+						task.abortTask()
+					} else {
+						this.stopAgentSession(message.sessionId as string) // Fallback for CLI
+					}
+					break
+				case "agentManager.finishWorktreeSession":
+					this.finishWorktreeSession(message.sessionId as string)
+					break
+				case "agentManager.sendMessage":
+					void this.sendMessage(
+						message.sessionId as string,
+						message.content as string,
+						message.sessionLabel as string | undefined,
+					)
+					break
+				case "agentManager.messageQueued":
+					void this.handleQueuedMessage(
+						message.sessionId as string,
+						message.messageId as string,
+						message.content as string,
+						message.sessionLabel as string | undefined,
+					)
+					break
+				case "agentManager.resumeSession":
+					void this.resumeSession(message.sessionId as string, message.content as string)
+					break
+				case "agentManager.cancelSession":
+					void this.cancelSession(message.sessionId as string)
+					break
+				case "agentManager.respondToApproval":
+					void this.respondToApproval(
+						message.sessionId as string,
+						message.approved as boolean,
+						message.text as string | undefined,
+					)
+					break
+				case "agentManager.removeSession":
+					this.removeSession(message.sessionId as string)
+					break
+				case "agentManager.cancelPendingSession":
+					this.cancelPendingSession()
+					break
+				case "agentManager.selectSession": {
+					const sessionId = message.sessionId as string | null
+					if (sessionId) {
+						// Ensure messages are populated from task if active, or from the registry/history
+						let messages = this.sessionMessages.get(sessionId) || []
+
+						// If empty, try to get from active task
+						if (messages.length === 0 && this.activeTasks.has(sessionId)) {
+							const task = this.activeTasks.get(sessionId)
+							if (task) {
+								messages = task.clineMessages || []
+							}
+						}
+
+						this.postMessage({ type: "agentManager.chatMessages", sessionId, messages })
+					}
+					this.selectSession(sessionId)
+					break
+				}
+				case "agentManager.refreshRemoteSessions":
+					void this.fetchAndPostRemoteSessions()
+					break
+				case "agentManager.listBranches":
+					void this.handleListBranches()
+					break
+				case "agentManager.refreshSessionMessages":
+					void this.refreshSessionMessages(message.sessionId as string)
+					break
+				case "agentManager.showTerminal":
+					this.terminalManager.showTerminal(message.sessionId as string)
+					break
+				case "agentManager.sessionShare":
+					SessionManager.init()
+						?.shareSession(message.sessionId as string)
+						.then((result) => {
+							const shareUrl = `https://app.kilo.ai/share/${result.share_id}`
+
+							void vscode.env.clipboard.writeText(shareUrl)
+							vscode.window.showInformationMessage(
+								t("common:info.session_share_link_copied_with_url", { url: shareUrl }),
+							)
+						})
+						.catch((error) => {
+							const errorMessage = error instanceof Error ? error.message : String(error)
+							vscode.window.showErrorMessage(`Failed to share session: ${errorMessage}`)
+						})
+					break
+				case "agentManager.updateWorkspaceConfig":
+					this.updateWorkspaceConfig(message.config)
+					break
+				case "agentManager.createFolder":
+					void vscode.window
+						.showOpenDialog({
+							canSelectFiles: false,
+							canSelectFolders: true,
+							canSelectMany: false,
+							openLabel: "Select Workspace Folder",
+						})
+						.then(async (uris) => {
+							if (uris && uris.length > 0) {
+								const folderUri = uris[0]
+								const folderPath = folderUri.fsPath
+								const folderName = path.basename(folderPath)
+
+								let gitUrl: string | undefined
+								try {
+									gitUrl = normalizeGitUrl(await getRemoteUrl(folderPath))
+								} catch (e) {
+									// Not a git repo or other error, fallback to just the name
+								}
+
+								const config: any = this.getWorkspaceConfig()
+								const manualFolders = config.manualFolders || []
+
+								// Avoid duplicates
+								if (manualFolders.some((f: any) => f.path === folderPath)) {
+									return
+								}
+
+								const newFolder = {
+									id: `manual-${Date.now()}`,
+									name: folderName,
+									path: folderPath,
+									gitUrl,
+									isManual: true,
+								}
+
+								const newConfig = {
+									...config,
+									manualFolders: [...manualFolders, newFolder],
+								}
+								this.updateWorkspaceConfig(newConfig)
+								this.postMessage({ type: "agentManager.workspaceConfig", config: newConfig })
+							}
+						})
+					break
+			}
+		} catch (error) {
+			this.outputChannel.appendLine(`Error handling message: ${error}`)
+		}
+	}
+
+	/**
+	 * Handle start session message from webview.
+	 * Supports multi-version mode: when versions > 1, spawns multiple sessions sequentially.
+	 */
+	private async handleStartSession(message: { [key: string]: unknown }): Promise<void> {
+		// Reset auth warning dedupe for each start attempt
+		this.lastAuthErrorMessage = undefined
+
+		const prompt = message.prompt as string
+		const rawVersions = (message.versions as number) ?? 1
+		const versions = Math.min(Math.max(rawVersions, 1), MAX_VERSION_COUNT)
+		const rawLabels = message.labels as string[] | undefined
+		const labels = rawLabels?.length === versions ? rawLabels : undefined
+		const parallelMode = (message.parallelMode as boolean) ?? false
+		const existingBranch = (message.existingBranch as string) ?? undefined
+		const folderId = message.folderId as string | undefined
+
+		const teamId = (message.teamId as string) ?? undefined
+		const teamRole = (message.teamRole as "leader" | "worker" | "validator") ?? undefined
+
+		let cwdOverride: string | undefined
+		let gitUrlOverride: string | undefined
+
+		if (folderId) {
+			const config: any = this.getWorkspaceConfig()
+			if (config && config.manualFolders) {
+				const folder = config.manualFolders.find((f: any) => f.id === folderId)
+				if (folder) {
+					cwdOverride = folder.path
+					gitUrlOverride = folder.gitUrl
+				}
+			}
+		}
+
+		// Extract session configurations
+		const configs = extractSessionConfigs({ prompt, versions, labels, parallelMode, existingBranch })
+
+		for (let i = 0; i < configs.length; i++) {
+			const config = configs[i]
+
+			await this.startAgentSession(config.prompt, {
+				parallelMode: config.parallelMode,
+				labelOverride: config.label,
+				existingBranch: config.existingBranch,
+				teamId,
+				teamRole,
+				cwdOverride,
+				gitUrlOverride,
+				folderId,
+			})
+
+			if (i < configs.length - 1) {
+				await this.waitForPendingSessionToClear()
+			}
+		}
+		this.outputChannel.appendLine(`[AgentManager] All ${configs.length} versions started`)
+	}
+
+	/**
+	 * Wait for any pending session to transition to active/error state.
+	 * Returns immediately if no session is pending.
+	 */
+	private waitForPendingSessionToClear(): Promise<void> {
+		return new Promise((resolve) => {
+			const hasPending = () => !!this.registry.pendingSession || this.processHandler?.hasPendingProcess()
+
+			if (!hasPending()) {
+				resolve()
+				return
+			}
+
+			let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+			const checkInterval = setInterval(() => {
+				if (!hasPending()) {
+					clearInterval(checkInterval)
+					if (timeoutId) {
+						clearTimeout(timeoutId)
+					}
+					resolve()
+				}
+			}, 100)
+
+			timeoutId = setTimeout(() => {
+				clearInterval(checkInterval)
+				this.outputChannel.appendLine(`[AgentManager] Timeout waiting for pending session to clear`)
+				resolve()
+			}, 30000)
+		})
+	}
+
+	private async initializeCurrentGitUrl(): Promise<void> {
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+		if (!workspaceFolder) {
+			return
+		}
+
+		try {
+			const rawGitUrl = await getRemoteUrl(workspaceFolder)
+			this.currentGitUrl = normalizeGitUrl(rawGitUrl)
+			this.outputChannel.appendLine(`[AgentManager] Current git URL: ${this.currentGitUrl}`)
+		} catch (error) {
+			this.outputChannel.appendLine(
+				`[AgentManager] Could not get git URL for workspace: ${error instanceof Error ? error.message : String(error)}`,
+			)
+		}
+	}
+
+	/**
+	 * Start a new agent session using the kilocode CLI
+	 * @param prompt - The task prompt for the agent
+	 */
+	public async startAgentSession(
+		prompt: string,
+		options?: {
+			parallelMode?: boolean
+			labelOverride?: string
+			existingBranch?: string
+			teamId?: string
+			teamRole?: "leader" | "worker" | "validator"
+			enableSubAgents?: boolean
+			cwdOverride?: string
+			gitUrlOverride?: string
+			folderId?: string
+		},
+	): Promise<void> {
+		if (!prompt) {
+			this.outputChannel.appendLine("ERROR: prompt is empty")
+			return
+		}
+
+		if (options?.folderId) {
+			this.outputChannel.appendLine(`[AgentManager] Starting session in folder: ${options.folderId}`)
+		}
+
+		// Determine workspace path
+		// Default to current workspace, but support worktree/cwdOverride
+		let workspaceFolder = options?.cwdOverride || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+
+		if (!workspaceFolder) {
+			void vscode.window.showErrorMessage("Please open a folder before starting an agent.")
+			this.postMessage({ type: "agentManager.startSessionFailed" })
+			return
+		}
+
+		// Handle Parallel Mode (Worktree)
+		if (options?.parallelMode) {
+			try {
+				const mainWorkspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+				if (mainWorkspace) {
+					const git = simpleGit(mainWorkspace)
+					const branchName = options.existingBranch || `agent-${Date.now()}`
+					const worktreePath = buildParallelModeWorktreePath(branchName)
+
+					// Check if worktree already exists
+					const isClean = !fs.existsSync(worktreePath)
+
+					if (isClean) {
+						this.outputChannel.appendLine(`[AgentManager] Creating worktree for parallel mode at ${worktreePath}`)
+						// Create branch if not existing (simple-git checkout -b might be needed, or worktree add -b)
+						// worktree add -b <branch> <path>
+						if (options.existingBranch) {
+							await (git as any).worktree(['add', worktreePath, options.existingBranch])
+						} else {
+							await (git as any).worktree(['add', '-b', branchName, worktreePath])
+						}
+					} else {
+						this.outputChannel.appendLine(`[AgentManager] Using existing worktree at ${worktreePath}`)
+					}
+
+					workspaceFolder = worktreePath
+				}
+			} catch (error) {
+				this.outputChannel.appendLine(`[AgentManager] Failed to setup parallel mode: ${error}`)
+				// Fallback to main workspace or fail? 
+				// Fail is safer to avoid messing up main workspace if parallel was requested.
+				this.postMessage({ type: "agentManager.startSessionFailed" })
+				return
+			}
+		}
+
+		const { apiConfiguration } = await this.provider.getState()
+
+		// Create the Task
+		const task = new Task({
+			context: this.context,
+			provider: this.provider,
+			apiConfiguration,
+			task: prompt,
+			workspacePath: workspaceFolder,
+			startTask: true,
+			enableSubAgents: options?.enableSubAgents ?? true, // Default to true for agents
+			enableCheckpoints: false, // Agent Manager sessions shouldn't be spamming checkpoints
+			initialStatus: "active"
+		})
+
+		// Map Task ID to Session ID logic
+		const sessionId = task.taskId
+		this.activeTasks.set(sessionId, task)
+
+		// Register session in registry
+		this.registry.createSession(
+			sessionId,
+			prompt,
+			Date.now(),
+			{
+				labelOverride: options?.labelOverride,
+				parallelMode: options?.parallelMode,
+				gitUrl: options?.gitUrlOverride,
+				teamId: options?.teamId,
+				teamRole: options?.teamRole
+			}
+		)
+
+		this.notifySessionUpdate(this.registry.getSession(sessionId)!)
+
+		this.setupTaskListeners(task, sessionId)
+
+		// Track start
+		this.outputChannel.appendLine(`[AgentManager] Started session ${sessionId} using VS Code Task engine`)
+		captureAgentManagerSessionStarted(sessionId, options?.parallelMode ?? false)
+	}
+
+	private setupTaskListeners(task: Task, sessionId: string) {
+		// 1. Chat Messages
+		task.on(RooCodeEventName.Message, async () => {
+			// Update messages from task logic
+			// For Task-based sessions, we rely on task.clineMessages as the source of truth
+			const messages = task.clineMessages
+
+			// Notify Webview with full message list
+			this.postMessage({ type: "agentManager.chatMessages", sessionId, messages })
+
+			// Update state if agent is waiting for user input
+			// We check the last message to see if it's an 'ask' that hasn't been answered/processed yet?
+			// Actually, the 'ask' event logic in Task.ts implies it's waiting.
+			// But since we just got a message event, let's peek at the last message.
+			const lastMessage = messages[messages.length - 1]
+			if (lastMessage) {
+				if (lastMessage.type === "ask" && lastMessage.ask) {
+					// Agent is waiting for input -> Paused
+					const currentStatus = this.registry.getSession(sessionId)?.status
+					// Only update if needed to prevent loops/jitter
+					if (currentStatus !== "paused" && currentStatus !== "done" && currentStatus !== "stopped") {
+						this.registry.updateSessionStatus(sessionId, "paused")
+						this.notifySessionUpdate(this.registry.getSession(sessionId)!)
+					}
+				} else if (lastMessage.type === "say" && lastMessage.say === "api_req_started") {
+					// Agent started thinking -> Running
+					const currentStatus = this.registry.getSession(sessionId)?.status
+					if (currentStatus === "paused") {
+						this.registry.updateSessionStatus(sessionId, "running")
+						this.notifySessionUpdate(this.registry.getSession(sessionId)!)
+					}
+				}
+			}
+		})
+
+		// 2. Completion / State
+		task.on(RooCodeEventName.TaskCompleted, () => {
+			this.registry.updateSessionStatus(sessionId, "done")
+			// Do NOT delete from activeTasks immediately, so we can resume/chat if needed
+			// this.activeTasks.delete(sessionId) 
+			this.postMessage({
+				type: "agentManager.stateEvent",
+				sessionId,
+				eventType: "ask_completion_result",
+			})
+			this.notifySessionUpdate(this.registry.getSession(sessionId)!)
+		})
+
+		task.on(RooCodeEventName.TaskAborted, () => {
+			this.registry.updateSessionStatus(sessionId, "stopped")
+			this.notifySessionUpdate(this.registry.getSession(sessionId)!)
+		})
+
+		task.on(RooCodeEventName.TaskActive, () => {
+			this.postStateToWebview()
+		})
+	}
+
+	/**
+	 * Send a user message to an active agent session.
+	 */
+	public async sendUserMessage(sessionId: string, text: string): Promise<void> {
+		// Check if it's a CLI process
+		if (this.processHandler.hasProcess(sessionId)) {
+			// legacy CLI handling
+			try {
+				const payload = {
+					type: "user_input",
+					content: text
+				}
+				await this.processHandler.writeToStdin(sessionId, payload)
+				this.log(sessionId, `User: ${text}`)
+				const messages = this.sessionMessages.get(sessionId) || []
+				messages.push({
+					ts: Date.now(),
+					type: "say",
+					say: "user_feedback",
+					text,
+				})
+				this.sessionMessages.set(sessionId, messages)
+				this.notifySessionUpdate(this.registry.getSession(sessionId)!)
+			} catch (error) {
+				this.outputChannel.appendLine(`[AgentManager] Failed to send message to ${sessionId}: ${error}`)
+			}
+			return
+		}
+
+		// Check active Tasks
+		let task = this.activeTasks.get(sessionId)
+		const sessionStatus = this.registry.getSession(sessionId)?.status
+
+		// If task is missing or stopped/done, we need to resume via hydration mechanism
+		if (!task && !this.processHandler.hasProcess(sessionId)) {
+			// Try to resume if it's a valid session ID
+			this.outputChannel.appendLine(`[AgentManager] Session ${sessionId} not active, attempting to hydrate/resume...`)
+			await this.resumeSession(sessionId, text)
+			return
+		}
+
+		if (task && (sessionStatus === "done" || sessionStatus === "stopped")) {
+			// Task object exists but is stopped. We need to resume it.
+			// (If it is "paused", it is still running and waiting for input, so we skip this block)
+			this.outputChannel.appendLine(`[AgentManager] Session ${sessionId} is ${sessionStatus}, resuming...`)
+			await this.resumeSession(sessionId, text)
+			return
+		}
+
+		if (task) {
+			try {
+				// Normal chat flow for running task
+				task.handleWebviewAskResponse("messageResponse", text)
+
+				// Set back to running immediately to show responsiveness
+				this.registry.updateSessionStatus(sessionId, "running")
+				this.notifySessionUpdate(this.registry.getSession(sessionId)!)
+
+				// Note: We no longer manually push "user_feedback" here.
+				// The Task will emit a Message event when it processes the user input (or when AgentLoop adds it).
+				// This ensures we don't have duplicate messages.
+
+			} catch (error) {
+				this.outputChannel.appendLine(`[AgentManager] Failed to send message to task ${sessionId}: ${error}`)
+			}
+			return
+		}
+
+		this.outputChannel.appendLine(`[AgentManager] Cannot send message: Session ${sessionId} not active`)
+	}
+
+	private async getApiConfigurationForCli(): Promise<ProviderSettings | undefined> {
+		const { apiConfiguration } = await this.provider.getState()
+		return apiConfiguration
+	}
+
+	/**
+	 * Common helper to spawn a CLI process with standard setup.
+	 * Handles CLI path lookup, workspace folder validation, API config, and event callback wiring.
+	 * @returns true if process was spawned, false if setup failed
+	 */
+	private async spawnCliWithCommonSetup(
+		prompt: string,
+		options: {
+			parallelMode?: boolean
+			label?: string
+			gitUrl?: string
+			existingBranch?: string
+			sessionId?: string
+			teamId?: string
+			teamRole?: "leader" | "worker" | "validator"
+			enableSubAgents?: boolean
+			cwdOverride?: string
+			folderId?: string
+		},
+		onSetupFailed?: () => void,
+	): Promise<boolean> {
+		const workspaceFolder = options.cwdOverride || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+		if (!workspaceFolder) {
+			this.outputChannel.appendLine("ERROR: No workspace folder open")
+			onSetupFailed?.()
+			return false
+		}
+
+		const cliDiscovery = await findKilocodeCli((msg) => this.outputChannel.appendLine(`[AgentManager] ${msg}`))
+		if (!cliDiscovery) {
+			this.outputChannel.appendLine("ERROR: kilocode CLI not found")
+			this.showCliNotFoundError()
+			onSetupFailed?.()
+			return false
+		}
+
+		const processStartTime = Date.now()
+		let apiConfiguration: ProviderSettings | undefined
+		try {
+			apiConfiguration = await this.getApiConfigurationForCli()
+		} catch (error) {
+			this.outputChannel.appendLine(
+				`[AgentManager] Failed to read provider settings for CLI: ${error instanceof Error ? error.message : String(error)
+				}`,
+			)
+		}
+
+		// When using OpenAI Codex (ChatGPT Plus/Pro), pass OAuth credentials to the agent process
+		// so it can authenticate; the agent process has its own context and no access to main extension secrets
+		let secrets: Record<string, string> | undefined
+		if (apiConfiguration?.apiProvider === "openai-codex") {
+			try {
+				const credentialsJson = await this.context.secrets.get(OPENAI_CODEX_CREDENTIALS_KEY)
+				if (credentialsJson) {
+					secrets = { [OPENAI_CODEX_CREDENTIALS_KEY]: credentialsJson }
+					this.outputChannel.appendLine("[AgentManager] Passing OpenAI Codex credentials to agent process")
+				} else {
+					this.outputChannel.appendLine(
+						"[AgentManager] OpenAI Codex selected but no credentials found; sign in using the Kilo Code sidebar first.",
+					)
+				}
+			} catch (error) {
+				this.outputChannel.appendLine(
+					`[AgentManager] Failed to read OpenAI Codex credentials: ${error instanceof Error ? error.message : String(error)
+					}`,
+				)
+			}
+		}
+
+		this.processHandler.spawnProcess(
+			cliDiscovery.cliPath,
+			workspaceFolder,
+			prompt,
+			{ ...options, apiConfiguration, shellPath: cliDiscovery.shellPath, folderId: options.folderId, secrets },
+			(sid, event) => {
+				if (!this.processStartTimes.has(sid)) {
+					this.processStartTimes.set(sid, processStartTime)
+				}
+				this.handleCliEvent(sid, event)
+			},
+		)
+
+		return true
+	}
+
+	/**
+	 * Handle a JSON event from the CLI stdout
+	 */
+	private handleCliEvent(sessionId: string, event: StreamEvent): void {
+		switch (event.streamEventType) {
+			case "kilocode": {
+				// Filter out replayed events from history (older than process start time)
+				// We allow timestamp <= 1000 because 'welcome' events often have timestamp: 1
+				const processStartTime = this.processStartTimes.get(sessionId) ?? 0
+				const eventTimestamp = event.payload?.timestamp
+				if (eventTimestamp && eventTimestamp > 1000 && eventTimestamp < processStartTime) {
+					this.outputChannel.appendLine(
+						`[AgentManager] Filtering replayed event: ${event.payload?.say || event.payload?.ask || "unknown"} (ts=${eventTimestamp} < start=${processStartTime})`,
+					)
+					return
+				}
+				this.handleKilocodeEvent(sessionId, event)
+				break
+			}
+			case "status":
+				this.parseParallelModeStatus(sessionId, event.message)
+				this.log(sessionId, event.message)
+				break
+			case "output":
+				this.parseParallelModeOutput(sessionId, event.content)
+				this.log(sessionId, `[${event.source}] ${event.content}`)
+				break
+			case "session_created":
+				// Handled by CliProcessHandler, but we should notify if we have a session
+				const createdSession = this.registry.getSession(sessionId)
+				if (createdSession) {
+					this.notifySessionUpdate(createdSession)
+				}
+				break
+			case "error": {
+				const session = this.registry.getSession(sessionId)
+				this.registry.updateSessionStatus(sessionId, "error", undefined, event.error)
+				this.log(sessionId, `Error: ${event.error}`)
+				if (event.details) {
+					this.log(sessionId, `Details: ${JSON.stringify(event.details)}`)
+				}
+				// Track session error telemetry
+				captureAgentManagerSessionError(sessionId, session?.parallelMode?.enabled ?? false, event.error)
+				break
+			}
+			case "complete": {
+				const session = this.registry.getSession(sessionId)
+				const isSuccess = event.exitCode === 0 || event.exitCode === undefined
+				this.registry.updateSessionStatus(sessionId, isSuccess ? "done" : "error", event.exitCode)
+				this.log(sessionId, isSuccess ? "Agent completed" : `Agent failed with exit code ${event.exitCode}`)
+				void this.fetchAndPostRemoteSessions()
+				// Notify webview state machine of completion (only on success)
+				// This is needed because completion_result events can be truncated in stdout chunking
+				if (isSuccess) {
+					this.postMessage({
+						type: "agentManager.stateEvent",
+						sessionId,
+						eventType: "ask_completion_result",
+					})
+					// Track session completed telemetry
+					captureAgentManagerSessionCompleted(sessionId, session?.parallelMode?.enabled ?? false)
+				} else {
+					// Track session error telemetry
+					captureAgentManagerSessionError(
+						sessionId,
+						session?.parallelMode?.enabled ?? false,
+						`Exit code ${event.exitCode}`,
+					)
+				}
+				break
+			}
+			case "interrupted": {
+				const session = this.registry.getSession(sessionId)
+				this.registry.updateSessionStatus(sessionId, "stopped", undefined, event.reason)
+				this.log(sessionId, event.reason || "Execution interrupted")
+				// Track session stopped telemetry
+				captureAgentManagerSessionStopped(sessionId, session?.parallelMode?.enabled ?? false)
+				break
+			}
+			case "session_created":
+				// Handled by CliProcessHandler
+				break
+			case "welcome":
+				this.handleWelcomeEvent(sessionId, event as WelcomeStreamEvent)
+				break
+		}
+	}
+
+	/**
+	 * Parse parallel mode info from CLI status messages
+	 */
+	private parseParallelModeStatus(sessionId: string, message: string): void {
+		let updated = false
+
+		const branch = parseParallelModeBranch(message)
+		if (branch) {
+			if (this.registry.updateParallelModeInfo(sessionId, { branch })) {
+				updated = true
+			}
+		}
+
+		const worktreePath = parseParallelModeWorktreePath(message)
+		if (worktreePath) {
+			if (this.registry.updateParallelModeInfo(sessionId, { worktreePath })) {
+				updated = true
+			}
+		}
+
+		if (updated) {
+			this.postStateToWebview()
+		}
+	}
+
+	/**
+	 * Parse parallel mode completion message from CLI output
+	 */
+	private parseParallelModeOutput(sessionId: string, content: string): void {
+		if (isParallelModeCompletionMessage(content)) {
+			let updated = false
+
+			// Extract branch name from completion message
+			const branch = parseParallelModeCompletionBranch(content)
+			if (branch) {
+				if (this.registry.updateParallelModeInfo(sessionId, { branch })) {
+					updated = true
+				}
+			}
+
+			// Store the completion message
+			if (this.registry.updateParallelModeInfo(sessionId, { completionMessage: content })) {
+				updated = true
+			}
+
+			if (updated) {
+				this.postStateToWebview()
+			}
+		}
+	}
+
+	/**
+	 * Handle welcome event from CLI - extracts worktree branch and path for parallel mode sessions
+	 */
+	private handleWelcomeEvent(sessionId: string, event: WelcomeStreamEvent): void {
+		let updated = false
+		const session = this.registry.getSession(sessionId)
+		const existingWorktreePath = session?.parallelMode?.worktreePath
+
+		if (event.worktreeBranch) {
+			this.outputChannel.appendLine(
+				`[AgentManager] Session ${sessionId} worktree branch: ${event.worktreeBranch}`,
+			)
+			if (this.registry.updateParallelModeInfo(sessionId, { branch: event.worktreeBranch })) {
+				updated = true
+			}
+		}
+
+		if (event.worktreePath) {
+			this.outputChannel.appendLine(`[AgentManager] Session ${sessionId} worktree path: ${event.worktreePath}`)
+			if (this.registry.updateParallelModeInfo(sessionId, { worktreePath: event.worktreePath })) {
+				updated = true
+			}
+		}
+
+		if (!event.worktreePath && event.worktreeBranch && !existingWorktreePath) {
+			const derivedWorktreePath = buildParallelModeWorktreePath(event.worktreeBranch)
+			this.outputChannel.appendLine(
+				`[AgentManager] Session ${sessionId} derived worktree path: ${derivedWorktreePath}`,
+			)
+			if (this.registry.updateParallelModeInfo(sessionId, { worktreePath: derivedWorktreePath })) {
+				updated = true
+			}
+		}
+
+		if (updated) {
+			this.postStateToWebview()
+		}
+	}
+
+	private handleKilocodeEvent(sessionId: string, event: KilocodeStreamEvent): void {
+		this.eventProcessor.handle(sessionId, event)
+	}
+
+	/**
+	 * Append a log line to a session
+	 */
+	private log(sessionId: string, line: string): void {
+		this.registry.appendLog(sessionId, line)
+	}
+
+	private selectSession(sessionId: string | null): void {
+		if (sessionId && !this.registry.getSession(sessionId)) {
+			// Session not in local registry - check remote sessions
+			const remoteSession = this.remoteSessions.find((s) => s.session_id === sessionId)
+			if (remoteSession) {
+				this.outputChannel.appendLine(`[AgentManager] Creating local entry for remote session: ${sessionId}`)
+				this.registry.createSession(
+					sessionId,
+					remoteSession.title || "Remote session",
+					remoteSession.created_at ? new Date(remoteSession.created_at).getTime() : Date.now(),
+					{
+						gitUrl: remoteSession.git_url || undefined,
+						initialStatus: "stopped",
+					},
+				)
+			}
+		}
+
+		this.registry.selectedId = sessionId
+		this.postStateToWebview()
+
+		if (!sessionId) return
+
+		this.terminalManager.showExistingTerminal(sessionId)
+
+		// Check if we have cached messages to send immediately
+		const cachedMessages = this.sessionMessages.get(sessionId)
+		if (cachedMessages) {
+			// Re-post cached messages to ensure webview has them
+			this.postMessage({
+				type: "agentManager.chatMessages",
+				sessionId,
+				messages: cachedMessages,
+			})
+			return
+		}
+
+		// No cached messages - fetch from remote if no active process
+		if (!this.processHandler.hasProcess(sessionId)) {
+			void this.fetchRemoteSessionMessages(sessionId)
+		}
+	}
+
+	private async fetchRemoteSessionMessages(sessionId: string): Promise<void> {
+		try {
+			const messages = await this.remoteSessionService.fetchSessionMessages(sessionId)
+			if (!messages) return
+
+			this.storeAndPostMessages(sessionId, messages)
+		} catch (error) {
+			this.outputChannel.appendLine(`[AgentManager] Failed to fetch remote session messages: ${error}`)
+		}
+	}
+
+	private storeAndPostMessages(sessionId: string, messages: ClineMessage[]): void {
+		this.outputChannel.appendLine(`[AgentManager] Fetched ${messages.length} messages for session: ${sessionId}`)
+
+		this.sessionMessages.set(sessionId, messages)
+		this.postMessage({
+			type: "agentManager.chatMessages",
+			sessionId,
+			messages,
+		})
+	}
+
+	private async refreshSessionMessages(sessionId: string): Promise<void> {
+		this.sessionMessages.delete(sessionId)
+		await this.fetchRemoteSessionMessages(sessionId)
+	}
+
+	/**
+	 * Stop a running agent session
+	 */
+	private stopAgentSession(sessionId: string): void {
+		const session = this.registry.getSession(sessionId)
+
+		this.processHandler.stopProcess(sessionId)
+
+		this.registry.updateSessionStatus(sessionId, "stopped", undefined, "Stopped by user")
+		this.log(sessionId, "Stopped by user")
+		this.postStateToWebview()
+
+		// Notify webview state machine of cancellation
+		// This ensures the state machine transitions to stopped state
+		this.postMessage({
+			type: "agentManager.stateEvent",
+			sessionId,
+			eventType: "cancel_session",
+		})
+
+		this.firstApiReqStarted.delete(sessionId)
+		this.processStartTimes.delete(sessionId)
+		this.sendingMessageMap.delete(sessionId)
+
+		// Track session stopped telemetry
+		captureAgentManagerSessionStopped(sessionId, session?.parallelMode?.enabled ?? false)
+	}
+
+	/**
+	 * Finish a worktree (parallel mode) session by gracefully terminating the CLI process.
+	 * The CLI's SIGTERM handler will run its normal dispose flow, including worktree commit/cleanup.
+	 * We keep the process tracked so the exit handler can mark the session as done/error.
+	 */
+	private finishWorktreeSession(sessionId: string): void {
+		const session = this.registry.getSession(sessionId)
+		if (!session?.parallelMode?.enabled) {
+			// Safety: "Finish to branch" must never apply to non-worktree sessions.
+			this.outputChannel.appendLine(
+				`[AgentManager] Ignoring finishWorktreeSession for non-worktree session: ${sessionId}`,
+			)
+			return
+		}
+
+		// Only allow finishing if session is still running
+		if (session.status !== "running") {
+			this.outputChannel.appendLine(
+				`[AgentManager] Ignoring finishWorktreeSession for non-running session: ${sessionId} (status: ${session.status})`,
+			)
+			return
+		}
+
+		this.processHandler.terminateProcess(sessionId, "SIGTERM")
+		this.log(sessionId, "Finishing worktree session (commit + close)...")
+		this.postStateToWebview()
+	}
+
+	/**
+	 * Send a follow-up message to a running agent session via stdin.
+	 */
+	public async sendMessage(sessionId: string, content: string, sessionLabel?: string): Promise<void> {
+		if (!this.processHandler.hasStdin(sessionId)) {
+			// Session is not running - attempt to resume it with the message as the next prompt
+			this.outputChannel.appendLine(`[AgentManager] Session ${sessionId} not running, attempting auto-resume`)
+			await this.resumeSession(sessionId, content)
+			return
+		}
+
+		const message = {
+			type: "askResponse",
+			askResponse: "messageResponse",
+			text: content,
+		}
+
+		await this.safeWriteToStdin(sessionId, message, "message")
+	}
+
+	/**
+	 * Handle a queued message from the webview.
+	 * Orchestrates validation, sending, and status notification.
+	 */
+	private async handleQueuedMessage(
+		sessionId: string,
+		messageId: string,
+		content: string,
+		_sessionLabel?: string,
+	): Promise<void> {
+		// If session is not running, we must resume it to deliver the message
+		if (!this.processHandler.hasStdin(sessionId)) {
+			this.outputChannel.appendLine(
+				`[AgentManager] Session ${sessionId} not running, auto-resuming to deliver queued message ${messageId}`,
+			)
+
+			// Mark as sending so the UI shows progress
+			this.notifyMessageStatus(sessionId, messageId, "sending")
+
+			try {
+				await this.resumeSession(sessionId, content)
+				this.notifyMessageStatus(sessionId, messageId, "sent")
+				return
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : "Unknown error"
+				this.outputChannel.appendLine(`[AgentManager] Failed to auto-resume ${sessionId}: ${errorMsg}`)
+				this.notifyMessageStatus(sessionId, messageId, "failed", errorMsg)
+				return
+			}
+		}
+
+		// Validate the session and message prerequisites
+		const validationError = this.validateMessagePrerequisites(sessionId, messageId)
+		if (validationError) return
+
+		// Attempt to send the message
+		await this.sendQueuedMessage(sessionId, messageId, content)
+	}
+
+	/**
+	 * Validate that a message can be sent (session running, no other message sending).
+	 * Returns error message if validation fails, undefined if valid.
+	 */
+	private validateMessagePrerequisites(sessionId: string, messageId: string): void | undefined {
+		// Check if session is running
+		if (!this.processHandler.hasStdin(sessionId)) {
+			this.outputChannel.appendLine(`[AgentManager] Session ${sessionId} not running, message send failed`)
+			this.notifyMessageStatus(sessionId, messageId, "failed", "Session is not running")
+			return
+		}
+
+		// Check one-at-a-time constraint
+		if (this.sendingMessageMap.has(sessionId)) {
+			this.outputChannel.appendLine(
+				`[AgentManager] Message ${messageId} queued - another message is currently sending`,
+			)
+			this.notifyMessageStatus(sessionId, messageId, "failed", "Another message is currently being sent")
+			return
+		}
+	}
+
+	/**
+	 * Send a validated queued message to the CLI.
+	 * Handles marking as sending, actual send, and error handling.
+	 */
+	private async sendQueuedMessage(sessionId: string, messageId: string, content: string): Promise<void> {
+		// Mark as sending
+		this.sendingMessageMap.set(sessionId, messageId)
+		this.notifyMessageStatus(sessionId, messageId, "sending")
+
+		try {
+			const message = {
+				type: "askResponse",
+				askResponse: "messageResponse",
+				text: content,
+			}
+
+			await this.safeWriteToStdin(sessionId, message, "message")
+			this.log(sessionId, `Message ${messageId} sent successfully`)
+			this.notifyMessageStatus(sessionId, messageId, "sent")
+		} catch (error) {
+			const errorMsg = error instanceof Error ? error.message : "Unknown error"
+			this.outputChannel.appendLine(`[AgentManager] Failed to send message ${messageId}: ${errorMsg}`)
+			this.notifyMessageStatus(sessionId, messageId, "failed", errorMsg)
+		} finally {
+			// Clear the sending flag
+			this.sendingMessageMap.delete(sessionId)
+		}
+	}
+
+	/**
+	 * Notify the webview of message status changes.
+	 */
+	private notifyMessageStatus(
+		sessionId: string,
+		messageId: string,
+		status: "sending" | "sent" | "failed",
+		error?: string,
+	): void {
+		this.postMessage({
+			type: "agentManager.messageStatus",
+			sessionId,
+			messageId,
+			status,
+			error,
+		})
+	}
+
+	/**
+	 * Resume a completed session by spawning a new CLI process with --session flag.
+	 */
+	public async resumeSession(sessionId: string, content: string): Promise<void> {
+		const session = this.registry.getSession(sessionId)
+		if (!session) {
+			this.outputChannel.appendLine(`[AgentManager] Session ${sessionId} not found, cannot resume`)
+			return
+		}
+
+		// Refresh workspace config to ensure frontend has the latest folder associations
+		const workspaceConfig = this.getWorkspaceConfig()
+		if (workspaceConfig) {
+			this.postMessage({ type: "agentManager.workspaceConfig", config: workspaceConfig })
+		}
+
+		// If session is still running via CLI, send as regular message
+		if (this.processHandler.hasStdin(sessionId)) {
+			await this.sendMessage(sessionId, content)
+			return
+		}
+
+		this.outputChannel.appendLine(`[AgentManager] Resuming session ${sessionId} with new prompt`)
+
+		// Determine paths options (similar to startAgentSession logic)
+		let cwdOverride: string | undefined
+		let folderId: string | undefined
+
+		if (workspaceConfig.sessionToFolder && workspaceConfig.sessionToFolder[sessionId]) {
+			folderId = workspaceConfig.sessionToFolder[sessionId]
+			if (workspaceConfig.manualFolders) {
+				const folder = workspaceConfig.manualFolders.find((f: any) => f.id === folderId)
+				if (folder) {
+					cwdOverride = folder.path
+				}
+			}
+		}
+
+		// Hydrate Task for resumption
+		try {
+			// Dispose existing task if any (to be safe)
+			const existingTask = this.activeTasks.get(sessionId)
+			if (existingTask) {
+				// Don't dispose if it's actually running! But we checked status earlier in correct flows.
+				// If we are here, we are forcing a resume.
+				// But reusing the instance is hard if loop exited.
+				// existingTask.dispose() // Task disposal might be too aggressive? 
+				this.activeTasks.delete(sessionId)
+			}
+
+			// Get history
+			let historyResult: { historyItem: HistoryItem }
+			try {
+				historyResult = await this.provider.getTaskWithId(sessionId, false)
+			} catch (e) {
+				// Task not found in history - attempt to materialize it if we have info
+				this.outputChannel.appendLine(`[AgentManager] Session ${sessionId} not in history, materializing...`)
+				historyResult = await this.materializeSessionForResumption(sessionId)
+			}
+			const { historyItem } = historyResult
+			const { apiConfiguration } = await this.provider.getState()
+
+			// Determine workspace path
+			// Priority: Override -> Parallel Mode Path -> Default
+			let workspaceFolder = cwdOverride || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+
+			if (session.parallelMode?.enabled) {
+				// Reconstruct worktree path
+				const branchName = session.parallelMode.branch || session.label || "unknown"
+				// Note: if we didn't save branch name in session correctly, this might fail to find the exact folder.
+				// session.parallelMode.worktreePath is best if available.
+				if (session.parallelMode.worktreePath) {
+					workspaceFolder = session.parallelMode.worktreePath
+				} else if (session.parallelMode.branch) {
+					workspaceFolder = buildParallelModeWorktreePath(session.parallelMode.branch)
+				}
+			}
+
+			if (!workspaceFolder) {
+				this.outputChannel.appendLine("ERROR: No workspace folder found for resume")
+				return
+			}
+
+			const task = new Task({
+				context: this.context,
+				provider: this.provider,
+				apiConfiguration,
+				historyItem, // Triggers resume
+				workspacePath: workspaceFolder,
+				startTask: true,
+				enableSubAgents: true, // Assuming default true for agents
+				enableCheckpoints: false, // Agent Manager sessions shouldn't be spamming checkpoints
+				initialStatus: "active"
+			})
+
+			// Replace active task
+			this.activeTasks.set(sessionId, task)
+			this.setupTaskListeners(task, sessionId)
+
+			// Handle the immediate Resume ASK
+			// We need to wait for the task to emit the "resume_task" ask, then reply.
+			const resumeHandler = (data: { action: string, message: any }) => {
+				if (data.action === "created" && data.message.type === "ask" &&
+					(data.message.ask === "resume_task" || data.message.ask === "resume_completed_task")) {
+
+					this.outputChannel.appendLine(`[AgentManager] Auto-approving resume for ${sessionId}`)
+					task.handleWebviewAskResponse("messageResponse", content)
+
+					// Remove this one-off handler to avoid interfering with future asks
+					task.off(RooCodeEventName.Message, resumeHandler)
+				}
+			}
+			task.on(RooCodeEventName.Message, resumeHandler)
+
+			this.registry.updateSessionStatus(sessionId, "running")
+			this.notifySessionUpdate(this.registry.getSession(sessionId)!)
+
+		} catch (error) {
+			this.outputChannel.appendLine(`[AgentManager] Failed to resume session: ${error}`)
+			this.registry.updateSessionStatus(sessionId, "error", undefined, String(error))
+			this.notifySessionUpdate(this.registry.getSession(sessionId)!)
+		}
+	}
+
+	/**
+	 * Create a dummy history item and save messages for a session that's missing from ClineProvider history.
+	 * This allows resuming remote sessions or sessions that were lost from history.
+	 */
+	private async materializeSessionForResumption(sessionId: string): Promise<{ historyItem: HistoryItem }> {
+		const session = this.registry.getSession(sessionId)
+		if (!session) {
+			throw new Error(`Session ${sessionId} not found in registry`)
+		}
+
+		const historyItem: HistoryItem = {
+			id: session.sessionId,
+			ts: session.startTime,
+			task: session.prompt || session.label || "Untitled Task",
+			tokensIn: 0,
+			tokensOut: 0,
+			cacheWrites: 0,
+			cacheReads: 0,
+			totalCost: 0,
+			mode: "architect", // Default to architect
+			status: session.status === "done" ? "completed" : "active",
+		} as HistoryItem
+
+		// Update ClineProvider history
+		await this.provider.updateTaskHistory(historyItem)
+
+		// Save messages if we have them
+		const messages = this.sessionMessages.get(sessionId) || []
+		if (messages.length > 0) {
+			const globalStoragePath = this.context.globalStorageUri.fsPath
+			const taskDirPath = await getTaskDirectoryPath(globalStoragePath, sessionId)
+
+			// Ensure directory exists
+			if (!fs.existsSync(taskDirPath)) {
+				await fs.promises.mkdir(taskDirPath, { recursive: true })
+			}
+
+			// Save messages to common storage
+			await saveTaskMessages({
+				messages,
+				taskId: sessionId,
+				globalStoragePath,
+			})
+
+			// Save empty API history if we don't have it (better than nothing)
+			await saveApiMessages({
+				messages: [],
+				taskId: sessionId,
+				globalStoragePath,
+			})
+		}
+
+		return { historyItem }
+	}
+
+	/**
+	 * Cancel/abort a running agent session via stdin.
+	 * Falls back to SIGTERM if stdin write fails.
+	 * Does nothing if the session is not running.
+	 */
+	public async cancelSession(sessionId: string): Promise<void> {
+		// Check for active Task
+		const task = this.activeTasks.get(sessionId)
+		if (task) {
+			this.outputChannel.appendLine(`[AgentManager] Aborting active task ${sessionId}`)
+			await task.abortTask()
+			return
+		}
+
+		if (!this.processHandler.hasStdin(sessionId)) {
+			// Session is not running or stdin unavailable - force stop
+			this.outputChannel.appendLine(`[AgentManager] Session ${sessionId} not running, stopping process`)
+			this.stopAgentSession(sessionId)
+			return
+		}
+
+		const message = { type: "cancelTask" }
+
+		try {
+			await this.safeWriteToStdin(sessionId, message, "cancel")
+			this.log(sessionId, "Cancel request sent via stdin")
+		} catch (error) {
+			// Fallback to SIGTERM if stdin write fails
+			this.outputChannel.appendLine(`Failed to send cancel via stdin, falling back to SIGTERM: ${error}`)
+			this.stopAgentSession(sessionId)
+		}
+	}
+
+	/**
+	 * Respond to an approval prompt (yes/no button click).
+	 * Optionally includes additional text context.
+	 */
+	public async respondToApproval(sessionId: string, approved: boolean, text?: string): Promise<void> {
+		if (!this.processHandler.hasStdin(sessionId)) {
+			throw new Error(`Session ${sessionId} not found or not running`)
+		}
+
+		const message: { type: string; askResponse: string; text?: string } = {
+			type: "askResponse",
+			askResponse: approved ? "yesButtonClicked" : "noButtonClicked",
+		}
+
+		if (text) {
+			message.text = text
+		}
+
+		await this.safeWriteToStdin(sessionId, message, approved ? "approval-yes" : "approval-no")
+		this.log(sessionId, `Approval response sent: ${approved ? "approved" : "rejected"}`)
+	}
+
+	private async safeWriteToStdin(sessionId: string, payload: object, label: string): Promise<void> {
+		try {
+			await this.processHandler.writeToStdin(sessionId, payload)
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error)
+			this.outputChannel.appendLine(`[AgentManager] Failed to send ${label} via stdin: ${errorMessage}`)
+			void vscode.window.showErrorMessage(`Failed to send ${label} to agent: ${errorMessage}`)
+			throw error
+		}
+	}
+
+	/**
+	 * Cancel a pending session that is stuck in "Creating session..." state
+	 */
+	private cancelPendingSession(): void {
+		this.processHandler.cancelPendingSession()
+	}
+
+
+	/**
+	 * Remove a session completely
+	 */
+	private removeSession(sessionId: string): void {
+		// Stop process if running
+		this.processHandler.stopProcess(sessionId)
+
+		// Clean up messages
+		this.sessionMessages.delete(sessionId)
+
+		this.registry.removeSession(sessionId)
+		this.postStateToWebview()
+
+		this.firstApiReqStarted.delete(sessionId)
+		this.processStartTimes.delete(sessionId)
+		this.sendingMessageMap.delete(sessionId)
+	}
+
+	private getFilteredState() {
+		return this.registry.getStateForGitUrl(this.currentGitUrl)
+	}
+
+	private postStateToWebview(): void {
+		this.postMessage({
+			type: "agentManager.state",
+			state: this.getFilteredState(),
+		})
+	}
+
+	private async fetchAndPostRemoteSessions(): Promise<void> {
+		try {
+			const remoteSessions = await this.remoteSessionService.fetchRemoteSessions()
+			this.remoteSessions = remoteSessions // Cache for selectSession
+
+			// Filter remote sessions by git_url (only if git_url is available from API)
+			const filteredSessions = this.filterRemoteSessionsByGitUrl(remoteSessions)
+
+			this.outputChannel.appendLine(`[AgentManager] fetchAndPostRemoteSessions - Sending ${filteredSessions.length} sessions`)
+			this.outputChannel.appendLine(`[AgentManager] IDs: ${filteredSessions.slice(0, 5).map(s => s.session_id).join(", ")}`)
+
+			this.postMessage({
+				type: "agentManager.remoteSessions",
+				sessions: filteredSessions,
+			})
+		} catch (error) {
+			this.outputChannel.appendLine(`[AgentManager] Failed to fetch remote sessions: ${error}`)
+		}
+	}
+
+	private async handleListBranches(): Promise<void> {
+		try {
+			const gitService = new WorkspaceGitService()
+			const { branches, currentBranch } = await gitService.getBranchInfo()
+			this.postMessage({ type: "agentManager.branches", branches, currentBranch })
+		} catch (error) {
+			this.outputChannel.appendLine(
+				`[AgentManager] Failed to list branches: ${error instanceof Error ? error.message : String(error)}`,
+			)
+			this.postMessage({ type: "agentManager.branches", branches: [], currentBranch: undefined })
+		}
+	}
+
+	private filterRemoteSessionsByGitUrl(sessions: RemoteSession[]): RemoteSession[] {
+		if (!this.currentGitUrl) {
+			return sessions.filter((s) => !s.git_url)
+		}
+		return sessions.filter((s) => s.git_url === this.currentGitUrl)
+	}
+
+	private postMessage(message: unknown): void {
+		this.panel?.webview.postMessage(message)
+	}
+
+	// HMR support for development mode - same approach as ClineProvider (see src/core/webview/ClineProvider.ts)
+	private async getHMRHtmlContent(webview: vscode.Webview): Promise<string> {
+		const viteConfig = await getViteDevServerConfig(webview)
+
+		if (!viteConfig) {
+			vscode.window.showErrorMessage(
+				"Vite dev server is not running. Please run 'pnpm dev' in webview-ui directory or use 'pnpm build'.",
+			)
+			return this.getHtmlContent(webview)
+		}
+
+		const { localServerUrl, csp, reactRefreshScript, nonce } = viteConfig
+
+		const stylesUri = getUri(webview, this.context.extensionUri, [
+			"webview-ui",
+			"build",
+			"assets",
+			"agent-manager.css",
+		])
+		const codiconsUri = getUri(webview, this.context.extensionUri, ["assets", "codicons", "codicon.css"])
+		const materialIconsUri = getUri(webview, this.context.extensionUri, [
+			"assets",
+			"vscode-material-icons",
+			"icons",
+		])
+		const imagesUri = getUri(webview, this.context.extensionUri, ["assets", "images"])
+		const audioUri = getUri(webview, this.context.extensionUri, ["webview-ui", "audio"])
+
+		const scriptUri = `http://${localServerUrl}/src/kilocode/agent-manager/index.tsx`
+
+		return /*html*/ `
+			<!DOCTYPE html>
+			<html lang="en">
+				<head>
+					<meta charset="utf-8">
+					<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
+					<meta http-equiv="Content-Security-Policy" content="${csp.join("; ")}">
+					<link rel="stylesheet" type="text/css" href="${stylesUri}">
+					<link rel="stylesheet" type="text/css" href="${codiconsUri}">
+					<script nonce="${nonce}">
+						window.IMAGES_BASE_URI = "${imagesUri}"
+						window.AUDIO_BASE_URI = "${audioUri}"
+						window.MATERIAL_ICONS_BASE_URI = "${materialIconsUri}"
+					</script>
+					<title>Agent Manager</title>
+				</head>
+				<body>
+					<div id="root"></div>
+					${reactRefreshScript}
+					<script type="module" src="${scriptUri}"></script>
+				</body>
+			</html>
+		`
+	}
+
+	private getHtmlContent(webview: vscode.Webview): string {
+		// Get URIs for the React build assets
+		const scriptUri = getUri(webview, this.context.extensionUri, [
+			"webview-ui",
+			"build",
+			"assets",
+			"agent-manager.js",
+		])
+		// Include both shared base styles (index.css) and agent-manager specific styles
+		const baseStylesUri = getUri(webview, this.context.extensionUri, ["webview-ui", "build", "assets", "index.css"])
+		const stylesUri = getUri(webview, this.context.extensionUri, [
+			"webview-ui",
+			"build",
+			"assets",
+			"agent-manager.css",
+		])
+		const codiconsUri = getUri(webview, this.context.extensionUri, ["assets", "codicons", "codicon.css"])
+		const materialIconsUri = getUri(webview, this.context.extensionUri, [
+			"assets",
+			"vscode-material-icons",
+			"icons",
+		])
+		const imagesUri = getUri(webview, this.context.extensionUri, ["assets", "images"])
+		const audioUri = getUri(webview, this.context.extensionUri, ["webview-ui", "audio"])
+
+		const nonce = getNonce()
+
+		return `<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; font-src ${webview.cspSource} data:; script-src ${webview.cspSource} 'nonce-${nonce}'; img-src ${webview.cspSource} https://*.googleusercontent.com https://storage.googleapis.com https://*.githubusercontent.com https://img.clerk.com data: https://*.googleapis.com;">
+	<title>Agent Manager</title>
+	<link rel="stylesheet" type="text/css" href="${baseStylesUri}">
+	<link rel="stylesheet" type="text/css" href="${stylesUri}">
+	<link rel="stylesheet" type="text/css" href="${codiconsUri}">
+	<script nonce="${nonce}">
+		window.IMAGES_BASE_URI = "${imagesUri}"
+		window.AUDIO_BASE_URI = "${audioUri}"
+		window.MATERIAL_ICONS_BASE_URI = "${materialIconsUri}"
+	</script>
+</head>
+<body>
+	<div id="root"></div>
+	<script nonce="${nonce}" type="module" src="${scriptUri}"></script>
+</body>
+</html>`
+	}
+
+	public hasRunningSessions(): boolean {
+		return this.registry.hasRunningSessions()
+	}
+
+	public getRunningSessionCount(): number {
+		return this.registry.getRunningSessionCount()
+	}
+
+	private stopAllAgents(): void {
+		this.processHandler.stopAllProcesses()
+
+		// Update all running sessions to stopped
+		for (const session of this.registry.getSessions()) {
+			if (session.status === "running") {
+				this.registry.updateSessionStatus(session.sessionId, "stopped", undefined, "Stopped by user")
+			}
+		}
+
+		this.firstApiReqStarted.clear()
+	}
+
+	public dispose(): void {
+		this.processHandler.dispose()
+		this.terminalManager.dispose()
+		this.sessionMessages.clear()
+		this.firstApiReqStarted.clear()
+
+		this.panel?.dispose()
+		this.disposables.forEach((d) => d.dispose())
+	}
+
+	private showPaymentRequiredPrompt(payload?: KilocodePayload | { text?: string; content?: string }): void {
+		const { title, message, buyCreditsUrl, rawText } = this.parsePaymentRequiredPayload(payload)
+
+		captureAgentManagerLoginIssue({
+			issueType: "payment_required",
+		})
+
+		const actionLabel = buyCreditsUrl ? "Open billing" : undefined
+		const actions = actionLabel ? [actionLabel] : []
+
+		this.outputChannel.appendLine(`[AgentManager] Payment required: ${message}`)
+
+		void vscode.window.showWarningMessage(`${title}: ${message}`, ...actions).then((selection) => {
+			if (selection === actionLabel && buyCreditsUrl) {
+				void vscode.env.openExternal(vscode.Uri.parse(buyCreditsUrl))
+			}
+		})
+	}
+
+	private showCliNotFoundError(): void {
+		const hasNpm = canInstallCli((msg) => this.outputChannel.appendLine(`[AgentManager] ${msg}`))
+		const { platform, shell } = getPlatformDiagnostics()
+		captureAgentManagerLoginIssue({
+			issueType: "cli_not_found",
+			hasNpm,
+			platform,
+			shell,
+		})
+		this.showCliError({ type: "spawn_error", message: "CLI not found" })
+	}
+
+	private createCliTerminal(name: string, message?: string): vscode.Terminal | null {
+		if (typeof vscode.window.createTerminal !== "function") {
+			this.outputChannel.appendLine(`[AgentManager] VS Code terminal unavailable; run "kilocode auth" manually.`)
+			return null
+		}
+
+		const shellPath = process.platform === "win32" ? undefined : process.env.SHELL
+		const shellName = shellPath ? path.basename(shellPath) : undefined
+		const shellArgs = process.platform === "win32" ? undefined : shellName === "zsh" ? ["-l", "-i"] : ["-l"]
+
+		return vscode.window.createTerminal({
+			name,
+			message,
+			shellPath,
+			shellArgs,
+		})
+	}
+
+	/**
+	 * Open a terminal and run the CLI install command (global installation).
+	 * Uses the terminal to ensure the user's shell environment (nvm, fnm, volta, etc.) is respected.
+	 */
+	private runInstallInTerminal(): void {
+		const terminal = this.createCliTerminal(
+			"Install Kilocode CLI",
+			t("kilocode:agentManager.terminal.installMessage"),
+		)
+		if (!terminal) {
+			return
+		}
+		terminal.show()
+		terminal.sendText(getCliInstallCommand())
+		this.showCliAuthReminder()
+	}
+
+	private runAuthInTerminal(): void {
+		const terminal = this.createCliTerminal("Kilocode CLI Login")
+		if (!terminal) {
+			return
+		}
+		terminal.show()
+		terminal.sendText("kilocode auth")
+	}
+
+	private runConfigureInTerminal(): void {
+		const terminal = this.createCliTerminal("Kilocode CLI Config")
+		if (!terminal) {
+			return
+		}
+		terminal.show()
+		terminal.sendText("kilocode config")
+	}
+
+	private showCliAuthReminder(message?: string): void {
+		const authLabel = t("kilocode:agentManager.actions.loginCli")
+		const combined = this.buildAuthReminderMessage(message)
+		this.outputChannel.appendLine(`[AgentManager] ${combined}`)
+		void vscode.window.showWarningMessage(combined, authLabel).then((selection) => {
+			if (selection === authLabel) {
+				this.runAuthInTerminal()
+			}
+		})
+	}
+
+	private buildAuthReminderMessage(message?: string): string {
+		const reminder = t("kilocode:agentManager.terminal.authReminder")
+		const base = message || ""
+		return base ? `${base}\n\n${reminder}` : reminder
+	}
+
+	private handleStartSessionApiFailure(error: { message?: string; authError?: boolean }): void {
+		captureAgentManagerLoginIssue({
+			issueType: error.authError ? "auth_error" : "api_error",
+			httpStatusCode: error.authError ? 401 : undefined,
+		})
+
+		const message =
+			error.authError === true
+				? this.buildAuthReminderMessage(error.message || t("kilocode:agentManager.errors.sessionFailed"))
+				: error.message || t("kilocode:agentManager.errors.sessionFailed")
+		if (error.authError && message && message === this.lastAuthErrorMessage) {
+			return
+		}
+
+		const authLabel = error.authError ? t("kilocode:agentManager.actions.loginCli") : undefined
+		const actions = authLabel ? [authLabel] : []
+		void vscode.window.showWarningMessage(message, ...actions).then((selection) => {
+			if (selection === authLabel) {
+				this.runAuthInTerminal()
+			}
+		})
+		if (error.authError) {
+			this.lastAuthErrorMessage = message
+		}
+	}
+
+	private parsePaymentRequiredPayload(payload?: KilocodePayload | { text?: string; content?: string }): {
+		title: string
+		message: string
+		buyCreditsUrl?: string
+		rawText?: string
+	} {
+		const fallbackTitle = t("kilocode:lowCreditWarning.title")
+		const fallbackMessage = t("kilocode:lowCreditWarning.message")
+
+		const rawText = payload ? extractRawText(payload) : undefined
+		const parsed = rawText ? tryParsePayloadJson(rawText) : undefined
+
+		const title =
+			parsed?.title || (typeof fallbackTitle === "string" ? fallbackTitle : undefined) || "Payment required"
+		const message =
+			parsed?.message ||
+			rawText ||
+			(typeof fallbackMessage === "string" ? fallbackMessage : undefined) ||
+			"Paid model requires credits or billing setup."
+
+		return { title, message, buyCreditsUrl: parsed?.buyCreditsUrl, rawText }
+	}
+
+	/**
+	 * Open a terminal and run the local CLI install command.
+	 * This installs the CLI to ~/.kilocode/cli/pkg for systems that don't support global installation (e.g., NixOS).
+	 * Also adds the local bin directory to the user's PATH in their shell configuration and sources it immediately.
+	 */
+	private runLocalInstallInTerminal(): void {
+		const shellPath = process.platform === "win32" ? undefined : process.env.SHELL
+		const shellName = shellPath ? path.basename(shellPath) : undefined
+		const shellArgs = process.platform === "win32" ? undefined : shellName === "zsh" ? ["-l", "-i"] : ["-l"]
+
+		const terminal = vscode.window.createTerminal({
+			name: "Install Kilocode CLI (Local)",
+			message: "Installing Kilocode CLI locally to ~/.kilocode/cli/pkg",
+			shellPath,
+			shellArgs,
+		})
+		terminal.show()
+
+		const binDir = getLocalCliBinDir()
+
+		// Build command as array and join with && for sequential execution
+		if (process.platform === "win32") {
+			// Windows: Chain commands with && to ensure they run sequentially
+			const psCommand = `$binDir = "${binDir.replace(/\\/g, "\\\\")}"; $currentPath = [Environment]::GetEnvironmentVariable("Path", "User"); if ($currentPath -notlike "*$binDir*") { [Environment]::SetEnvironmentVariable("Path", "$binDir;$currentPath", "User"); Write-Host "Added $binDir to user PATH"; $env:Path = "$binDir;$env:Path"; Write-Host "PATH updated in current session" } else { Write-Host "$binDir already in PATH" }`
+
+			const commands = [
+				getLocalCliInstallCommand(),
+				`powershell -Command "${psCommand}"`,
+				"echo.",
+				"echo ✓ CLI installed locally and PATH updated!",
+				"echo.",
+				"echo Next step: Run 'kilocode auth' to authenticate",
+			]
+			terminal.sendText(commands.join(" && "))
+		} else {
+			// Unix: Chain commands with && to ensure they run sequentially
+			const exportLine = `export PATH="${binDir}:$PATH"`
+
+			// Determine the shell config file based on the shell
+			let configFile = "~/.bashrc"
+			let pathCommand = `grep -qxF '${exportLine}' ${configFile} || echo '${exportLine}' >> ${configFile}`
+
+			if (shellName === "zsh") {
+				configFile = "~/.zshrc"
+				pathCommand = `grep -qxF '${exportLine}' ${configFile} || echo '${exportLine}' >> ${configFile}`
+			} else if (shellName === "fish") {
+				// Fish uses a different syntax for PATH
+				configFile = "~/.config/fish/config.fish"
+				const fishPathLine = `fish_add_path ${binDir}`
+				pathCommand = `grep -qxF '${fishPathLine}' ${configFile} || echo '${fishPathLine}' >> ${configFile}`
+			}
+
+			// Note: We don't source the config file here because:
+			// 1. It can cause infinite loops if the config triggers terminal re-execution
+			// 2. The user will get the PATH update on their next terminal session
+			// 3. We provide the full path as an alternative for immediate use
+			//
+			// We avoid using 'clear' as it can cause issues with some shells.
+			// All commands are sent in a single sendText() call to ensure proper sequencing.
+			const fullCommand = [
+				getLocalCliInstallCommand(),
+				pathCommand,
+				`echo ""`,
+				`echo "✓ CLI installed locally"`,
+				`echo "Added ${binDir} to PATH in ${configFile}"`,
+				`echo ""`,
+				`echo "Next step: Run 'kilocode auth' to authenticate"`,
+				`echo "Or use the full path: ${binDir}/kilocode auth"`,
+				`echo ""`,
+				`echo "Note: Open a new terminal for PATH changes to take effect"`,
+			].join(" && ")
+
+			terminal.sendText(fullCommand)
+		}
+	}
+
+	/**
+	 * Open a terminal and run the local CLI update command.
+	 * This updates the CLI in ~/.kilocode/cli/pkg for systems using local installation.
+	 */
+	private runLocalUpdateInTerminal(): void {
+		const shellPath = process.platform === "win32" ? undefined : process.env.SHELL
+		const shellName = shellPath ? path.basename(shellPath) : undefined
+		const shellArgs = process.platform === "win32" ? undefined : shellName === "zsh" ? ["-l", "-i"] : ["-l"]
+
+		const terminal = vscode.window.createTerminal({
+			name: "Update Kilocode CLI (Local)",
+			message: "Updating Kilocode CLI in ~/.kilocode/cli/pkg",
+			shellPath,
+			shellArgs,
+		})
+		terminal.show()
+
+		// Update the CLI (npm install will update if already installed)
+		const commands = [
+			"clear",
+			getLocalCliInstallCommand(),
+			'echo ""',
+			'echo "✓ CLI updated successfully!"',
+			'echo ""',
+			'echo "The updated CLI is ready to use"',
+		]
+		terminal.sendText(commands.join(" && "))
+	}
+
+	private showCliError(error?: {
+		type: "cli_outdated" | "spawn_error" | "unknown" | "cli_configuration_error"
+		message: string
+	}): void {
+		const hasNpm = canInstallCli((msg) => this.outputChannel.appendLine(`[AgentManager] ${msg}`))
+
+		const { platform, shell } = getPlatformDiagnostics()
+		if (error?.type === "cli_outdated") {
+			captureAgentManagerLoginIssue({
+				issueType: "cli_outdated",
+				hasNpm,
+				platform,
+				shell,
+			})
+		} else if (error?.type === "spawn_error" && error.message !== "CLI not found") {
+			captureAgentManagerLoginIssue({
+				issueType: "cli_spawn_error",
+				hasNpm,
+				platform,
+				shell,
+				errorMessage: error.message,
+			})
+		} else if (error?.type === "cli_configuration_error") {
+			captureAgentManagerLoginIssue({
+				issueType: "cli_configuration_error",
+				platform,
+				shell,
+			})
+		}
+
+		switch (error?.type) {
+			case "cli_outdated":
+				if (hasNpm) {
+					// Offer to update via terminal (global or local)
+					const updateGlobal = t("kilocode:agentManager.actions.updateGlobal")
+					const updateLocal = t("kilocode:agentManager.actions.updateLocal")
+					const manualUpdate = t("kilocode:agentManager.actions.updateInstructions")
+					vscode.window
+						.showWarningMessage(
+							t("kilocode:agentManager.errors.cliOutdated"),
+							updateGlobal,
+							updateLocal,
+							manualUpdate,
+						)
+						.then((selection) => {
+							if (selection === updateGlobal) {
+								this.runInstallInTerminal()
+							} else if (selection === updateLocal) {
+								this.runLocalUpdateInTerminal()
+							} else if (selection === manualUpdate) {
+								void vscode.env.openExternal(vscode.Uri.parse("https://kilo.ai/docs/cli"))
+							}
+						})
+				} else {
+					// No npm available, show manual instructions
+					const actionLabel = t("kilocode:agentManager.actions.updateInstructions")
+					vscode.window
+						.showErrorMessage(t("kilocode:agentManager.errors.cliOutdated"), actionLabel)
+						.then((selection) => {
+							if (selection === actionLabel) {
+								void vscode.env.openExternal(vscode.Uri.parse("https://kilo.ai/docs/cli"))
+							}
+						})
+				}
+				break
+			case "spawn_error": {
+				if (hasNpm) {
+					// Offer to install via terminal (global or local)
+					const installGlobal = t("kilocode:agentManager.actions.installGlobal")
+					const installLocal = t("kilocode:agentManager.actions.installLocal")
+					const manualInstall = t("kilocode:agentManager.actions.installInstructions")
+					vscode.window
+						.showErrorMessage(
+							t("kilocode:agentManager.errors.cliNotFound"),
+							installGlobal,
+							installLocal,
+							manualInstall,
+						)
+						.then((selection) => {
+							if (selection === installGlobal) {
+								this.runInstallInTerminal()
+							} else if (selection === installLocal) {
+								this.runLocalInstallInTerminal()
+							} else if (selection === manualInstall) {
+								void vscode.env.openExternal(vscode.Uri.parse("https://kilo.ai/docs/cli"))
+							}
+						})
+				} else {
+					// No npm available, show manual instructions
+					const actionLabel = t("kilocode:agentManager.actions.installInstructions")
+					vscode.window
+						.showErrorMessage(t("kilocode:agentManager.errors.cliNotFound"), actionLabel)
+						.then((selection) => {
+							if (selection === actionLabel) {
+								void vscode.env.openExternal(vscode.Uri.parse("https://kilo.ai/docs/cli"))
+							}
+						})
+				}
+				break
+			}
+			case "cli_configuration_error": {
+				// CLI is installed but misconfigured (e.g., missing kilocodeToken)
+				// Offer to configure via terminal
+				const configureLabel = t("kilocode:agentManager.actions.configureCli")
+				const authLabel = t("kilocode:agentManager.actions.loginCli")
+				const errorMessage = t("kilocode:agentManager.errors.cliMisconfigured")
+				void vscode.window.showErrorMessage(errorMessage, authLabel, configureLabel).then((selection) => {
+					if (selection === authLabel) {
+						this.runAuthInTerminal()
+					} else if (selection === configureLabel) {
+						this.runConfigureInTerminal()
+					}
+				})
+				break
+			}
+			default: {
+				const errorMessage = error?.message
+					? t("kilocode:agentManager.errors.sessionFailedWithMessage", { message: error.message })
+					: t("kilocode:agentManager.errors.sessionFailed")
+				const actionLabel = t("kilocode:agentManager.actions.getHelp")
+				vscode.window.showErrorMessage(errorMessage, actionLabel).then((selection) => {
+					if (selection === actionLabel) {
+						void vscode.env.openExternal(vscode.Uri.parse("https://kilo.ai/docs/cli"))
+					}
+				})
+				break
+			}
+		}
+	}
+
+	/**
+	 * Check if the given directory is inside a git worktree (not the main repo).
+	 * In a worktree, .git is a file containing "gitdir: /path/to/main/.git/worktrees/..."
+	 * In the main repo, .git is a directory.
+	 */
+	private isInsideWorktree(workspacePath: string): boolean {
+		try {
+			const gitPath = path.join(workspacePath, ".git")
+			const stat = fs.statSync(gitPath)
+			// If .git is a file (not a directory), we're in a worktree
+			return stat.isFile()
+		} catch {
+			// .git doesn't exist or can't be accessed
+			return false
+		}
+	}
+
+	public static getInstance(): AgentManagerProvider | undefined {
+		return AgentManagerProvider.instance
+	}
+}

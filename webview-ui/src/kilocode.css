@@ -1,0 +1,351 @@
+/* Kade specific styles */
+
+/* Slash command highlighting */
+.slash-command-match-textarea-highlight {
+	background-color: color-mix(in srgb, var(--vscode-focusBorder) 30%, transparent);
+	border-radius: 3px;
+	box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--vscode-focusBorder) 30%, transparent);
+	color: transparent;
+}
+
+/* Custom slow pulse animation for task progress squares */
+@keyframes slow-pulse {
+
+	0%,
+	100% {
+		opacity: 1;
+	}
+
+	50% {
+		opacity: 0.3;
+	}
+}
+
+.animate-slow-pulse {
+	animation: slow-pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-slow-pulse-delayed {
+	animation: slow-pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+	animation-delay: 0.5s;
+}
+
+/* Fade-in animation for new task progress squares */
+@keyframes fade-in {
+	0% {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+.animate-fade-in {
+	animation: fade-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Message highlight animation for timeline clicks */
+@keyframes message-highlight {
+	0% {
+		background-color: transparent;
+	}
+
+	20% {
+		background-color: color-mix(in srgb, var(--vscode-focusBorder) 25%, transparent);
+	}
+
+	100% {
+		background-color: transparent;
+	}
+}
+
+.animate-message-highlight {
+	animation: message-highlight 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Shimmer text animation - horizontal shimmer effect */
+@keyframes shimmer {
+	0% {
+		background-position: 200% center;
+	}
+
+	100% {
+		background-position: -200% center;
+	}
+}
+
+.shimmer-text {
+	/* Allow custom colors via CSS variables, with fallback to VSCode theme colors */
+	--shimmer-base: var(--shimmer-foreground, color-mix(in srgb, var(--vscode-descriptionForeground) 80%, black));
+	--shimmer-highlight: var(--shimmer-highlight-color, color-mix(in srgb, var(--shimmer-base) 70%, white));
+
+	color: var(--shimmer-base);
+	background: linear-gradient(90deg,
+			var(--shimmer-base) 0%,
+			var(--shimmer-base) 35%,
+			var(--shimmer-highlight) 45%,
+			var(--shimmer-highlight) 50%,
+			var(--shimmer-highlight) 55%,
+			var(--shimmer-base) 65%,
+			var(--shimmer-base) 100%);
+	background-size: 200% 100%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+	display: inline-block;
+	animation: shimmer 2.5s linear infinite;
+}
+
+/* Task Completed Animated Blue Border */
+@keyframes blue-glow-pulse {
+	0% {
+		box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+		border-color: rgba(59, 130, 246, 0.4);
+	}
+
+	50% {
+		box-shadow: 0 0 10px 0 rgba(59, 130, 246, 0.2);
+		border-color: rgba(59, 130, 246, 0.8);
+	}
+
+	100% {
+		box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+		border-color: rgba(59, 130, 246, 0.4);
+	}
+}
+
+.task-completed-latest {
+	border: 1px solid rgba(59, 130, 246, 0.5);
+	/* Blue-500-ish */
+	border-radius: 6px;
+	padding: 12px;
+	margin-top: 8px;
+	margin-bottom: 8px;
+	background-color: color-mix(in srgb, var(--vscode-editor-background) 80%, rgba(59, 130, 246, 0.05));
+	animation: blue-glow-pulse 3s infinite ease-in-out;
+}
+
+/* Helper to remove top margin from first element of markdown */
+.markdown-no-top-margin p:first-child,
+.markdown-no-top-margin h1:first-child,
+.markdown-no-top-margin h2:first-child,
+.markdown-no-top-margin h3:first-child,
+.markdown-no-top-margin h4:first-child {
+	margin-top: 0 !important;
+}
+
+.markdown-no-top-margin p:last-child {
+	margin-bottom: 0 !important;
+}
+
+.markdown-no-top-margin p {
+	margin-bottom: 0.5em;
+}
+
+.markdown-no-top-margin hr {
+	margin: 1em 0;
+	opacity: 0.3;
+}
+
+/* Image Checkerboard Background */
+.image-checkerboard {
+	background-image: conic-gradient(color-mix(in srgb, var(--vscode-editor-background), white 5%) 0 25%,
+			color-mix(in srgb, var(--vscode-editor-background), black 5%) 0 50%,
+			color-mix(in srgb, var(--vscode-editor-background), white 5%) 0 75%,
+			color-mix(in srgb, var(--vscode-editor-background), black 5%) 0);
+	background-size: 20px 20px;
+}
+
+/* Glass panel effect */
+.glass-panel {
+	background-color: rgba(0, 0, 0, 0.45);
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Reasoning block entrance animations */
+@keyframes reasoning-item-appear {
+	0% {
+		opacity: 0;
+		transform: translateY(8px) scale(0.99);
+		filter: blur(4px);
+	}
+
+	100% {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+		filter: blur(0);
+	}
+}
+
+.reasoning-content p,
+.reasoning-content h1,
+.reasoning-content h2,
+.reasoning-content h3,
+.reasoning-content h4,
+.reasoning-content ul,
+.reasoning-content ol,
+.reasoning-content pre,
+.reasoning-content table,
+.reasoning-content blockquote,
+.reasoning-content hr {
+	animation: reasoning-item-appear 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+	transform-origin: left top;
+	will-change: transform, opacity, filter;
+}
+
+/* Disable animations during streaming to prevent jitter */
+.reasoning-content.is-streaming p,
+.reasoning-content.is-streaming h1,
+.reasoning-content.is-streaming h2,
+.reasoning-content.is-streaming h3,
+.reasoning-content.is-streaming h4,
+.reasoning-content.is-streaming ul,
+.reasoning-content.is-streaming ol,
+.reasoning-content.is-streaming pre,
+.reasoning-content.is-streaming table,
+.reasoning-content.is-streaming blockquote,
+.reasoning-content.is-streaming hr,
+.reasoning-content.is-streaming li {
+	animation: none !important;
+	transform: none !important;
+	opacity: 1 !important;
+	filter: none !important;
+}
+
+/* Ensure list items also animate if they are added individually */
+.reasoning-content li {
+	animation: reasoning-item-appear 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+	transform-origin: left top;
+}
+
+/* Super nice glowing hover effect for images */
+.image-glowing-hover {
+	transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+	box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+	position: relative;
+	z-index: 1;
+	will-change: transform, filter;
+}
+
+.image-glowing-hover:hover {
+	transform: scale(1.032);
+	box-shadow: 0 0px 1px rgba(255, 255, 255, 0.25), 0 0 1.7px rgba(255, 255, 255, 0.5);
+	filter: brightness(0.80);
+	z-index: 10;
+	border: 0px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Mentions Menu Scrollbar */
+.mention-menu-scrollbar::-webkit-scrollbar {
+	width: 10px;
+}
+
+.mention-menu-scrollbar::-webkit-scrollbar-track {
+	background: transparent;
+	margin: 8px 0;
+}
+
+.mention-menu-scrollbar::-webkit-scrollbar-thumb {
+	background-color: var(--vscode-scrollbarSlider-background);
+	border: 3px solid transparent;
+	background-clip: padding-box;
+	border-radius: 10px;
+}
+
+.mention-menu-scrollbar::-webkit-scrollbar-thumb:hover {
+	background-color: var(--vscode-scrollbarSlider-hoverBackground);
+}
+
+.mention-menu-scrollbar::-webkit-scrollbar-thumb:active {
+	background-color: var(--vscode-scrollbarSlider-activeBackground);
+}
+
+/* 
+ * Kade "Boutique" UI Enhancements
+ * Aimed at high-end aesthetic for potential acquisition.
+ * Features: Glassmorphism, subtle glows, and fluid motion.
+ */
+
+:root {
+	--kade-accent: #007acc;
+	--kade-accent-glow: rgba(0, 122, 204, 0.3);
+	--glass-bg: rgba(255, 255, 255, 0.03);
+	--glass-border: rgba(255, 255, 255, 0.08);
+}
+
+.dark {
+	--glass-bg: rgba(0, 0, 0, 0.2);
+	--glass-border: rgba(255, 255, 255, 0.05);
+}
+
+/* Glassmorphic Chat Row Container */
+.kade-chat-row {
+	position: relative;
+	transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+	border-left: 2px solid transparent;
+	margin: 4px 8px;
+	border-radius: 8px;
+}
+
+.kade-chat-row:hover {
+	background: var(--glass-bg);
+	backdrop-filter: blur(8px);
+	border-left-color: var(--vscode-focusBorder);
+	transform: translateX(2px);
+}
+
+/* Advanced Thinking Indicator - "Pulse of Intelligence" */
+.thinking-pulse-ring {
+	position: absolute;
+	border: 2px solid var(--vscode-focusBorder);
+	border-radius: 50%;
+	opacity: 0;
+	animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes pulse-ring {
+	0% { transform: scale(0.3); opacity: 0.8; }
+	80%, 100% { transform: scale(1.2); opacity: 0; }
+}
+
+/* Floating Action Button (FAB) Style for Send */
+.kade-send-button {
+	transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.kade-send-button:not(:disabled):hover {
+	transform: scale(1.1) translateY(-2px);
+	box-shadow: 0 4px 12px var(--kade-accent-glow);
+}
+
+/* Smooth Scrollbar for the whole view */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--glass-border);
+	border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--vscode-descriptionForeground);
+}
+
+/* Micro-interactions for Tool Blocks */
+.tool-use-block {
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+	border: 1px solid var(--glass-border) !important;
+}
+
+.tool-use-block:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}

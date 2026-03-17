@@ -1,0 +1,21 @@
+packages:
+  - src
+  - webview-ui
+  - extras/cli
+  - apps/*
+  - packages/*
+  - extras/apps/*
+  - extras/packages/*
+  - extras/packages/config-eslint
+  - extras/packages/config-typescript
+  - extras/jetbrains/host
+  - extras/jetbrains/plugin
+
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - '@vscode/vsce-sign'
+  - core-js
+  - esbuild
+  - keytar
+  - puppeteer-chromium-resolver
+  - '@vscode/sqlite3'

@@ -1,0 +1,21 @@
+{
+	"name": "kilomain",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "turbo run dev",
+		"build": "turbo run build",
+		"test": "turbo run test",
+		"lint": "turbo run lint",
+		"clean": "turbo run clean"
+	},
+	"devDependencies": {
+		"turbo": "^2.8.17"
+	},
+	"engines": {
+		"node": ">=20.19.2",
+		"pnpm": ">=10.0.0"
+	},
+	"packageManager": "pnpm@10.29.2"
+}

@@ -1,0 +1,3980 @@
+[
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "activate/registerCommands.ts",
+      "length": 7,
+      "line": 2,
+      "lineText": "import delay from \"delay\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"delay\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"delay\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 32,
+      "file": "api/providers/anthropic-vertex.ts",
+      "length": 26,
+      "line": 2,
+      "lineText": "import { AnthropicVertex } from \"@anthropic-ai/vertex-sdk\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@anthropic-ai/vertex-sdk\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@anthropic-ai/vertex-sdk\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 37,
+      "file": "api/providers/anthropic-vertex.ts",
+      "length": 21,
+      "line": 3,
+      "lineText": "import { GoogleAuth, JWTInput } from \"google-auth-library\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"google-auth-library\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"google-auth-library\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 26,
+      "file": "api/providers/anthropic.ts",
+      "length": 19,
+      "line": 1,
+      "lineText": "import { Anthropic } from \"@anthropic-ai/sdk\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@anthropic-ai/sdk\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@anthropic-ai/sdk\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "api/providers/base-openai-compatible-provider.ts",
+      "length": 8,
+      "line": 2,
+      "lineText": "import OpenAI from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"api/providers/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 7,
+      "file": "api/providers/bedrock.ts",
+      "length": 33,
+      "line": 12,
+      "lineText": "} from \"@aws-sdk/client-bedrock-runtime\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@aws-sdk/client-bedrock-runtime\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@aws-sdk/client-bedrock-runtime\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 24,
+      "file": "api/providers/bedrock.ts",
+      "length": 31,
+      "line": 14,
+      "lineText": "import { fromIni } from \"@aws-sdk/credential-providers\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@aws-sdk/credential-providers\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@aws-sdk/credential-providers\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "api/providers/fetchers/chutes.ts",
+      "length": 5,
+      "line": 2,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "api/providers/fetchers/deepinfra.ts",
+      "length": 5,
+      "line": 2,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 28,
+      "file": "api/providers/fetchers/gemini.ts",
+      "length": 15,
+      "line": 3,
+      "lineText": "import { GoogleGenAI } from \"@google/genai\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@google/genai\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@google/genai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "api/providers/fetchers/huggingface.ts",
+      "length": 5,
+      "line": 2,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 26,
+      "file": "api/providers/fetchers/inception.ts",
+      "length": 5,
+      "line": 4,
+      "lineText": "import { object, z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "api/providers/fetchers/io-intelligence.ts",
+      "length": 5,
+      "line": 2,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 62,
+      "file": "api/providers/fetchers/lmstudio.ts",
+      "length": 15,
+      "line": 2,
+      "lineText": "import { LLM, LLMInfo, LLMInstanceInfo, LMStudioClient } from \"@lmstudio/sdk\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@lmstudio/sdk\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@lmstudio/sdk\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "api/providers/fetchers/modelCache.ts",
+      "length": 12,
+      "line": 5,
+      "lineText": "import NodeCache from \"node-cache\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"node-cache\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"node-cache\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "api/providers/fetchers/modelCache.ts",
+      "length": 5,
+      "line": 6,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "api/providers/fetchers/modelEndpointCache.ts",
+      "length": 12,
+      "line": 4,
+      "lineText": "import NodeCache from \"node-cache\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"node-cache\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"node-cache\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "api/providers/fetchers/modelEndpointCache.ts",
+      "length": 19,
+      "line": 6,
+      "lineText": "import sanitize from \"sanitize-filename\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"sanitize-filename\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"sanitize-filename\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "api/providers/fetchers/nano-gpt.ts",
+      "length": 5,
+      "line": 2,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "api/providers/fetchers/ollama.ts",
+      "length": 5,
+      "line": 3,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "api/providers/fetchers/openrouter.ts",
+      "length": 5,
+      "line": 2,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "api/providers/fetchers/synthetic.ts",
+      "length": 5,
+      "line": 3,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "api/providers/fetchers/vercel-ai-gateway.ts",
+      "length": 5,
+      "line": 2,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 16,
+      "file": "api/providers/fetchers/versionedSettings.ts",
+      "length": 16,
+      "line": 1,
+      "lineText": "import cmp from \"semver-compare\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"semver-compare\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"semver-compare\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 7,
+      "file": "api/providers/gemini.ts",
+      "length": 15,
+      "line": 10,
+      "lineText": "} from \"@google/genai\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@google/genai\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@google/genai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "api/providers/gemini.ts",
+      "length": 9,
+      "line": 27,
+      "lineText": "import { t } from \"i18next\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"i18next\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"i18next\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "api/providers/huggingface.ts",
+      "length": 8,
+      "line": 1,
+      "lineText": "import OpenAI from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"api/providers/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "api/providers/kilocode/chunk-schema.ts",
+      "length": 8,
+      "line": 1,
+      "lineText": "import * as z from \"zod/v4\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod/v4\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod/v4\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 24,
+      "file": "api/providers/kilocode/fetchWithTimeout.ts",
+      "length": 8,
+      "line": 1,
+      "lineText": "import * as undici from \"undici\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"undici\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"undici\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "api/providers/kilocode/getKilocodeDefaultModel.ts",
+      "length": 5,
+      "line": 4,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "api/providers/kilocode/model-settings.ts",
+      "length": 5,
+      "line": 2,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "api/providers/kiro/auth.ts",
+      "length": 13,
+      "line": 5,
+      "lineText": "import { Mutex } from \"async-mutex\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"async-mutex\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"async-mutex\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 29,
+      "file": "api/providers/kiro/utils.ts",
+      "length": 6,
+      "line": 3,
+      "lineText": "import { v4 as uuidv4 } from \"uuid\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"uuid\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"uuid\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "api/providers/lm-studio.ts",
+      "length": 8,
+      "line": 2,
+      "lineText": "import OpenAI from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"api/providers/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 26,
+      "file": "api/providers/minimax.ts",
+      "length": 19,
+      "line": 1,
+      "lineText": "import { Anthropic } from \"@anthropic-ai/sdk\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@anthropic-ai/sdk\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@anthropic-ai/sdk\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 24,
+      "file": "api/providers/mistral.ts",
+      "length": 22,
+      "line": 2,
+      "lineText": "import { Mistral } from \"@mistralai/mistralai\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@mistralai/mistralai\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@mistralai/mistralai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "api/providers/nano-gpt.ts",
+      "length": 8,
+      "line": 2,
+      "lineText": "import OpenAI from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"api/providers/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 82,
+      "file": "api/providers/native-ollama.ts",
+      "length": 8,
+      "line": 3,
+      "lineText": "import { Message, Ollama, Tool as OllamaTool, type Config as OllamaOptions } from \"ollama\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"ollama\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"ollama\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 29,
+      "file": "api/providers/openai-codex.ts",
+      "length": 6,
+      "line": 2,
+      "lineText": "import { v7 as uuidv7 } from \"uuid\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"uuid\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"uuid\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "api/providers/openai-codex.ts",
+      "length": 8,
+      "line": 4,
+      "lineText": "import OpenAI from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"api/providers/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "api/providers/openai-native.ts",
+      "length": 8,
+      "line": 2,
+      "lineText": "import OpenAI from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"api/providers/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 36,
+      "file": "api/providers/openai.ts",
+      "length": 8,
+      "line": 2,
+      "lineText": "import OpenAI, { AzureOpenAI } from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"api/providers/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "api/providers/openrouter.ts",
+      "length": 8,
+      "line": 2,
+      "lineText": "import OpenAI from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"api/providers/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "api/providers/qwen-code.ts",
+      "length": 8,
+      "line": 3,
+      "lineText": "import OpenAI from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"api/providers/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "api/providers/requesty.ts",
+      "length": 8,
+      "line": 2,
+      "lineText": "import OpenAI from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"api/providers/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "api/providers/router-provider.ts",
+      "length": 8,
+      "line": 1,
+      "lineText": "import OpenAI from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"api/providers/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 76,
+      "file": "api/providers/sap-ai-core.ts",
+      "length": 27,
+      "line": 10,
+      "lineText": "import { ChatMessage, OrchestrationClient, OrchestrationModuleConfig } from \"@sap-ai-sdk/orchestration\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@sap-ai-sdk/orchestration\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@sap-ai-sdk/orchestration\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 79,
+      "file": "api/providers/sap-ai-core.ts",
+      "length": 31,
+      "line": 11,
+      "lineText": "import { AzureOpenAiChatClient, AzureOpenAiChatCompletionRequestMessage } from \"@sap-ai-sdk/foundation-models\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@sap-ai-sdk/foundation-models\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@sap-ai-sdk/foundation-models\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "api/providers/xai.ts",
+      "length": 8,
+      "line": 2,
+      "lineText": "import OpenAI from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"api/providers/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 26,
+      "file": "core/assistant-message/NativeToolCallParser.ts",
+      "length": 14,
+      "line": 10,
+      "lineText": "import { parseJSON } from \"partial-json\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"partial-json\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"partial-json\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 31,
+      "file": "core/assistant-message/presentAssistantMessage.ts",
+      "length": 17,
+      "line": 2,
+      "lineText": "import { serializeError } from \"serialize-error\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"serialize-error\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"serialize-error\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "core/checkpoints/index.ts",
+      "length": 12,
+      "line": 1,
+      "lineText": "import pWaitFor from \"p-wait-for\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-wait-for\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-wait-for\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 25,
+      "file": "core/config/ContextProxy.ts",
+      "length": 5,
+      "line": 2,
+      "lineText": "import { ZodError } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "core/config/CustomModesManager.ts",
+      "length": 6,
+      "line": 6,
+      "lineText": "import * as yaml from \"yaml\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"yaml\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"yaml\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "core/config/CustomModesManager.ts",
+      "length": 11,
+      "line": 7,
+      "lineText": "import stripBom from \"strip-bom\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"strip-bom\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"strip-bom\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 28,
+      "file": "core/config/ProviderSettingsManager.ts",
+      "length": 5,
+      "line": 2,
+      "lineText": "import { z, ZodError } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "core/config/ProviderSettingsManager.ts",
+      "length": 17,
+      "line": 3,
+      "lineText": "import deepEqual from \"fast-deep-equal\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"fast-deep-equal\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"fast-deep-equal\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 28,
+      "file": "core/config/importExport.ts",
+      "length": 5,
+      "line": 7,
+      "lineText": "import { z, ZodError } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 25,
+      "file": "core/context/context-management/context-error-handling.ts",
+      "length": 8,
+      "line": 1,
+      "lineText": "import { APIError } from \"openai\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"openai\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "core/diff/stats.ts",
+      "length": 6,
+      "line": 1,
+      "lineText": "import * as diff from \"diff\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"diff\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"diff\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 25,
+      "file": "core/diff/strategies/multi-file-search-replace.ts",
+      "length": 21,
+      "line": 1,
+      "lineText": "import { distance } from \"fastest-levenshtein\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"fastest-levenshtein\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"fastest-levenshtein\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 25,
+      "file": "core/diff/strategies/multi-search-replace.ts",
+      "length": 21,
+      "line": 3,
+      "lineText": "import { distance } from \"fastest-levenshtein\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"fastest-levenshtein\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"fastest-levenshtein\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "core/environment/getEnvironmentDetails.ts",
+      "length": 12,
+      "line": 5,
+      "lineText": "import pWaitFor from \"p-wait-for\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-wait-for\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-wait-for\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "core/environment/getEnvironmentDetails.ts",
+      "length": 7,
+      "line": 6,
+      "lineText": "import delay from \"delay\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"delay\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"delay\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 31,
+      "file": "core/ignore/RooIgnoreController.ts",
+      "length": 8,
+      "line": 5,
+      "lineText": "import ignore, { Ignore } from \"ignore\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"ignore\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"ignore\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "core/kilocode/agent-manager/AgentManagerProvider.ts",
+      "length": 9,
+      "line": 7,
+      "lineText": "import { t } from \"i18next\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"i18next\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"i18next\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "core/kilocode/agent-manager/AgentManagerProvider.ts",
+      "length": 12,
+      "line": 49,
+      "lineText": "import simpleGit from \"simple-git\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"simple-git\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"simple-git\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "core/kilocode/agent-manager/ShellOutput.ts",
+      "length": 12,
+      "line": 1,
+      "lineText": "import stripAnsi from \"strip-ansi\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"strip-ansi\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"strip-ansi\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "core/kilocode/agent-manager/askErrorParser.ts",
+      "length": 5,
+      "line": 1,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "core/kilocode/webview/webviewMessageHandlerUtils.ts",
+      "length": 12,
+      "line": 2,
+      "lineText": "import pWaitFor from \"p-wait-for\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-wait-for\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-wait-for\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 29,
+      "file": "core/mentions/index.ts",
+      "length": 14,
+      "line": 5,
+      "lineText": "import { isBinaryFile } from \"isbinaryfile\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"isbinaryfile\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"isbinaryfile\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 29,
+      "file": "core/message-queue/MessageQueueService.ts",
+      "length": 6,
+      "line": 3,
+      "lineText": "import { v4 as uuidv4 } from \"uuid\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"uuid\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"uuid\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "core/prompts/responses.ts",
+      "length": 6,
+      "line": 3,
+      "lineText": "import * as diff from \"diff\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"diff\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"diff\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "core/prompts/sections/system-info.ts",
+      "length": 9,
+      "line": 2,
+      "lineText": "import osName from \"os-name\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"os-name\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"os-name\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 31,
+      "file": "core/protect/RooProtectedController.ts",
+      "length": 8,
+      "line": 2,
+      "lineText": "import ignore, { Ignore } from \"ignore\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"ignore\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"ignore\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "core/task-persistence/taskMetadata.ts",
+      "length": 12,
+      "line": 1,
+      "lineText": "import NodeCache from \"node-cache\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"node-cache\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"node-cache\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 26,
+      "file": "core/task-persistence/taskMetadata.ts",
+      "length": 17,
+      "line": 2,
+      "lineText": "import getFolderSize from \"get-folder-size\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"get-folder-size\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"get-folder-size\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "core/task/AgentLoop.ts",
+      "length": 12,
+      "line": 21,
+      "lineText": "import pWaitFor from \"p-wait-for\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-wait-for\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-wait-for\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "core/task/Task.ts",
+      "length": 17,
+      "line": 12,
+      "lineText": "import debounce from \"lodash.debounce\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"lodash.debounce\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"lodash.debounce\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "core/task/Task.ts",
+      "length": 7,
+      "line": 13,
+      "lineText": "import delay from \"delay\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"delay\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"delay\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "core/task/Task.ts",
+      "length": 12,
+      "line": 14,
+      "lineText": "import pWaitFor from \"p-wait-for\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-wait-for\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-wait-for\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 31,
+      "file": "core/task/Task.ts",
+      "length": 17,
+      "line": 15,
+      "lineText": "import { serializeError } from \"serialize-error\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"serialize-error\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"serialize-error\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "core/tools/ExecuteCommandTool.ts",
+      "length": 7,
+      "line": 5,
+      "lineText": "import delay from \"delay\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"delay\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"delay\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 29,
+      "file": "core/tools/ReadFileTool.ts",
+      "length": 14,
+      "line": 2,
+      "lineText": "import { isBinaryFile } from \"isbinaryfile\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"isbinaryfile\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"isbinaryfile\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "core/tools/SwitchModeTool.ts",
+      "length": 7,
+      "line": 1,
+      "lineText": "import delay from \"delay\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"delay\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"delay\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "core/tools/ToolRepetitionDetector.ts",
+      "length": 23,
+      "line": 1,
+      "lineText": "import stringify from \"safe-stable-stringify\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"safe-stable-stringify\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"safe-stable-stringify\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "core/tools/UpdateTodoListTool.ts",
+      "length": 12,
+      "line": 5,
+      "lineText": "import cloneDeep from \"clone-deep\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"clone-deep\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"clone-deep\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "core/tools/WriteToFileTool.ts",
+      "length": 7,
+      "line": 2,
+      "lineText": "import delay from \"delay\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"delay\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"delay\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 24,
+      "file": "core/tools/helpers/imageHelpers.ts",
+      "length": 14,
+      "line": 4,
+      "lineText": "import prettyBytes from \"pretty-bytes\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"pretty-bytes\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"pretty-bytes\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "core/tools/kilocode/editFileTool.ts",
+      "length": 8,
+      "line": 3,
+      "lineText": "import OpenAI from \"openai\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"openai\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "core/tools/kilocode/newRuleTool.ts",
+      "length": 7,
+      "line": 2,
+      "lineText": "import delay from \"delay\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"delay\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"delay\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 29,
+      "file": "core/tools/simpleReadFileTool.ts",
+      "length": 14,
+      "line": 2,
+      "lineText": "import { isBinaryFile } from \"isbinaryfile\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"isbinaryfile\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"isbinaryfile\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "core/webview/ClineProvider.ts",
+      "length": 7,
+      "line": 7,
+      "lineText": "import delay from \"delay\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"delay\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"delay\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "core/webview/ClineProvider.ts",
+      "length": 17,
+      "line": 9,
+      "lineText": "import debounce from \"lodash.debounce\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"lodash.debounce\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"lodash.debounce\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "core/webview/ClineProvider.ts",
+      "length": 12,
+      "line": 10,
+      "lineText": "import pWaitFor from \"p-wait-for\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-wait-for\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-wait-for\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "core/webview/ClineProvider.ts",
+      "length": 8,
+      "line": 119,
+      "lineText": "import isWsl from \"is-wsl\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"is-wsl\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"is-wsl\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "core/webview/checkpointRestoreHandler.ts",
+      "length": 12,
+      "line": 5,
+      "lineText": "import pWaitFor from \"p-wait-for\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-wait-for\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-wait-for\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "core/webview/webviewMessageHandler.ts",
+      "length": 12,
+      "line": 5,
+      "lineText": "import pWaitFor from \"p-wait-for\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-wait-for\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-wait-for\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 20,
+      "file": "i18n/setup.ts",
+      "length": 9,
+      "line": 1,
+      "lineText": "import i18next from \"i18next\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"i18next\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"i18next\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "integrations/antigravity/oauth.ts",
+      "length": 5,
+      "line": 2,
+      "lineText": "import * as z from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "integrations/claude-code/run.ts",
+      "length": 7,
+      "line": 3,
+      "lineText": "import { execa } from \"execa\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"execa\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"execa\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "integrations/diagnostics/index.ts",
+      "length": 17,
+      "line": 3,
+      "lineText": "import deepEqual from \"fast-deep-equal\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"fast-deep-equal\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"fast-deep-equal\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "integrations/editor/DiffViewProvider.ts",
+      "length": 6,
+      "line": 4,
+      "lineText": "import * as diff from \"diff\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"diff\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"diff\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "integrations/editor/DiffViewProvider.ts",
+      "length": 11,
+      "line": 5,
+      "lineText": "import stripBom from \"strip-bom\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"strip-bom\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"strip-bom\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 27,
+      "file": "integrations/editor/DiffViewProvider.ts",
+      "length": 17,
+      "line": 6,
+      "lineText": "import { XMLBuilder } from \"fast-xml-parser\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"fast-xml-parser\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"fast-xml-parser\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "integrations/editor/DiffViewProvider.ts",
+      "length": 7,
+      "line": 7,
+      "lineText": "import delay from \"delay\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"delay\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"delay\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "integrations/gemini/oauth.ts",
+      "length": 5,
+      "line": 3,
+      "lineText": "import * as z from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "integrations/misc/extract-text-from-xlsx.ts",
+      "length": 6,
+      "line": 2,
+      "lineText": "import * as XLSX from \"xlsx\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"xlsx\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"xlsx\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 16,
+      "file": "integrations/misc/extract-text.ts",
+      "length": 25,
+      "line": 3,
+      "lineText": "import pdf from \"pdf-parse/lib/pdf-parse\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"pdf-parse/lib/pdf-parse\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"pdf-parse/lib/pdf-parse\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 20,
+      "file": "integrations/misc/extract-text.ts",
+      "length": 9,
+      "line": 4,
+      "lineText": "import mammoth from \"mammoth\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"mammoth\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"mammoth\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 29,
+      "file": "integrations/misc/extract-text.ts",
+      "length": 14,
+      "line": 6,
+      "lineText": "import { isBinaryFile } from \"isbinaryfile\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"isbinaryfile\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"isbinaryfile\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "integrations/notifications/index.ts",
+      "length": 7,
+      "line": 1,
+      "lineText": "import { execa } from \"execa\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"execa\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"execa\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "integrations/openai-codex/oauth.ts",
+      "length": 5,
+      "line": 5,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 34,
+      "file": "integrations/terminal/ExecaTerminalProcess.ts",
+      "length": 7,
+      "line": 1,
+      "lineText": "import { execa, ExecaError } from \"execa\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"execa\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"execa\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "integrations/terminal/ExecaTerminalProcess.ts",
+      "length": 9,
+      "line": 2,
+      "lineText": "import psList from \"ps-list\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"ps-list\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"ps-list\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "integrations/terminal/Terminal.ts",
+      "length": 12,
+      "line": 2,
+      "lineText": "import pWaitFor from \"p-wait-for\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-wait-for\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-wait-for\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "integrations/terminal/TerminalProcess.ts",
+      "length": 12,
+      "line": 9,
+      "lineText": "import stripAnsi from \"strip-ansi\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"strip-ansi\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"strip-ansi\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 29,
+      "file": "integrations/theme/getTheme.ts",
+      "length": 48,
+      "line": 4,
+      "lineText": "import { convertTheme } from \"monaco-vscode-textmate-theme-converter/lib/cjs\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"monaco-vscode-textmate-theme-converter/lib/cjs\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"monaco-vscode-textmate-theme-converter/lib/cjs\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 26,
+      "file": "services/auto-purge/AutoPurgeService.ts",
+      "length": 17,
+      "line": 3,
+      "lineText": "import getFolderSize from \"get-folder-size\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"get-folder-size\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"get-folder-size\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 90,
+      "file": "services/browser/BrowserSession.ts",
+      "length": 16,
+      "line": 4,
+      "lineText": "import { Browser, Page, ScreenshotOptions, TimeoutError, launch, connect, KeyInput } from \"puppeteer-core\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"puppeteer-core\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"puppeteer-core\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 16,
+      "file": "services/browser/BrowserSession.ts",
+      "length": 29,
+      "line": 6,
+      "lineText": "import PCR from \"puppeteer-chromium-resolver\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"puppeteer-chromium-resolver\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"puppeteer-chromium-resolver\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "services/browser/BrowserSession.ts",
+      "length": 12,
+      "line": 7,
+      "lineText": "import pWaitFor from \"p-wait-for\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-wait-for\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-wait-for\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "services/browser/BrowserSession.ts",
+      "length": 7,
+      "line": 8,
+      "lineText": "import delay from \"delay\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"delay\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"delay\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 16,
+      "file": "services/browser/UrlContentFetcher.ts",
+      "length": 29,
+      "line": 8,
+      "lineText": "import PCR from \"puppeteer-chromium-resolver\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"puppeteer-chromium-resolver\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"puppeteer-chromium-resolver\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 31,
+      "file": "services/browser/UrlContentFetcher.ts",
+      "length": 17,
+      "line": 10,
+      "lineText": "import { serializeError } from \"serialize-error\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"serialize-error\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"serialize-error\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 55,
+      "file": "services/checkpoints/ShadowCheckpointService.ts",
+      "length": 12,
+      "line": 7,
+      "lineText": "import simpleGit, { SimpleGit, SimpleGitOptions } from \"simple-git\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"simple-git\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"simple-git\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "services/checkpoints/ShadowCheckpointService.ts",
+      "length": 12,
+      "line": 8,
+      "lineText": "import pWaitFor from \"p-wait-for\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-wait-for\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-wait-for\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "services/code-index/cache-manager.ts",
+      "length": 17,
+      "line": 4,
+      "lineText": "import debounce from \"lodash.debounce\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"lodash.debounce\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"lodash.debounce\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 82,
+      "file": "services/code-index/embedders/bedrock.ts",
+      "length": 33,
+      "line": 1,
+      "lineText": "import { BedrockRuntimeClient, InvokeModelCommand, InvokeModelCommandInput } from \"@aws-sdk/client-bedrock-runtime\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@aws-sdk/client-bedrock-runtime\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@aws-sdk/client-bedrock-runtime\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 33,
+      "file": "services/code-index/embedders/bedrock.ts",
+      "length": 31,
+      "line": 2,
+      "lineText": "import { fromEnv, fromIni } from \"@aws-sdk/credential-providers\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@aws-sdk/credential-providers\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@aws-sdk/credential-providers\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 23,
+      "file": "services/code-index/embedders/openai-compatible.ts",
+      "length": 8,
+      "line": 1,
+      "lineText": "import { OpenAI } from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"services/code-index/embedders/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "services/code-index/embedders/openai-compatible.ts",
+      "length": 13,
+      "line": 14,
+      "lineText": "import { Mutex } from \"async-mutex\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"async-mutex\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"async-mutex\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 23,
+      "file": "services/code-index/embedders/openai.ts",
+      "length": 8,
+      "line": 1,
+      "lineText": "import { OpenAI } from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"services/code-index/embedders/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 23,
+      "file": "services/code-index/embedders/openrouter.ts",
+      "length": 8,
+      "line": 1,
+      "lineText": "import { OpenAI } from \"openai\"",
+      "namespace": "",
+      "suggestion": "\"./openai\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./openai\" to reference the file \"services/code-index/embedders/openai.ts\". Without the leading \"./\", the path \"openai\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"openai\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "services/code-index/embedders/openrouter.ts",
+      "length": 13,
+      "line": 14,
+      "lineText": "import { Mutex } from \"async-mutex\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"async-mutex\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"async-mutex\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 17,
+      "file": "services/code-index/managed/ManagedIndexer.ts",
+      "length": 7,
+      "line": 6,
+      "lineText": "import pMap from \"p-map\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-map\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-map\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "services/code-index/manager.ts",
+      "length": 8,
+      "line": 13,
+      "lineText": "import ignore from \"ignore\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"ignore\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"ignore\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 29,
+      "file": "services/code-index/processors/file-watcher.ts",
+      "length": 6,
+      "line": 11,
+      "lineText": "import { v5 as uuidv5 } from \"uuid\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"uuid\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"uuid\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 29,
+      "file": "services/code-index/processors/scanner.ts",
+      "length": 6,
+      "line": 13,
+      "lineText": "import { v5 as uuidv5 } from \"uuid\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"uuid\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"uuid\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "services/code-index/processors/scanner.ts",
+      "length": 9,
+      "line": 14,
+      "lineText": "import pLimit from \"p-limit\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-limit\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-limit\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "services/code-index/processors/scanner.ts",
+      "length": 13,
+      "line": 15,
+      "lineText": "import { Mutex } from \"async-mutex\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"async-mutex\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"async-mutex\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 31,
+      "file": "services/code-index/shared/validation-helpers.ts",
+      "length": 17,
+      "line": 2,
+      "lineText": "import { serializeError } from \"serialize-error\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"serialize-error\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"serialize-error\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 38,
+      "file": "services/code-index/vector-store/qdrant-client.ts",
+      "length": 24,
+      "line": 1,
+      "lineText": "import { QdrantClient, Schemas } from \"@qdrant/js-client-rest\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@qdrant/js-client-rest\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@qdrant/js-client-rest\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 29,
+      "file": "services/code-index/vector-store/qdrant-client.ts",
+      "length": 6,
+      "line": 4,
+      "lineText": "import { v5 as uuidv5 } from \"uuid\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"uuid\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"uuid\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "services/command/commands.ts",
+      "length": 13,
+      "line": 4,
+      "lineText": "import matter from \"gray-matter\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"gray-matter\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"gray-matter\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 31,
+      "file": "services/commit-message/exclusionUtils.ts",
+      "length": 8,
+      "line": 2,
+      "lineText": "import ignore, { Ignore } from \"ignore\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"ignore\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"ignore\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 25,
+      "file": "services/continuedev/core/autocomplete/context/root-path-context/RootPathContextService.ts",
+      "length": 11,
+      "line": 3,
+      "lineText": "import { LRUCache } from \"lru-cache\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"lru-cache\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"lru-cache\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "services/continuedev/core/autocomplete/util/openedFilesLruCache.ts",
+      "length": 11,
+      "line": 1,
+      "lineText": "import QuickLRU from \"quick-lru\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"quick-lru\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"quick-lru\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 25,
+      "file": "services/continuedev/core/autocomplete/util/textSimilarity.ts",
+      "length": 21,
+      "line": 1,
+      "lineText": "import { distance } from \"fastest-levenshtein\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"fastest-levenshtein\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"fastest-levenshtein\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "services/continuedev/core/indexing/ignore.ts",
+      "length": 8,
+      "line": 1,
+      "lineText": "import ignore from \"ignore\"",
+      "namespace": "",
+      "suggestion": "\"./ignore\""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "Use the relative path \"./ignore\" to reference the file \"services/continuedev/core/indexing/ignore.ts\". Without the leading \"./\", the path \"ignore\" is being interpreted as a package path instead."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"ignore\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 64,
+      "file": "services/continuedev/core/llm/countTokens.ts",
+      "length": 13,
+      "line": 1,
+      "lineText": "import { Tiktoken, encodingForModel as _encodingForModel } from \"js-tiktoken\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"js-tiktoken\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"js-tiktoken\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 27,
+      "file": "services/continuedev/core/util/treeSitter.ts",
+      "length": 17,
+      "line": 222,
+      "lineText": "\tconst { Query } = require(\"web-tree-sitter\")",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"web-tree-sitter\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle. You can also surround this \"require\" call with a try/catch block to handle this failure at run-time instead of bundle-time."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"web-tree-sitter\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "services/continuedev/core/vscode-test-harness/src/VSCodeIde.ts",
+      "length": 8,
+      "line": 2,
+      "lineText": "import * as URI from \"uri-js\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"uri-js\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"uri-js\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 25,
+      "file": "services/continuedev/core/vscode-test-harness/src/autocomplete/RecentlyVisitedRangesService.ts",
+      "length": 11,
+      "line": 4,
+      "lineText": "import { LRUCache } from \"lru-cache\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"lru-cache\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"lru-cache\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "services/contribution-tracking/contribution-tracking-types.ts",
+      "length": 5,
+      "line": 2,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 26,
+      "file": "services/edit-history/EditHistoryService.ts",
+      "length": 6,
+      "line": 4,
+      "lineText": "import { diffLines } from 'diff';",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"diff\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"diff\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "services/ghost/GhostJetbrainsBridge.ts",
+      "length": 5,
+      "line": 3,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "services/glob/list-files.ts",
+      "length": 8,
+      "line": 6,
+      "lineText": "import ignore from \"ignore\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"ignore\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"ignore\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "services/marketplace/MarketplaceManager.ts",
+      "length": 6,
+      "line": 5,
+      "lineText": "import * as yaml from \"yaml\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"yaml\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"yaml\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "services/marketplace/RemoteConfigLoader.ts",
+      "length": 6,
+      "line": 2,
+      "lineText": "import * as yaml from \"yaml\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"yaml\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"yaml\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "services/marketplace/RemoteConfigLoader.ts",
+      "length": 5,
+      "line": 3,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "services/marketplace/SimpleInstaller.ts",
+      "length": 6,
+      "line": 5,
+      "lineText": "import * as yaml from \"yaml\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"yaml\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"yaml\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 23,
+      "file": "services/mcp/McpHub.ts",
+      "length": 43,
+      "line": 1,
+      "lineText": "import { Client } from \"@modelcontextprotocol/sdk/client/index.js\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@modelcontextprotocol/sdk/client/index.js\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@modelcontextprotocol/sdk/client/index.js\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 60,
+      "file": "services/mcp/McpHub.ts",
+      "length": 43,
+      "line": 2,
+      "lineText": "import { StdioClientTransport, getDefaultEnvironment } from \"@modelcontextprotocol/sdk/client/stdio.js\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@modelcontextprotocol/sdk/client/stdio.js\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@modelcontextprotocol/sdk/client/stdio.js\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 35,
+      "file": "services/mcp/McpHub.ts",
+      "length": 41,
+      "line": 3,
+      "lineText": "import { SSEClientTransport } from \"@modelcontextprotocol/sdk/client/sse.js\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@modelcontextprotocol/sdk/client/sse.js\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@modelcontextprotocol/sdk/client/sse.js\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 46,
+      "file": "services/mcp/McpHub.ts",
+      "length": 52,
+      "line": 4,
+      "lineText": "import { StreamableHTTPClientTransport } from \"@modelcontextprotocol/sdk/client/streamableHttp.js\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@modelcontextprotocol/sdk/client/streamableHttp.js\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@modelcontextprotocol/sdk/client/streamableHttp.js\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 36,
+      "file": "services/mcp/McpHub.ts",
+      "length": 26,
+      "line": 5,
+      "lineText": "import ReconnectingEventSource from \"reconnecting-eventsource\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"reconnecting-eventsource\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"reconnecting-eventsource\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 7,
+      "file": "services/mcp/McpHub.ts",
+      "length": 36,
+      "line": 12,
+      "lineText": "} from \"@modelcontextprotocol/sdk/types.js\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@modelcontextprotocol/sdk/types.js\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@modelcontextprotocol/sdk/types.js\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 36,
+      "file": "services/mcp/McpHub.ts",
+      "length": 10,
+      "line": 13,
+      "lineText": "import chokidar, { FSWatcher } from \"chokidar\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"chokidar\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"chokidar\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "services/mcp/McpHub.ts",
+      "length": 7,
+      "line": 14,
+      "lineText": "import delay from \"delay\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"delay\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"delay\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "services/mcp/McpHub.ts",
+      "length": 17,
+      "line": 15,
+      "lineText": "import deepEqual from \"fast-deep-equal\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"fast-deep-equal\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"fast-deep-equal\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "services/mcp/McpHub.ts",
+      "length": 5,
+      "line": 19,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 49,
+      "file": "services/mcp/kilocode/NotificationService.ts",
+      "length": 36,
+      "line": 2,
+      "lineText": "import { LoggingMessageNotificationSchema } from \"@modelcontextprotocol/sdk/types.js\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@modelcontextprotocol/sdk/types.js\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@modelcontextprotocol/sdk/types.js\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "services/mdm/MdmService.ts",
+      "length": 5,
+      "line": 4,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 33,
+      "file": "services/search/file-search.ts",
+      "length": 5,
+      "line": 6,
+      "lineText": "import { byLengthAsc, Fzf } from \"fzf\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"fzf\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"fzf\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "services/stt/OpenAIWhisperClient.ts",
+      "length": 4,
+      "line": 2,
+      "lineText": "import WebSocket from \"ws\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"ws\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"ws\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 35,
+      "file": "services/tree-sitter/languageParser.ts",
+      "length": 17,
+      "line": 79,
+      "lineText": "\tconst { Parser, Query } = require(\"web-tree-sitter\")",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"web-tree-sitter\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle. You can also surround this \"require\" call with a try/catch block to handle this failure at run-time instead of bundle-time."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"web-tree-sitter\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "shared/WebviewMessage.ts",
+      "length": 5,
+      "line": 1,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 19,
+      "file": "shared/http.ts",
+      "length": 9,
+      "line": 1,
+      "lineText": "import pRetry from \"p-retry\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"p-retry\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"p-retry\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "shared/kilocode/cli-sessions/core/GitStateService.ts",
+      "length": 12,
+      "line": 5,
+      "lineText": "import simpleGit from \"simple-git\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"simple-git\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"simple-git\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 20,
+      "file": "shared/kilocode/getTaskHistory.ts",
+      "length": 5,
+      "line": 1,
+      "lineText": "import { Fzf } from \"fzf\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"fzf\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"fzf\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "shared/parse-command.ts",
+      "length": 13,
+      "line": 1,
+      "lineText": "import { parse } from \"shell-quote\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"shell-quote\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"shell-quote\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 23,
+      "file": "utils/countTokens.ts",
+      "length": 12,
+      "line": 2,
+      "lineText": "import workerpool from \"workerpool\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"workerpool\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"workerpool\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 14,
+      "file": "utils/kilo-config-file.ts",
+      "length": 5,
+      "line": 5,
+      "lineText": "import z from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "utils/migrateSettings.ts",
+      "length": 6,
+      "line": 7,
+      "lineText": "import * as yaml from \"yaml\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"yaml\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"yaml\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 26,
+      "file": "utils/safeWriteJson.ts",
+      "length": 17,
+      "line": 4,
+      "lineText": "import * as lockfile from \"proper-lockfile\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"proper-lockfile\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"proper-lockfile\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 25,
+      "file": "utils/safeWriteJson.ts",
+      "length": 26,
+      "line": 5,
+      "lineText": "import Disassembler from \"stream-json/Disassembler\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"stream-json/Disassembler\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"stream-json/Disassembler\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 21,
+      "file": "utils/safeWriteJson.ts",
+      "length": 22,
+      "line": 6,
+      "lineText": "import Stringer from \"stream-json/Stringer\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"stream-json/Stringer\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"stream-json/Stringer\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 25,
+      "file": "utils/tiktoken.ts",
+      "length": 15,
+      "line": 2,
+      "lineText": "import { Tiktoken } from \"tiktoken/lite\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"tiktoken/lite\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"tiktoken/lite\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 22,
+      "file": "utils/tiktoken.ts",
+      "length": 30,
+      "line": 3,
+      "lineText": "import o200kBase from \"tiktoken/encoders/o200k_base\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"tiktoken/encoders/o200k_base\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"tiktoken/encoders/o200k_base\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 28,
+      "file": "utils/tts.ts",
+      "length": 5,
+      "line": 59,
+      "lineText": "\t\t\tconst say: Say = require(\"say\")",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"say\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle. You can also surround this \"require\" call with a try/catch block to handle this failure at run-time instead of bundle-time."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"say\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "utils/vscode-config.ts",
+      "length": 7,
+      "line": 5,
+      "lineText": "import JSON5 from \"json5\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"json5\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"json5\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 26,
+      "file": "utils/xml.ts",
+      "length": 17,
+      "line": 1,
+      "lineText": "import { XMLParser } from \"fast-xml-parser\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"fast-xml-parser\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"fast-xml-parser\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 18,
+      "file": "workers/types.ts",
+      "length": 5,
+      "line": 1,
+      "lineText": "import { z } from \"zod\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"zod\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"zod\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 7,
+      "file": "../webview-ui/src/components/settings/constants.ts",
+      "length": 17,
+      "line": 33,
+      "lineText": "} from \"@roo-code/types\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"@roo-code/types\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"@roo-code/types\""
+  },
+  {
+    "id": "",
+    "location": {
+      "column": 25,
+      "file": "../webview-ui/src/utils/highlight.ts",
+      "length": 11,
+      "line": 1,
+      "lineText": "import { LRUCache } from \"lru-cache\"",
+      "namespace": "",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "location": null,
+        "text": "You can mark the path \"lru-cache\" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle."
+      }
+    ],
+    "pluginName": "",
+    "text": "Could not resolve \"lru-cache\""
+  },
+  {
+    "id": "",
+    "pluginName": "copyFiles",
+    "text": "ENOENT: no such file or directory, lstat '/Users/imacpro/Documents/kilomain/src/node_modules/vscode-material-icons/generated'",
+    "location": {
+      "file": "/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js",
+      "namespace": "file",
+      "line": 1317,
+      "column": 32,
+      "length": 0,
+      "lineText": "            const value = await callback(result);\n    at Module.lstatSync (node:fs:1685:25)\n    at file:///Users/imacpro/Documents/kilomain/packages/build/dist/esbuild.js:74:30\n    at Array.forEach (<anonymous>)\n    at copyPaths (file:///Users/imacpro/Documents/kilomain/packages/build/dist/esbuild.js:72:15)\n    at file:///Users/imacpro/Documents/kilomain/src/esbuild.mjs:118:6\n    at /Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:1317:33\n    at runOnEndCallbacks (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:1346:9)\n    at buildResponseToResult (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:924:7)\n    at /Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:936:9\n    at new Promise (<anonymous>)",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "text": "This error came from the \"onEnd\" callback registered here:",
+        "location": {
+          "file": "/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js",
+          "namespace": "file",
+          "line": 1141,
+          "column": 20,
+          "length": 0,
+          "lineText": "      let promise = setup({\n    at setup (file:///Users/imacpro/Documents/kilomain/src/esbuild.mjs:117:11)\n    at handlePlugins (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:1141:21)\n    at buildOrContextImpl (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:854:5)\n    at Object.buildOrContext (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:680:5)\n    at /Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:2035:68\n    at new Promise (<anonymous>)\n    at Object.context (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:2035:27)\n    at Module.context (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:1877:58)\n    at main (file:///Users/imacpro/Documents/kilomain/src/esbuild.mjs:228:11)",
+          "suggestion": ""
+        }
+      }
+    ],
+    "detail": 52
+  },
+  {
+    "id": "",
+    "pluginName": "copyWasms",
+    "text": "ENOENT: no such file or directory, copyfile '/Users/imacpro/Documents/kilomain/src/node_modules/tiktoken/lite/tiktoken_bg.wasm' -> '/Users/imacpro/Documents/kilomain/src/dist/tiktoken_bg.wasm'",
+    "location": {
+      "file": "/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js",
+      "namespace": "file",
+      "line": 1317,
+      "column": 32,
+      "length": 0,
+      "lineText": "            const value = await callback(result);\n    at Module.copyFileSync (node:fs:3088:11)\n    at copyWasms (file:///Users/imacpro/Documents/kilomain/packages/build/dist/esbuild.js:102:8)\n    at file:///Users/imacpro/Documents/kilomain/src/esbuild.mjs:159:23\n    at /Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:1317:33\n    at runOnEndCallbacks (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:1346:9)\n    at buildResponseToResult (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:924:7)\n    at /Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:936:9\n    at new Promise (<anonymous>)\n    at requestCallbacks.on-end (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:935:54)\n    at handleRequest (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:628:17)",
+      "suggestion": ""
+    },
+    "notes": [
+      {
+        "text": "This error came from the \"onEnd\" callback registered here:",
+        "location": {
+          "file": "/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js",
+          "namespace": "file",
+          "line": 1141,
+          "column": 20,
+          "length": 0,
+          "lineText": "      let promise = setup({\n    at setup (file:///Users/imacpro/Documents/kilomain/src/esbuild.mjs:159:11)\n    at handlePlugins (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:1141:21)\n    at buildOrContextImpl (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:854:5)\n    at Object.buildOrContext (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:680:5)\n    at /Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:2035:68\n    at new Promise (<anonymous>)\n    at Object.context (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:2035:27)\n    at Module.context (/Users/imacpro/Documents/kilomain/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:1877:58)\n    at main (file:///Users/imacpro/Documents/kilomain/src/esbuild.mjs:228:11)",
+          "suggestion": ""
+        }
+      }
+    ],
+    "detail": 53
+  }
+]

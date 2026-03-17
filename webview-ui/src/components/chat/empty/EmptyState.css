@@ -1,0 +1,395 @@
+/* Empty State Styles */
+.emptyState {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding-bottom: 0px;
+    /* Removed default bottom padding */
+    background-color: transparent;
+    text-rendering: optimizeLegibility;
+    font-family: var(--vscode-font-family), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "calt" 1;
+    font-variant-ligatures: common-ligatures contextual;
+    font-optical-sizing: auto;
+}
+
+/* Apply bottom padding only in chat context */
+.emptyState.in-chat {
+    padding-bottom: 168px;
+    font-feature-settings: inherit;
+}
+
+/* Prevent history dropdown from affecting EmptyState */
+.emptyState:not(.in-chat) {
+    position: static;
+    inset: auto;
+    padding-bottom: 0;
+}
+
+.stars-container {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.star {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0;
+    /* Removed fadeIn because negative delay handles immediate presence */
+    animation: twinkle var(--star-duration) ease-in-out var(--star-delay) infinite;
+    box-shadow: 0 0 6px currentColor;
+    will-change: opacity, transform;
+}
+
+@keyframes twinkle {
+    0%, 100% {
+        opacity: 0.15; /* Maintain a baseline visibility */
+        transform: scale(0.9) translate(0, 0);
+    }
+    40%, 60% {
+        opacity: var(--star-opacity);
+        transform: scale(1.1) translate(20px, -5px);
+        filter: brightness(1.2);
+    }
+}
+
+.ambient-background {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(74, 158, 255, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ambient-background {
+        animation: none;
+    }
+}
+
+.empty-branding {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0px;
+    z-index: 1;
+    padding: 20px 10px;
+}
+
+.empty-branding::before {
+    content: "";
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    top: calc(50% - 5px);
+    left: calc(50% - 2.9px);
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba(168, 168, 168, 0.2) 0%, rgba(168, 168, 168, 0.08) 40%, transparent 72%);
+    filter: blur(2px);
+    animation: centerHaloAmbient 17s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes centerHaloAmbient {
+
+    0%,
+    100% {
+        opacity: 0.47;
+        transform: translate(-50%, -50%) scale(1.25);
+    }
+
+    50% {
+        opacity: 0.47;
+        transform: translate(-50%, -50%) scale(1.25);
+    }
+}
+
+.brand-logo-icon {
+    height: 62px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+    filter: grayscale(1) brightness(0.36);
+    margin-bottom: 2px;
+}
+
+.prompt-suggestion-container {
+    margin-top: 0;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+    font-size: 12.7px;
+    font-weight: 400;
+    padding: 12px 12px 0px 7px;
+    text-align: center;
+    overflow: visible;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    width: 100%;
+    max-width: 500px;
+    box-sizing: border-box;
+}
+
+.prompt-suggestion-container:hover {
+    opacity: 1;
+}
+
+.prompt-suggestion-container:hover .prompt-suggestion-text {
+    text-shadow: 0 0 8px rgba(135, 135, 135, 0.4);
+    color: #fff;
+}
+
+.prompt-suggestion-text {
+    animation: fadeSlideUp 6s ease-in-out 1 both;
+    max-width: 100%;
+    line-height: 1.4;
+    display: block;
+    font-family: var(--vscode-font-family), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.prompt-suggestion-text.is-initial {
+    animation: none;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.prompt-suggestion-container.hovered .prompt-suggestion-text {
+    animation-play-state: paused;
+}
+
+@media (max-width: 400px) {
+    .brand-shortcut {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .empty-branding::before {
+        animation: none;
+    }
+}
+
+@keyframes fadeSlideUp {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    10% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    90% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+/* Recent Activity Styles */
+.recent-activity {
+    position: absolute;
+    bottom: 84.6px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - 32px);
+    max-width: 900px;
+    padding: 10px 5px 10px;
+    z-index: 2;
+    gap: 6px;
+    font-family: var(--vscode-font-family), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.recent-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 3px 5px;
+    background: rgba(70, 70, 70, 0.213);
+    border: 0px solid var(--vscode-panel-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--vscode-foreground);
+    font-size: 10px;
+    opacity: 0.9;
+    box-shadow: 0 0px 0px rgba(0, 0, 0, 0.1);
+}
+
+.recent-item:hover {
+    background: var(--vscode-list-hoverBackground);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    opacity: 1;
+}
+
+.status-icon {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+.recent-item:hover .status-icon {
+    opacity: 1;
+    color: var(--vscode-foreground);
+}
+
+.recent-title {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(166, 166, 166, 0.9);
+    font-family: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recent-time {
+    font-size: 11px;
+    opacity: 0.72;
+    color: rgba(144, 144, 144, 0.82);
+    font-family: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    flex-shrink: 0;
+}
+
+/* Sub-Agent Ad Banner */
+.sub-agent-ad-banner {
+    background: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(16px);
+    animation: bannerFadeIn 0.5s ease-out;
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sub-agent-ad-banner.welcome-style {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+.sub-agent-ad-banner.welcome-style:hover {
+    border-color: rgba(74, 158, 255, 0.3);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    transform: translateY(-2px);
+    box-shadow: 
+        0 12px 24px rgba(0, 0, 0, 0.3),
+        inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+.sub-agent-ad-banner::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.sub-agent-ad-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+}
+
+.sub-agent-ad-icon {
+    background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.sub-agent-ad-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.sub-agent-ad-title {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 13px;
+    display: block;
+    letter-spacing: 0.2px;
+}
+
+.settings-link, .email-link {
+    color: #4A9EFF;
+    cursor: pointer;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.settings-link:hover, .email-link:hover {
+    color: #79adff;
+    text-decoration: underline;
+}
+
+.sub-agent-promo-divider {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sub-agent-ad-description {
+    font-size: 10.5px;
+    color: var(--vscode-descriptionForeground);
+    line-height: 1.3;
+}
+
+
+
+@keyframes bannerFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

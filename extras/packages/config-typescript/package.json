@@ -1,0 +1,9 @@
+{
+  "name": "@roo-code/config-typescript",
+  "version": "0.0.1",
+  "private": true,
+  "files": [
+    "base.json",
+    "vscode-library.json"
+  ]
+}

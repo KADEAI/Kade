@@ -1,0 +1,272 @@
+.history-dropdown-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.2);
+    /* Standard dim */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.history-dropdown-container {
+    position: absolute;
+    top: 46px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    width: 370px;
+    max-width: 90vw;
+    background: #1e1e1e;
+    border: 1px solid #333;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 50vh;
+    animation: dropdown-enter 0.2s ease-out;
+}
+
+@keyframes dropdown-enter {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-search {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    flex-shrink: 0;
+}
+
+.dropdown-search .codicon {
+    color: #888;
+    font-size: 14px;
+}
+
+.search-input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    flex: 1;
+    outline: none;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.filter-text {
+    font-size: 11px;
+    color: #666;
+    white-space: nowrap;
+}
+
+
+
+.session-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 8px 12px;
+    cursor: pointer;
+    gap: 10px;
+    border-left: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.session-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    padding-left: 16px;
+    /* Subtle slide on hover */
+}
+
+/* "Kinetic Push" Animation */
+.session-item:active {
+    background: #007fd4 !important;
+    transform: translateX(6px);
+    /* Physical push */
+    border-left-color: #fff;
+    border-left-width: 4px;
+    box-shadow: -10px 0 20px rgba(0, 127, 212, 0.4);
+    /* Neon glow trail */
+    transition: all 0.05s ease-out;
+    /* Instant reaction */
+}
+
+/* Red feedback when hovering or pressing delete */
+.session-item:has(.delete-btn:hover) {
+    background: rgba(255, 68, 68, 0.08) !important;
+}
+
+.session-item:has(.delete-btn:active) {
+    background: rgba(255, 68, 68, 0.15) !important;
+    border-left-color: #ff4444 !important;
+    box-shadow: -10px 0 20px rgba(255, 68, 68, 0.2);
+    transform: translateX(4px);
+}
+
+/* Ensure content is clickable */
+.item-left,
+.item-center,
+.item-right {
+    pointer-events: auto;
+}
+
+.session-item.active {
+    background: #007fd4;
+}
+
+.session-item.active .item-title,
+.session-item.active .item-path,
+.session-item.active .item-time,
+.session-item.active .status-icon {
+    color: #fff;
+}
+
+.session-item.active .item-path,
+.session-item.active .item-time {
+    opacity: 0.8;
+}
+
+.item-left {
+    padding-top: 2px;
+}
+
+.status-icon {
+    font-size: 14px;
+    color: #888;
+}
+
+.session-item:hover .status-icon {
+    color: #ccc;
+}
+
+
+
+.item-center {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.item-title {
+    color: #ddd;
+    font-size: 13px;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-path {
+    color: #666;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    min-width: 40px;
+}
+
+.item-time {
+    font-size: 11px;
+    color: #555;
+}
+
+.item-actions {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.session-item:hover .item-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.delete-btn:hover {
+    background: rgba(255, 68, 68, 0.2) !important;
+    color: #ff4444 !important;
+}
+
+.delete-btn:active {
+    background: rgba(255, 68, 68, 0.4) !important;
+    color: #ff8888 !important;
+}
+
+.empty-state {
+    padding: 24px;
+    text-align: center;
+    color: #666;
+    font-size: 13px;
+}
+
+.list-wrapper {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.session-list {
+    padding: 4px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+}
+
+.scroll-indicator-track {
+    position: absolute;
+    right: 3px;
+    top: 11.2px;
+    bottom: 4px;
+    width: 4px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.scroll-indicator-bar {
+    position: absolute;
+    right: 0;
+    width: 4px;
+    height: 12px;
+    /* Slightly taller */
+    background: #007fd4;
+    border-radius: 10px;
+    /* Full pill shape */
+    box-shadow: 0 0 4px rgba(0, 127, 212, 0.4);
+    transition: top 0.1s linear;
+    /* Linear is smoother for scrolling position */
+}
