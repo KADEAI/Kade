@@ -34,7 +34,7 @@ describe("AutoApprovalHandler", () => {
 			expect(mockAskForApproval).not.toHaveBeenCalled()
 		})
 
-		// kilocode_change start: yolo mode
+		// kade_change start: yolo mode
 		it("should bypass all checks when YOLO mode is enabled", async () => {
 			mockState.yoloMode = true
 			mockState.allowedMaxRequests = 1
@@ -82,7 +82,7 @@ describe("AutoApprovalHandler", () => {
 			expect(mockAskForApproval).not.toHaveBeenCalled()
 			expect(mockGetApiMetrics).not.toHaveBeenCalled()
 		})
-		// kilocode_change end
+		// kade_change end
 
 		it("should check request limit before cost limit", async () => {
 			mockState.allowedMaxRequests = 1

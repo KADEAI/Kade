@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import type { ExtensionContext, Memento } from "vscode"
 import { UsageResultByDuration, UsageEvent, UsageResult, UsageType, UsageWindow } from "@roo-code/types"
 import { ContextProxy } from "../core/config/ContextProxy"

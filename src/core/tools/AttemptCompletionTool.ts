@@ -9,9 +9,9 @@ import { Package } from "../../shared/package"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
 import { t } from "../../i18n"
-import { getCommitRangeForNewCompletion } from "../checkpoints/kilocode/seeNewChanges" // kilocode_change
+import { getCommitRangeForNewCompletion } from "../checkpoints/kilocode/seeNewChanges" // kade_change
 
-// kilocode_change start
+// kade_change start
 async function getClineMessageOptions(
 	task: Task,
 ): Promise<{ isNonInteractive?: boolean; metadata?: Record<string, unknown> }> {
@@ -27,7 +27,7 @@ async function getClineMessageOptions(
 		},
 	}
 }
-// kilocode_change end
+// kade_change end
 
 interface AttemptCompletionParams {
 	result: string
@@ -108,11 +108,11 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 				result,
 				undefined,
 				false,
-				// kilocode_change start
+				// kade_change start
 				undefined,
 				undefined,
 				await getClineMessageOptions(task),
-				// kilocode_change end
+				// kade_change end
 			)
 
 			// Force final token usage update before emitting TaskCompleted
@@ -178,7 +178,7 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 				return
 			}
 
-			// kilocode_change start: User provided a follow-up message
+			// kade_change start: User provided a follow-up message
 			// CRITICAL FIX: Don't frame this as "feedback requiring re-completion"
 			// The user may be:
 			// 1. Giving genuine feedback on the work
@@ -191,7 +191,7 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 			// Frame as a new user message, NOT as task feedback
 			const userMessage = `<user_message>\n${text}\n</user_message>\n\nRespond to what the user said above. If they're asking for changes or have feedback, address it. If they're asking something new, help with that instead. Do NOT automatically try to re-complete the previous task unless they explicitly ask you to.`
 			pushToolResult(formatResponse.toolResult(userMessage, images))
-			// kilocode_change end
+			// kade_change end
 		} catch (error) {
 			await handleError("inspecting site", error as Error)
 		}
@@ -244,11 +244,11 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 					this.removeClosingTag("result", result, block.partial),
 					undefined,
 					block.partial,
-					// kilocode_change start
+					// kade_change start
 					undefined,
 					undefined,
 					block.partial ? {} : await getClineMessageOptions(task),
-					// kilocode_change end
+					// kade_change end
 				)
 
 				// Force final token usage update before emitting TaskCompleted for consistency
@@ -267,11 +267,11 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 				this.removeClosingTag("result", result, block.partial),
 				undefined,
 				block.partial,
-				// kilocode_change start
+				// kade_change start
 				undefined,
 				undefined,
 				block.partial ? {} : await getClineMessageOptions(task),
-				// kilocode_change end
+				// kade_change end
 			)
 		}
 	}

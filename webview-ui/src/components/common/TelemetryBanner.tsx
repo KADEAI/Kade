@@ -29,7 +29,7 @@ const TelemetryBanner = () => {
 	}
 
 	return (
-		// kilocode_change: styling
+		// kade_change: styling
 		<div className="relative p-4 pr-10 bg-vscode-editor-background border border-vscode-panel-border rounded text-sm leading-normal text-vscode-foreground">
 			{/* Close button (X) */}
 			<button

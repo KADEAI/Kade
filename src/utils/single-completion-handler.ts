@@ -1,6 +1,6 @@
 import type { ProviderSettings } from "@roo-code/types"
-import { buildApiHandler, SingleCompletionHandler, ApiHandler } from "../api" //kilocode_change
-import { ApiStreamUsageChunk } from "../api/transform/stream" // kilocode_change
+import { buildApiHandler, SingleCompletionHandler, ApiHandler } from "../api" //kade_change
+import { ApiStreamUsageChunk } from "../api/transform/stream" // kade_change
 
 /**
  * Enhances a prompt using the configured API without creating a full Cline instance or task history.
@@ -23,16 +23,16 @@ export async function singleCompletionHandler(apiConfiguration: ProviderSettings
 
 	// Check if handler supports single completions
 	if (!("completePrompt" in handler)) {
-		// kilocode_change start - stream responses for handlers without completePrompt
+		// kade_change start - stream responses for handlers without completePrompt
 		// throw new Error("The selected API provider does not support prompt enhancement")
 		return (await streamResponseFromHandler(handler, promptText)).text
-		// kilocode_change end
+		// kade_change end
 	}
 
 	return (handler as SingleCompletionHandler).completePrompt(promptText)
 }
 
-// kilocode_change start - Stream responses using createMessage
+// kade_change start - Stream responses using createMessage
 export async function streamResponseFromHandler(
 	handler: ApiHandler,
 	promptText: string,
@@ -55,4 +55,4 @@ export async function streamResponseFromHandler(
 
 	return { text, usage }
 }
-// kilocode_change end - streamResponseFromHandler
+// kade_change end - streamResponseFromHandler

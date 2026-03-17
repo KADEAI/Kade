@@ -1,4 +1,4 @@
-// kilocode_change - new file: STT message handlers (replaces speechMessageHandlers.ts)
+// kade_change - new file: STT message handlers (replaces speechMessageHandlers.ts)
 import type { ClineProvider } from "./ClineProvider"
 import type { STTCommand, STTSegment } from "../../shared/sttContract"
 import { STTService } from "../../services/stt"

@@ -45,7 +45,7 @@ interface ImageGenerationOptions {
 	model: string
 	prompt: string
 	inputImage?: string
-	headers?: Record<string, string> // kilocode_change
+	headers?: Record<string, string> // kade_change
 }
 
 interface ImagesApiOptions {
@@ -63,16 +63,16 @@ interface ImagesApiOptions {
  * Shared image generation implementation for OpenRouter and Roo Code Cloud providers
  */
 export async function generateImageWithProvider(options: ImageGenerationOptions): Promise<ImageGenerationResult> {
-	// kilocode_change: add headers
+	// kade_change: add headers
 	const { baseURL, authToken, model, prompt, inputImage, headers } = options
 
 	try {
 		const response = await fetch(`${baseURL}/chat/completions`, {
 			method: "POST",
 			headers: {
-				// kilocode_change start
+				// kade_change start
 				...headers,
-				// kilocode_change end
+				// kade_change end
 				Authorization: `Bearer ${authToken}`,
 				"Content-Type": "application/json",
 			},

@@ -13,7 +13,7 @@ import { TelemetryEventName } from "@roo-code/types"
 import { TelemetryService } from "@roo-code/telemetry"
 import { Mutex } from "async-mutex"
 import { handleOpenAIError } from "../../../api/providers/utils/openai-error-handler"
-import { DEFAULT_HEADERS } from "../../../api/providers/constants" // kilocode_change
+import { DEFAULT_HEADERS } from "../../../api/providers/constants" // kade_change
 
 // Default provider name when no specific provider is selected
 export const OPENROUTER_DEFAULT_PROVIDER_NAME = "[default]"
@@ -76,7 +76,7 @@ export class OpenRouterEmbedder implements IEmbedder {
 			this.embeddingsClient = new OpenAI({
 				baseURL: this.baseUrl,
 				apiKey: apiKey,
-				defaultHeaders: DEFAULT_HEADERS, // kilocode_change
+				defaultHeaders: DEFAULT_HEADERS, // kade_change
 			})
 		} catch (error) {
 			// Use the error handler to transform ByteString conversion errors

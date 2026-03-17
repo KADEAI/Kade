@@ -1,4 +1,4 @@
-// kilocode_change start - use SheetJS to extract text from XLSX files with improved cell handling
+// kade_change start - use SheetJS to extract text from XLSX files with improved cell handling
 import * as XLSX from "xlsx"
 import { extractTextFromXLSX } from "../extract-text-from-xlsx"
 
@@ -266,4 +266,4 @@ describe("extractTextFromXLSX", () => {
 		})
 	})
 })
-// kilocode_change end - use SheetJS to extract text from XLSX files with improved cell handling
+// kade_change end - use SheetJS to extract text from XLSX files with improved cell handling

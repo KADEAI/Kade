@@ -1,4 +1,4 @@
-// kilocode_change - new file: Shared utility for Gemini credential retrieval
+// kade_change - new file: Shared utility for Gemini credential retrieval
 import type { ProviderSettingsManager } from "../../../core/config/ProviderSettingsManager"
 
 /**

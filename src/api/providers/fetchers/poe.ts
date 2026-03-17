@@ -1,4 +1,4 @@
-// kilocode_change - file added
+// kade_change - file added
 import axios from "axios"
 
 import { type ModelInfo } from "@roo-code/types"

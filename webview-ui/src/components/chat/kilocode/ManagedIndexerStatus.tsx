@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import React, { useState } from "react"
 import { ChevronRight } from "lucide-react"
 import { cn } from "@src/lib/utils"

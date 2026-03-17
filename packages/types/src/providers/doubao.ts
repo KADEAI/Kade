@@ -1,6 +1,6 @@
 import type { ModelInfo } from "../model.js"
 
-export const doubaoDefaultModelId = "doubao-seed-code-preview-latest" // kilocode_change
+export const doubaoDefaultModelId = "doubao-seed-code-preview-latest" // kade_change
 
 export const doubaoModels = {
 	"doubao-seed-1-6-250615": {
@@ -42,7 +42,7 @@ export const doubaoModels = {
 		cacheReadsPrice: 0.00003, // $0.00003 per million tokens (cache hit)
 		description: `Doubao Seed 1.6 Flash is tailored for speed and efficiency, making it ideal for applications requiring rapid responses.`,
 	},
-	// kilocode_change start
+	// kade_change start
 	"doubao-seed-code-preview-251028": {
 		// https://www.volcengine.com/docs/82379/1925114
 		// https://www.volcengine.com/docs/82379/1949118
@@ -71,7 +71,7 @@ export const doubaoModels = {
 		// This price is invalid; this is a dedicated model ID for the "coding plan" subscription.
 		description: `Doubao-seed-code is an AI coding model specifically designed for real-world development scenarios, enhancing bug-fixing and front-end capabilities. It supports transparent input caching, reducing usage costs.`,
 	},
-	// kilocode_change end
+	// kade_change end
 } as const satisfies Record<string, ModelInfo>
 
 export const doubaoDefaultModelInfo: ModelInfo = doubaoModels[doubaoDefaultModelId]

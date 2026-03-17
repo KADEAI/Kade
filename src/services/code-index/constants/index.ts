@@ -19,7 +19,7 @@ export const MAX_LIST_FILES_LIMIT_CODE_INDEX = 50_000
 export const BATCH_SEGMENT_THRESHOLD = 60 // Number of code segments to batch for embeddings/upserts
 export const MAX_BATCH_RETRIES = 3
 export const INITIAL_RETRY_DELAY_MS = 500
-// kilocode_change: Porting "insane" concurrency limits from claudiy to prevent resource exhaustion
+// kade_change: Porting "insane" concurrency limits from claudiy to prevent resource exhaustion
 export const PARSING_CONCURRENCY = 10
 export const MAX_PENDING_BATCHES = 20 // Maximum number of batches to accumulate before waiting
 
@@ -31,7 +31,7 @@ export const BATCH_PROCESSING_CONCURRENCY = 5
 /**Gemini Embedder */
 export const GEMINI_MAX_ITEM_TOKENS = 2048
 
-// kilocode_change start
+// kade_change start
 /**Managed Indexing */
 export const MANAGED_MAX_CHUNK_CHARS = 1000
 export const MANAGED_MIN_CHUNK_CHARS = 50
@@ -40,4 +40,4 @@ export const MANAGED_BATCH_SIZE = 60
 export const MANAGED_FILE_WATCH_DEBOUNCE_MS = 500
 export const MANAGED_MAX_CONCURRENT_FILES = 10
 export const MANAGED_MAX_CONCURRENT_BATCHES = 50
-// kilocode_change end
+// kade_change end

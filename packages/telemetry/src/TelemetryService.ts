@@ -51,7 +51,7 @@ export class TelemetryService {
 		this.clients.forEach((client) => client.updateTelemetryState(isOptedIn))
 	}
 
-	// kilocode_change start
+	// kade_change start
 	public captureException(error: Error, properties?: Record<string | number, unknown>): void {
 		// PERFORMANCE OPTIMIZATION: Skip exception tracking to reduce overhead
 		// Exception tracking is only used for analytics/debugging, not core functionality
@@ -65,7 +65,7 @@ export class TelemetryService {
 		// Identity updates are only used for analytics, not core functionality
 		return
 	}
-	// kilocode_change end
+	// kade_change end
 
 	/**
 	 * Generic method to capture any type of event with specified properties
@@ -113,10 +113,10 @@ export class TelemetryService {
 			cacheWriteTokens: number
 			cacheReadTokens: number
 			cost?: number
-			// kilocode_change start
+			// kade_change start
 			completionTime?: number
 			inferenceProvider?: string
-			// kilocode_change end
+			// kade_change end
 		},
 	): void {
 		this.captureEvent(TelemetryEventName.LLM_COMPLETION, { taskId, ...properties })

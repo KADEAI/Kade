@@ -700,7 +700,7 @@ describe("getModelParams", () => {
 
 			// For hybrid models (supportsReasoningBudget) in Anthropic contexts,
 			// should discard model's maxTokens and use ANTHROPIC_DEFAULT_MAX_TOKENS
-			expect(result.maxTokens).toBe(3200 /*kilocode_change*/)
+			expect(result.maxTokens).toBe(3200 /*kade_change*/)
 			expect(result.reasoningBudget).toBeUndefined()
 		})
 
@@ -894,7 +894,7 @@ describe("getModelParams", () => {
 		it("should include verbosity when specified in settings", () => {
 			const model: ModelInfo = {
 				...baseModel,
-				supportsVerbosity: true, // kilocode_change
+				supportsVerbosity: true, // kade_change
 			}
 
 			const result = getModelParams({
@@ -909,7 +909,7 @@ describe("getModelParams", () => {
 		it("should handle medium verbosity", () => {
 			const model: ModelInfo = {
 				...baseModel,
-				supportsVerbosity: true, // kilocode_change
+				supportsVerbosity: true, // kade_change
 			}
 
 			const result = getModelParams({
@@ -924,7 +924,7 @@ describe("getModelParams", () => {
 		it("should handle high verbosity", () => {
 			const model: ModelInfo = {
 				...baseModel,
-				supportsVerbosity: true, // kilocode_change
+				supportsVerbosity: true, // kade_change
 			}
 
 			const result = getModelParams({
@@ -939,7 +939,7 @@ describe("getModelParams", () => {
 		it("should return undefined verbosity when not specified", () => {
 			const model: ModelInfo = {
 				...baseModel,
-				supportsVerbosity: true, // kilocode_change
+				supportsVerbosity: true, // kade_change
 			}
 
 			const result = getModelParams({
@@ -955,7 +955,7 @@ describe("getModelParams", () => {
 			const model: ModelInfo = {
 				...baseModel,
 				supportsReasoningEffort: true,
-				supportsVerbosity: true, // kilocode_change
+				supportsVerbosity: true, // kade_change
 			}
 
 			const result = getModelParams({
@@ -976,7 +976,7 @@ describe("getModelParams", () => {
 			const model: ModelInfo = {
 				...baseModel,
 				supportsReasoningBudget: true,
-				supportsVerbosity: true, // kilocode_change
+				supportsVerbosity: true, // kade_change
 			}
 
 			const result = getModelParams({

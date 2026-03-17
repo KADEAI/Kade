@@ -69,7 +69,7 @@ vitest.mock("@/components/ui", () => ({
 			{children}
 		</div>
 	),
-	// kilocode_change start - autocomplete profile type system
+	// kade_change start - autocomplete profile type system
 	Select: ({ value, onValueChange, children }: any) => (
 		<select
 			value={value}
@@ -80,7 +80,7 @@ vitest.mock("@/components/ui", () => ({
 			{children}
 		</select>
 	),
-	// kilocode_change end
+	// kade_change end
 	SelectTrigger: ({ children }: any) => <div className="select-trigger-mock">{children}</div>,
 	SelectValue: ({ children }: any) => <div className="select-value-mock">{children}</div>,
 	SelectContent: ({ children }: any) => <div className="select-content-mock">{children}</div>,
@@ -156,7 +156,7 @@ describe("ApiConfigManager", () => {
 		const createButton = screen.getByText("settings:providers.createProfile")
 		fireEvent.click(createButton)
 
-		expect(mockOnUpsertConfig).toHaveBeenCalledWith("New Profile", "chat") // kilocode_change - autocomplete profile type system
+		expect(mockOnUpsertConfig).toHaveBeenCalledWith("New Profile", "chat") // kade_change - autocomplete profile type system
 	})
 
 	it("shows error when creating profile with existing name", () => {
@@ -205,11 +205,11 @@ describe("ApiConfigManager", () => {
 		const renameButton = screen.getByTestId("rename-profile-button")
 		fireEvent.click(renameButton)
 
-		// kilocode_change start - use rename form for scoped queries
+		// kade_change start - use rename form for scoped queries
 		// Find input in rename form specifically
 		const renameForm = getRenameForm()
 		const input = within(renameForm).getByDisplayValue("Default Config")
-		// kilocode_change end
+		// kade_change end
 		fireEvent.input(input, { target: { value: "New Name" } })
 
 		// Save
@@ -226,21 +226,21 @@ describe("ApiConfigManager", () => {
 		const renameButton = screen.getByTestId("rename-profile-button")
 		fireEvent.click(renameButton)
 
-		// kilocode_change start - use rename form for scoped queries
+		// kade_change start - use rename form for scoped queries
 		// Find input in rename form and enter existing name
 		const renameForm = getRenameForm()
 		const input = within(renameForm).getByDisplayValue("Default Config")
-		// kilocode_change end
+		// kade_change end
 		fireEvent.input(input, { target: { value: "Another Config" } })
 
 		// Save to trigger validation
 		const saveButton = screen.getByTestId("save-rename-button")
 		fireEvent.click(saveButton)
 
-		// kilocode_change start - use rename form for scoped queries
+		// kade_change start - use rename form for scoped queries
 		// Verify error message
 		const errorMessage = within(renameForm).getByTestId("error-message")
-		// kilocode_change end
+		// kade_change end
 		expect(errorMessage).toHaveTextContent("settings:providers.nameExists")
 		expect(mockOnRenameConfig).not.toHaveBeenCalled()
 	})
@@ -252,11 +252,11 @@ describe("ApiConfigManager", () => {
 		const renameButton = screen.getByTestId("rename-profile-button")
 		fireEvent.click(renameButton)
 
-		// kilocode_change start - use rename form for scoped queries
+		// kade_change start - use rename form for scoped queries
 		// Find input in rename form and enter empty name
 		const renameForm = getRenameForm()
 		const input = within(renameForm).getByDisplayValue("Default Config")
-		// kilocode_change end
+		// kade_change end
 		fireEvent.input(input, { target: { value: "   " } })
 
 		// Verify save button is disabled
@@ -301,11 +301,11 @@ describe("ApiConfigManager", () => {
 		const renameButton = screen.getByTestId("rename-profile-button")
 		fireEvent.click(renameButton)
 
-		// kilocode_change start - use rename form for scoped queries
+		// kade_change start - use rename form for scoped queries
 		// Find input in rename form and enter new name
 		const renameForm = getRenameForm()
 		const input = within(renameForm).getByDisplayValue("Default Config")
-		// kilocode_change end
+		// kade_change end
 		fireEvent.input(input, { target: { value: "New Name" } })
 
 		// Cancel
@@ -331,7 +331,7 @@ describe("ApiConfigManager", () => {
 		// Test Enter key
 		fireEvent.input(input, { target: { value: "New Profile" } })
 		fireEvent.keyDown(input, { key: "Enter" })
-		expect(mockOnUpsertConfig).toHaveBeenCalledWith("New Profile", "chat") // kilocode_change - autocomplete profile type system
+		expect(mockOnUpsertConfig).toHaveBeenCalledWith("New Profile", "chat") // kade_change - autocomplete profile type system
 
 		// Test Escape key
 		fireEvent.keyDown(input, { key: "Escape" })
@@ -345,10 +345,10 @@ describe("ApiConfigManager", () => {
 		const renameButton = screen.getByTestId("rename-profile-button")
 		fireEvent.click(renameButton)
 
-		// kilocode_change start - use rename form for scoped queries
+		// kade_change start - use rename form for scoped queries
 		const renameForm = getRenameForm()
 		const input = within(renameForm).getByDisplayValue("Default Config")
-		// kilocode_change end
+		// kade_change end
 
 		// Test Enter key
 		fireEvent.input(input, { target: { value: "New Name" } })

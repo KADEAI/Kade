@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import * as vscode from "vscode"
 import { t } from "../../i18n"
 import { getKeybindingForCommand } from "../../utils/keybindings"
@@ -34,7 +34,7 @@ export class TerminalWelcomeService {
 			return // Don't show the tip if already shown this session
 		}
 
-		this.tipShownThisSession = true // kilocode_change: Mark as shown for this session
+		this.tipShownThisSession = true // kade_change: Mark as shown for this session
 		setTimeout(() => this.showWelcomeMessage(terminal), 500)
 	}
 

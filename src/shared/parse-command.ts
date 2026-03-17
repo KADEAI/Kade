@@ -1,12 +1,12 @@
 import { parse } from "shell-quote"
-// kilocode_change start
+// kade_change start
 import {
 	protectNewlinesInQuotes,
 	restoreNewlinesFromPlaceholders,
 	NEWLINE_PLACEHOLDER,
 	CARRIAGE_RETURN_PLACEHOLDER,
 } from "./quote-protection"
-// kilocode_change end
+// kade_change end
 
 export type ShellToken = string | { op: string } | { command: string }
 
@@ -26,7 +26,7 @@ export function parseCommand(command: string): string[] {
 		return []
 	}
 
-	// kilocode_change start
+	// kade_change start
 	// First, protect newlines inside quoted strings by replacing them with placeholders
 	// This prevents splitting multi-line quoted strings (e.g., git commit -m "multi\nline")
 	const protectedCommand = protectNewlinesInQuotes(command, NEWLINE_PLACEHOLDER, CARRIAGE_RETURN_PLACEHOLDER)
@@ -34,7 +34,7 @@ export function parseCommand(command: string): string[] {
 	// Split by newlines (handle different line ending formats)
 	// This regex splits on \r\n (Windows), \n (Unix), or \r (old Mac)
 	const lines = protectedCommand.split(/\r\n|\r|\n/)
-	// kilocode_change end
+	// kade_change end
 	const allCommands: string[] = []
 
 	for (const line of lines) {
@@ -48,12 +48,12 @@ export function parseCommand(command: string): string[] {
 		allCommands.push(...lineCommands)
 	}
 
-	// kilocode_change start
+	// kade_change start
 	// Restore newlines and carriage returns in quoted strings
 	return allCommands.map((cmd) =>
 		restoreNewlinesFromPlaceholders(cmd, NEWLINE_PLACEHOLDER, CARRIAGE_RETURN_PLACEHOLDER),
 	)
-	// kilocode_change end
+	// kade_change end
 }
 
 /**

@@ -1,4 +1,4 @@
-// kilocode_change file added
+// kade_change file added
 import { vscode } from "@src/utils/vscode"
 import i18next from "i18next"
 

@@ -103,7 +103,7 @@ export const ExperimentalSettings = ({
 			} else if (key === "POWER_STEERING") {
 				grouped.behavior.push(exp)
 			} else if (key === "ENABLE_SUB_AGENTS") {
-				// grouped.behavior.push(exp) // kilocode_change: hidden from UI
+				// grouped.behavior.push(exp) // kade_change: hidden from UI
 			} else {
 				grouped.other.push(exp)
 			}

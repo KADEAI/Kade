@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 
 export interface CommitMessageRequest {
 	workspacePath: string

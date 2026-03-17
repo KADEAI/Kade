@@ -4,7 +4,7 @@ import * as os from "os"
 import * as fs from "fs/promises"
 import pWaitFor from "p-wait-for"
 import * as vscode from "vscode"
-// kilocode_change start
+// kade_change start
 import axios from "axios"
 import { fastApplyApiProviderSchema, getKiloUrlFromToken, isGlobalStateKey } from "@roo-code/types"
 import { getAppUrl } from "@roo-code/types"
@@ -16,7 +16,7 @@ import {
 	TasksByIdRequestPayload,
 	UpdateGlobalStateMessage,
 } from "../../shared/WebviewMessage"
-// kilocode_change end
+// kade_change end
 
 import {
 	type Language,
@@ -25,10 +25,10 @@ import {
 	type TelemetrySetting,
 	type UserSettingsConfig,
 	TelemetryEventName,
-	// kilocode_change start
+	// kade_change start
 	ghostServiceSettingsSchema,
 	fastApplyModelSchema,
-	// kilocode_change end
+	// kade_change end
 	DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
 	RooCodeSettings,
 	Experiments,
@@ -67,8 +67,8 @@ import { discoverChromeHostUrl, tryChromeHostUrl } from "../../services/browser/
 import { searchWorkspaceFiles } from "../../services/search/file-search"
 import { fileExistsAtPath } from "../../utils/fs"
 import { playTts, setTtsEnabled, setTtsSpeed, stopTts } from "../../utils/tts"
-import { showSystemNotification } from "../../integrations/notifications" // kilocode_change
-import { singleCompletionHandler } from "../../utils/single-completion-handler" // kilocode_change
+import { showSystemNotification } from "../../integrations/notifications" // kade_change
+import { singleCompletionHandler } from "../../utils/single-completion-handler" // kade_change
 import { searchCommits } from "../../utils/git"
 import { exportSettings, importSettingsWithFeedback } from "../config/importExport"
 import { getOpenAiModels } from "../../api/providers/openai"
@@ -82,8 +82,8 @@ import { GetModelsOptions, ApiHandlerOptions } from "../../shared/api"
 import { generateSystemPrompt } from "./generateSystemPrompt"
 import { getCommand } from "../../utils/commands"
 import { toggleWorkflow, toggleRule, createRuleFile, deleteRuleFile } from "./kilorules"
-import { mermaidFixPrompt } from "../prompts/utilities/mermaid" // kilocode_change
-// kilocode_change start
+import { mermaidFixPrompt } from "../prompts/utilities/mermaid" // kade_change
+// kade_change start
 import {
 	editMessageHandler,
 	fetchKilocodeNotificationsHandler,
@@ -92,31 +92,31 @@ import {
 import { GhostServiceManager } from "../../services/ghost/GhostServiceManager"
 import { handleChatCompletionRequest } from "../../services/ghost/chat-autocomplete/handleChatCompletionRequest"
 import { handleChatCompletionAccepted } from "../../services/ghost/chat-autocomplete/handleChatCompletionAccepted"
-// kilocode_change end
+// kade_change end
 
 const ALLOWED_VSCODE_SETTINGS = new Set(["terminal.integrated.inheritEnv"])
 
 import { MarketplaceManager, MarketplaceItemType } from "../../services/marketplace"
-import { UsageTracker } from "../../utils/usage-tracker" // kilocode_change
-import { seeNewChanges } from "../checkpoints/kilocode/seeNewChanges" // kilocode_change
-import { getTaskHistory } from "../../shared/kilocode/getTaskHistory" // kilocode_change
-import { fetchAndRefreshOrganizationModesOnStartup, refreshOrganizationModes } from "./kiloWebviewMessgeHandlerHelpers" // kilocode_change
-import { getSapAiCoreDeployments } from "../../api/providers/fetchers/sap-ai-core" // kilocode_change
+import { UsageTracker } from "../../utils/usage-tracker" // kade_change
+import { seeNewChanges } from "../checkpoints/kilocode/seeNewChanges" // kade_change
+import { getTaskHistory } from "../../shared/kilocode/getTaskHistory" // kade_change
+import { fetchAndRefreshOrganizationModesOnStartup, refreshOrganizationModes } from "./kiloWebviewMessgeHandlerHelpers" // kade_change
+import { getSapAiCoreDeployments } from "../../api/providers/fetchers/sap-ai-core" // kade_change
 import { fetchOpenAiCodexRateLimitInfo } from "../../integrations/openai-codex/rate-limits"
 import { openAiCodexOAuthManager } from "../../integrations/openai-codex/oauth"
 import { antigravityOAuthManager } from "../../integrations/antigravity/oauth"
 import { geminiOAuthManager } from "../../integrations/gemini/oauth"
 import { claudeCodeOAuthManager } from "../../integrations/claude-code/oauth"
 import { fetchClaudeCodeRateLimitInfo } from "../../integrations/claude-code/rate-limits"
-import { AutoPurgeScheduler } from "../../services/auto-purge" // kilocode_change
+import { AutoPurgeScheduler } from "../../services/auto-purge" // kade_change
 
 import { setPendingTodoList } from "../tools/UpdateTodoListTool"
 import { ManagedIndexer } from "../../services/code-index/managed/ManagedIndexer"
-import { SessionManager } from "../../shared/kilocode/cli-sessions/core/SessionManager" // kilocode_change
+import { SessionManager } from "../../shared/kilocode/cli-sessions/core/SessionManager" // kade_change
 
 export const webviewMessageHandler = async (
 	provider: ClineProvider,
-	message: MaybeTypedWebviewMessage, // kilocode_change switch to MaybeTypedWebviewMessage for better type-safety
+	message: MaybeTypedWebviewMessage, // kade_change switch to MaybeTypedWebviewMessage for better type-safety
 	marketplaceManager?: MarketplaceManager,
 ) => {
 	// Utility functions provided for concise get/update of global state via contextProxy API.
@@ -492,16 +492,16 @@ export const webviewMessageHandler = async (
 				await updateGlobalState("customModes", customModes)
 			}
 
-			// kilocode_change start: Fetch organization modes on startup
+			// kade_change start: Fetch organization modes on startup
 			// Fetch organization modes on startup if an organization is selected
 			await fetchAndRefreshOrganizationModesOnStartup(provider, updateGlobalState)
-			// kilocode_change end
+			// kade_change end
 
 			// Refresh workflow toggles
-			const { refreshWorkflowToggles } = await import("../context/instructions/workflows") // kilocode_change
-			await refreshWorkflowToggles(provider.context, provider.cwd) // kilocode_change
+			const { refreshWorkflowToggles } = await import("../context/instructions/workflows") // kade_change
+			await refreshWorkflowToggles(provider.context, provider.cwd) // kade_change
 
-			// kilocode_change start: Defer non-critical startup tasks to keep the UI responsive
+			// kade_change start: Defer non-critical startup tasks to keep the UI responsive
 			provider.debouncedPostStateToWebview()
 			provider.postRulesDataToWebview()
 
@@ -509,7 +509,7 @@ export const webviewMessageHandler = async (
 			setTimeout(() => {
 				provider.workspaceTracker?.initializeFilePaths()
 			}, 1500)
-			// kilocode_change end
+			// kade_change end
 
 			getTheme().then((theme) => provider.postMessageToWebview({ type: "theme", text: JSON.stringify(theme) }))
 
@@ -569,11 +569,11 @@ export const webviewMessageHandler = async (
 				)
 
 			// If user already opted in to telemetry, enable telemetry service
-			provider.getStateToPostToWebview().then(async (/*kilocode_change*/ state) => {
+			provider.getStateToPostToWebview().then(async (/*kade_change*/ state) => {
 				const { telemetrySetting } = state
 				const isOptedIn = telemetrySetting !== "disabled"
 				TelemetryService.instance.updateTelemetryState(isOptedIn)
-				await TelemetryService.instance.updateIdentity(state.apiConfiguration.kilocodeToken ?? "") // kilocode_change
+				await TelemetryService.instance.updateIdentity(state.apiConfiguration.kilocodeToken ?? "") // kade_change
 			})
 
 			// Initialize EditHistoryService
@@ -921,11 +921,11 @@ export const webviewMessageHandler = async (
 			break
 		}
 
-		// kilocode_change start
+		// kade_change start
 		case "condense":
 			provider.getCurrentTask()?.handleWebviewAskResponse("yesButtonClicked")
 			break
-		// kilocode_change end
+		// kade_change end
 		case "customInstructions":
 			await provider.updateCustomInstructions(message.text)
 			break
@@ -944,7 +944,7 @@ export const webviewMessageHandler = async (
 			if (message.updatedSettings) {
 				// provider.log(`[PERSISTENCE_DEBUG][updateSettings] ====== UPDATE SETTINGS ======`)
 				// provider.log(`[PERSISTENCE_DEBUG][updateSettings] Keys being updated: ${Object.keys(message.updatedSettings).join(", ")}`)
-				// kilocode_change: Separate Task-Local settings from Global Home Page defaults.
+				// kade_change: Separate Task-Local settings from Global Home Page defaults.
 				const currentTask = provider.getCurrentTask()
 				let needsRebuild = false
 				let shouldRescheduleInfinity = false
@@ -1325,15 +1325,15 @@ export const webviewMessageHandler = async (
 			const routerModels: Record<RouterName, ModelRecord> = providerFilter
 				? ({} as Record<RouterName, ModelRecord>)
 				: {
-					// kilocode_change start
+					// kade_change start
 					ovhcloud: {},
 					inception: {},
 					kilocode: {},
 					gemini: {},
-					antigravity: {}, // kilocode_change
-					// kilocode_change end
+					antigravity: {}, // kade_change
+					// kade_change end
 					openrouter: {},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"vercel-ai-gateway": {},
 					huggingface: {},
 					litellm: {},
@@ -1341,16 +1341,16 @@ export const webviewMessageHandler = async (
 					"io-intelligence": {},
 					requesty: {},
 					unbound: {},
-					glama: {}, // kilocode_change
+					glama: {}, // kade_change
 					ollama: {},
 					lmstudio: {},
 					roo: {},
-					synthetic: {}, // kilocode_change
-					"sap-ai-core": {}, // kilocode_change
+					synthetic: {}, // kade_change
+					"sap-ai-core": {}, // kade_change
 					chutes: {},
-					"nano-gpt": {}, // kilocode_change
-					opencode: {}, // kilocode_change
-					"cli-proxy": {}, // kilocode_change
+					"nano-gpt": {}, // kade_change
+					opencode: {}, // kade_change
+					"cli-proxy": {}, // kade_change
 					apertis: {},
 					aihubmix: {},
 					corethink: {},
@@ -1371,7 +1371,7 @@ export const webviewMessageHandler = async (
 				}
 			}
 
-			// kilocode_change start: openrouter auth, kilocode provider
+			// kade_change start: openrouter auth, kilocode provider
 			const openRouterApiKey = apiConfiguration.openRouterApiKey || message?.values?.openRouterApiKey
 			const openRouterBaseUrl = apiConfiguration.openRouterBaseUrl || message?.values?.openRouterBaseUrl
 
@@ -1413,8 +1413,8 @@ export const webviewMessageHandler = async (
 						baseUrl: apiConfiguration.requestyBaseUrl,
 					},
 				},
-				{ key: "glama", options: { provider: "glama" } }, // kilocode_change
-				{ key: "opencode", options: { provider: "opencode" } }, // kilocode_change
+				{ key: "glama", options: { provider: "glama" } }, // kade_change
+				{ key: "opencode", options: { provider: "opencode" } }, // kade_change
 				{ key: "unbound", options: { provider: "unbound", apiKey: apiConfiguration.unboundApiKey } },
 				{
 					key: "kilocode",
@@ -1434,7 +1434,7 @@ export const webviewMessageHandler = async (
 						baseUrl: apiConfiguration.deepInfraBaseUrl,
 					},
 				},
-				// kilocode_change start
+				// kade_change start
 				{
 					key: "nano-gpt",
 					options: {
@@ -1443,7 +1443,7 @@ export const webviewMessageHandler = async (
 						nanoGptModelList: apiConfiguration.nanoGptModelList,
 					},
 				},
-				// kilocode_change end
+				// kade_change end
 				{
 					key: "ovhcloud",
 					options: {
@@ -1460,7 +1460,7 @@ export const webviewMessageHandler = async (
 						baseUrl: apiConfiguration.inceptionLabsBaseUrl,
 					},
 				},
-				{ key: "synthetic", options: { provider: "synthetic", apiKey: apiConfiguration.syntheticApiKey } }, // kilocode_change
+				{ key: "synthetic", options: { provider: "synthetic", apiKey: apiConfiguration.syntheticApiKey } }, // kade_change
 				{
 					key: "roo",
 					options: {
@@ -1476,7 +1476,7 @@ export const webviewMessageHandler = async (
 					options: { provider: "chutes", apiKey: apiConfiguration.chutesApiKey },
 				},
 			]
-			// kilocode_change end
+			// kade_change end
 
 			// IO Intelligence is conditional on api key
 			if (apiConfiguration.ioIntelligenceApiKey) {
@@ -1507,7 +1507,7 @@ export const webviewMessageHandler = async (
 			const modelFetchPromises = providerFilter
 				? candidates.filter(({ key }) => key === providerFilter)
 				: candidates.filter(({ key }) => {
-					// kilocode_change: Only fetch models if tokens are present to avoid errors
+					// kade_change: Only fetch models if tokens are present to avoid errors
 					if (key === "kilocode") {
 						return !!apiConfiguration.kilocodeToken
 					}
@@ -1564,7 +1564,7 @@ export const webviewMessageHandler = async (
 					provider: "ollama",
 					baseUrl: ollamaApiConfig.ollamaBaseUrl,
 					apiKey: ollamaApiConfig.ollamaApiKey,
-					numCtx: ollamaApiConfig.ollamaNumCtx, // kilocode_change
+					numCtx: ollamaApiConfig.ollamaNumCtx, // kade_change
 				})
 
 				if (Object.keys(ollamaModels).length > 0) {
@@ -1689,7 +1689,7 @@ export const webviewMessageHandler = async (
 				provider.postMessageToWebview({ type: "huggingFaceModels", huggingFaceModels: [] })
 			}
 			break
-		// kilocode_change start
+		// kade_change start
 		case "requestSapAiCoreModels": {
 			// Specific handler for SAP AI Core models only.
 			if (message?.values?.sapAiCoreServiceKey) {
@@ -1733,7 +1733,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
-		// kilocode_change end
+		// kade_change end
 		case "openImage":
 			openImage(message.text!, { values: message.values })
 			break
@@ -1743,7 +1743,7 @@ export const webviewMessageHandler = async (
 		case "openFile":
 			let filePath: string = message.text ?? ""
 
-			// kilocode_change: Handle potential leading slashes on Windows for project-relative paths
+			// kade_change: Handle potential leading slashes on Windows for project-relative paths
 			// (e.g. /src/foo.ts coming from a chat mention should be treated as relative)
 			if (os.platform() === "win32") {
 				// If it starts with / or \ but NOT a drive letter, strip it so it becomes relative
@@ -1776,7 +1776,7 @@ export const webviewMessageHandler = async (
 			}
 
 			break
-		// kilocode_change start
+		// kade_change start
 		case "seeNewChanges":
 			const task = provider.getCurrentTask()
 			if (task && message.payload && message.payload) {
@@ -1805,7 +1805,7 @@ export const webviewMessageHandler = async (
 			})
 			break
 		}
-		// kilocode_change end
+		// kade_change end
 		case "requestCheckpointRestoreApproval": {
 			const result = requestCheckpointRestoreApprovalPayloadSchema.safeParse(message.payload)
 
@@ -2218,7 +2218,7 @@ export const webviewMessageHandler = async (
 			await updateGlobalState("enableMcpServerCreation", message.bool ?? true)
 			await provider.debouncedPostStateToWebview()
 			break
-		// kilocode_change begin
+		// kade_change begin
 		case "openGlobalKeybindings":
 			vscode.commands.executeCommand("workbench.action.openGlobalKeybindings", message.text ?? "kilo-code.")
 			break
@@ -2241,7 +2241,7 @@ export const webviewMessageHandler = async (
 				vscode.env.openExternal(vscode.Uri.parse(message.url))
 			}
 			break
-		// kilocode_change end
+		// kade_change end
 		case "remoteControlEnabled":
 			try {
 				await CloudService.instance.updateUserSettings({ extensionBridgeEnabled: message.bool ?? false })
@@ -2340,7 +2340,7 @@ export const webviewMessageHandler = async (
 				})
 			}
 			break
-		// kilocode_change start
+		// kade_change start
 		case "morphApiKey":
 			await updateGlobalState("morphApiKey", message.text)
 			await provider.debouncedPostStateToWebview()
@@ -2357,7 +2357,7 @@ export const webviewMessageHandler = async (
 			await provider.debouncedPostStateToWebview()
 			break
 		}
-		// kilocode_change end
+		// kade_change end
 		case "updateVSCodeSetting": {
 			const { setting, value } = message
 
@@ -2462,7 +2462,7 @@ export const webviewMessageHandler = async (
 			await updateGlobalState("hasOpenedModeSelector", message.bool ?? true)
 			await provider.debouncedPostStateToWebview()
 			break
-		// kilocode_change start
+		// kade_change start
 		case "kiloCodeImageApiKey":
 			await provider.contextProxy.setValue("kiloCodeImageApiKey", message.text)
 			await provider.debouncedPostStateToWebview()
@@ -2479,12 +2479,12 @@ export const webviewMessageHandler = async (
 			await updateGlobalState("showTaskTimeline", message.bool ?? false)
 			await provider.debouncedPostStateToWebview()
 			break
-		// kilocode_change start
+		// kade_change start
 		case "sendMessageOnEnter":
 			await updateGlobalState("sendMessageOnEnter", message.bool ?? false)
 			await provider.debouncedPostStateToWebview()
 			break
-		// kilocode_change end
+		// kade_change end
 		case "showTimestamps":
 			await updateGlobalState("showTimestamps", message.bool ?? false)
 			await provider.debouncedPostStateToWebview()
@@ -2517,7 +2517,7 @@ export const webviewMessageHandler = async (
 			await updateGlobalState("slidingWindowSize", message.value)
 			await provider.debouncedPostStateToWebview()
 			break
-		// kilocode_change end
+		// kade_change end
 
 		case "setReasoningBlockCollapsed":
 			await updateGlobalState("reasoningBlockCollapsed", message.bool ?? true)
@@ -2546,19 +2546,19 @@ export const webviewMessageHandler = async (
 			await updateGlobalState("enhancementApiConfigId", message.text)
 			await provider.debouncedPostStateToWebview()
 			break
-		// kilocode_change start - commitMessageApiConfigId
+		// kade_change start - commitMessageApiConfigId
 		case "commitMessageApiConfigId":
 			await updateGlobalState("commitMessageApiConfigId", message.text)
 			await provider.debouncedPostStateToWebview()
 			break
-		// kilocode_change end - commitMessageApiConfigId
-		// kilocode_change start - terminalCommandApiConfigId
+		// kade_change end - commitMessageApiConfigId
+		// kade_change start - terminalCommandApiConfigId
 		case "terminalCommandApiConfigId":
 			await updateGlobalState("terminalCommandApiConfigId", message.text)
 			await provider.debouncedPostStateToWebview()
 			break
-		// kilocode_change end - terminalCommandApiConfigId
-		// kilocode_change start - ghostServiceSettings
+		// kade_change end - terminalCommandApiConfigId
+		// kade_change start - ghostServiceSettings
 		case "ghostServiceSettings":
 			if (!message.values) {
 				return
@@ -2576,13 +2576,13 @@ export const webviewMessageHandler = async (
 				await GhostServiceManager.getInstance()?.unsnooze()
 			}
 			break
-		// kilocode_change end
-		// kilocode_change start: AI gatekeeper for YOLO mode
+		// kade_change end
+		// kade_change start: AI gatekeeper for YOLO mode
 		case "yoloGatekeeperApiConfigId":
 			await updateGlobalState("yoloGatekeeperApiConfigId", message.text)
 			await provider.debouncedPostStateToWebview()
 			break
-		// kilocode_change end
+		// kade_change end
 		case "updateCondensingPrompt":
 			// Store the condensing prompt in customSupportPrompts["CONDENSE"]
 			// instead of customCondensingPrompt.
@@ -2597,12 +2597,12 @@ export const webviewMessageHandler = async (
 			await updateGlobalState("autoApprovalEnabled", message.bool ?? false)
 			await provider.debouncedPostStateToWebview()
 			break
-		// kilocode_change start: yolo mode
+		// kade_change start: yolo mode
 		case "yoloMode":
 			await updateGlobalState("yoloMode", message.bool ?? false)
 			await provider.debouncedPostStateToWebview()
 			break
-		// kilocode_change end
+		// kade_change end
 		case "enhancePrompt":
 			if (message.text) {
 				try {
@@ -2640,7 +2640,7 @@ export const webviewMessageHandler = async (
 						`Error enhancing prompt: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 					)
 
-					TelemetryService.instance.captureException(error, { context: "enhance_prompt" }) // kilocode_change
+					TelemetryService.instance.captureException(error, { context: "enhance_prompt" }) // kade_change
 					vscode.window.showErrorMessage(t("common:errors.enhance_prompt"))
 					await provider.postMessageToWebview({ type: "enhancedPrompt" })
 				}
@@ -2693,7 +2693,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
-		// kilocode_change start
+		// kade_change start
 		case "showFeedbackOptions": {
 			const githubIssuesText = t("common:feedback.githubIssues")
 			const discordText = t("common:feedback.discord")
@@ -2716,7 +2716,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
-		// kilocode_change end
+		// kade_change end
 		case "searchFiles": {
 			const workspacePath = getCurrentCwd()
 
@@ -2771,7 +2771,7 @@ export const webviewMessageHandler = async (
 					await provider.providerSettingsManager.saveConfig(message.text, message.apiConfiguration)
 					const listApiConfig = await provider.providerSettingsManager.listConfig()
 					await updateGlobalState("listApiConfigMeta", listApiConfig)
-					vscode.commands.executeCommand("kilo-code.ghost.reload") // kilocode_change: Reload ghost model when API provider settings change
+					vscode.commands.executeCommand("kilo-code.ghost.reload") // kade_change: Reload ghost model when API provider settings change
 				} catch (error) {
 					provider.log(
 						`Error save api configuration: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
@@ -2781,7 +2781,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 		case "upsertApiConfiguration":
-			// kilocode_change start: check for kilocodeToken change to remove organizationId and fetch organization modes
+			// kade_change start: check for kilocodeToken change to remove organizationId and fetch organization modes
 			if (message.text && message.apiConfiguration) {
 				// provider.log(`[PERSISTENCE_DEBUG][upsertApiConfiguration] ====== UPSERT CONFIG ======`)
 				// provider.log(`[PERSISTENCE_DEBUG][upsertApiConfiguration] Profile name: "${message.text}"`)
@@ -2829,13 +2829,13 @@ export const webviewMessageHandler = async (
 					// Config might not exist yet, that's fine
 				}
 
-				// kilocode_change start: If we're updating the active profile, we need to activate it to ensure it's persisted
+				// kade_change start: If we're updating the active profile, we need to activate it to ensure it's persisted
 				const currentApiConfigName = getGlobalState("currentApiConfigName")
 				const isActiveProfile = message.text === currentApiConfigName
 				// provider.log(`[PERSISTENCE_DEBUG][upsertApiConfiguration] currentApiConfigName (global): "${currentApiConfigName}"`)
 				// provider.log(`[PERSISTENCE_DEBUG][upsertApiConfiguration] isActiveProfile: ${isActiveProfile}`)
 
-				// kilocode_change: Sync the active task's configuration with the new profile settings
+				// kade_change: Sync the active task's configuration with the new profile settings
 				const currentTask = provider.getCurrentTask()
 				// provider.log(`[PERSISTENCE_DEBUG][upsertApiConfiguration] Has currentTask: ${!!currentTask}`)
 				if (currentTask) {
@@ -2858,7 +2858,7 @@ export const webviewMessageHandler = async (
 					await provider.upsertProviderProfile(message.text, configToSave, isActiveProfile) // Activate if it's the current active profile
 				} else {
 					// provider.log(`[PERSISTENCE_DEBUG][upsertApiConfiguration] >>> SAVING TO TASK-LOCAL HISTORY (scope is "task") <<<`)
-					// kilocode_change: If scope is "task", we MUST update the taskHistory in global state immediately
+					// kade_change: If scope is "task", we MUST update the taskHistory in global state immediately
 					// so that switching away and back to this chat doesn't see stale data from the global state array.
 					if (currentTask) {
 						const history = getGlobalState("taskHistory") ?? []
@@ -2875,9 +2875,9 @@ export const webviewMessageHandler = async (
 				}
 				vscode.commands.executeCommand("kilo-code.ghost.reload")
 				// provider.log(`[PERSISTENCE_DEBUG][upsertApiConfiguration] ====== UPSERT COMPLETE ======`)
-				// kilocode_change end
+				// kade_change end
 			}
-			// kilocode_change end: check for kilocodeToken change to remove organizationId and fetch organization modes
+			// kade_change end: check for kilocodeToken change to remove organizationId and fetch organization modes
 			break
 		case "renameApiConfiguration":
 			if (message.values && message.apiConfiguration) {
@@ -2901,7 +2901,7 @@ export const webviewMessageHandler = async (
 					// currently activated provider profile.
 					await provider.activateProviderProfile({ name: newName })
 
-					// kilocode_change: Reload ghost model when API provider settings change
+					// kade_change: Reload ghost model when API provider settings change
 					vscode.commands.executeCommand("kilo-code.ghost.reload")
 				} catch (error) {
 					provider.log(
@@ -2936,7 +2936,7 @@ export const webviewMessageHandler = async (
 				}
 			}
 			break
-		// kilocode_change start: Load profile configuration for editing without activating
+		// kade_change start: Load profile configuration for editing without activating
 		case "getProfileConfigurationForEditing":
 			if (message.text) {
 				const { name: _, ...profileConfig } = await provider.providerSettingsManager.getProfile({
@@ -2950,7 +2950,7 @@ export const webviewMessageHandler = async (
 				})
 			}
 			break
-		// kilocode_change end
+		// kade_change end
 		case "deleteApiConfiguration":
 			if (message.text) {
 				const answer = await vscode.window.showInformationMessage(
@@ -2978,7 +2978,7 @@ export const webviewMessageHandler = async (
 					await provider.providerSettingsManager.deleteConfig(oldName)
 					await provider.activateProviderProfile({ name: newName })
 
-					// kilocode_change: Reload ghost model when API provider settings change
+					// kade_change: Reload ghost model when API provider settings change
 					vscode.commands.executeCommand("kilo-code.ghost.reload")
 				} catch (error) {
 					provider.log(
@@ -3367,7 +3367,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 
-		// kilocode_change_start
+		// kade_change_start
 		case "fetchProfileDataRequest":
 			try {
 				const { apiConfiguration, currentApiConfigName } = await provider.getState()
@@ -3636,7 +3636,7 @@ export const webviewMessageHandler = async (
 		case "reportBug":
 			provider.getCurrentTask()?.handleWebviewAskResponse("yesButtonClicked")
 			break
-		// end kilocode_change
+		// end kade_change
 		case "telemetrySetting": {
 			const telemetrySetting = message.text as TelemetrySetting
 			const previousSetting = getGlobalState("telemetrySetting") || "unset"
@@ -3807,10 +3807,10 @@ export const webviewMessageHandler = async (
 					codebaseIndexEnabled: settings.codebaseIndexEnabled,
 					codebaseIndexQdrantUrl: settings.codebaseIndexQdrantUrl,
 					codebaseIndexEmbedderProvider: settings.codebaseIndexEmbedderProvider,
-					// kilocode_change start
+					// kade_change start
 					codebaseIndexVectorStoreProvider: settings.codebaseIndexVectorStoreProvider,
 					codebaseIndexLancedbVectorStoreDirectory: settings.codebaseIndexLancedbVectorStoreDirectory,
-					// kilocode_change end
+					// kade_change end
 					codebaseIndexEmbedderBaseUrl: settings.codebaseIndexEmbedderBaseUrl,
 					codebaseIndexEmbedderModelId: settings.codebaseIndexEmbedderModelId,
 					codebaseIndexEmbedderModelDimension: settings.codebaseIndexEmbedderModelDimension, // Generic dimension
@@ -3819,10 +3819,10 @@ export const webviewMessageHandler = async (
 					codebaseIndexBedrockProfile: settings.codebaseIndexBedrockProfile,
 					codebaseIndexSearchMaxResults: settings.codebaseIndexSearchMaxResults,
 					codebaseIndexSearchMinScore: settings.codebaseIndexSearchMinScore,
-					// kilocode_change start
+					// kade_change start
 					codebaseIndexEmbeddingBatchSize: settings.codebaseIndexEmbeddingBatchSize,
 					codebaseIndexScannerMaxBatchRetries: settings.codebaseIndexScannerMaxBatchRetries,
-					// kilocode_change end
+					// kade_change end
 					codebaseIndexOpenRouterSpecificProvider: settings.codebaseIndexOpenRouterSpecificProvider,
 				}
 
@@ -3837,14 +3837,14 @@ export const webviewMessageHandler = async (
 					)
 				}
 
-				// kilocode_change start: Update the batch size in the running scanner and file watcher
+				// kade_change start: Update the batch size in the running scanner and file watcher
 				if (settings.codebaseIndexEmbeddingBatchSize !== undefined) {
 					const currentCodeIndexManager = provider.getCurrentWorkspaceCodeIndexManager()
 					if (currentCodeIndexManager) {
 						currentCodeIndexManager.updateBatchSegmentThreshold(settings.codebaseIndexEmbeddingBatchSize)
 					}
 				}
-				// kilocode_change end
+				// kade_change end
 
 				// Save secrets directly using context proxy
 				if (settings.codeIndexOpenAiKey !== undefined) {
@@ -4082,7 +4082,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
-		// kilocode_change start
+		// kade_change start
 		case "cancelIndexing": {
 			try {
 				const manager = provider.getCurrentWorkspaceCodeIndexManager()
@@ -4113,7 +4113,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
-		// kilocode_change end
+		// kade_change end
 		case "clearIndexData": {
 			try {
 				const manager = provider.getCurrentWorkspaceCodeIndexManager()
@@ -4129,14 +4129,14 @@ export const webviewMessageHandler = async (
 					return
 				}
 
-				// kilocode_change start
+				// kade_change start
 				// Clear any prior error banner in UI even if config is still invalid.
 				manager.clearErrorState()
 				provider.postMessageToWebview({
 					type: "indexingStatusUpdate",
 					values: manager.getCurrentStatus(),
 				})
-				// kilocode_change end
+				// kade_change end
 
 				await manager.clearIndexData()
 				provider.postMessageToWebview({ type: "indexCleared", values: { success: true } })
@@ -4152,7 +4152,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
-		// kilocode_change start - add clearUsageData
+		// kade_change start - add clearUsageData
 		case "clearUsageData": {
 			try {
 				const usageTracker = UsageTracker.getInstance()
@@ -4165,7 +4165,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
-		// kilocode_change start - add getUsageData
+		// kade_change start - add getUsageData
 		case "getUsageData": {
 			if (message.text) {
 				try {
@@ -4183,14 +4183,14 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
-		// kilocode_change end - add getUsageData
-		// kilocode_change start - add toggleTaskFavorite
+		// kade_change end - add getUsageData
+		// kade_change start - add toggleTaskFavorite
 		case "toggleTaskFavorite":
 			if (message.text) {
 				await provider.toggleTaskFavorite(message.text)
 			}
 			break
-		// kilocode_change start - add fixMermaidSyntax
+		// kade_change start - add fixMermaidSyntax
 		case "fixMermaidSyntax":
 			if (message.text && message.requestId) {
 				try {
@@ -4219,7 +4219,7 @@ export const webviewMessageHandler = async (
 				}
 			}
 			break
-		// kilocode_change end
+		// kade_change end
 		case "focusPanelRequest": {
 			// Execute the focusPanel command to focus the WebView
 			await vscode.commands.executeCommand(getCommand("focusPanel"))
@@ -4445,7 +4445,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
-		// kilocode_change start
+		// kade_change start
 		case "editMessage": {
 			await editMessageHandler(provider, message)
 			break
@@ -4465,15 +4465,15 @@ export const webviewMessageHandler = async (
 			await provider.debouncedPostStateToWebview()
 			break
 		}
-		// kilocode_change start
+		// kade_change start
 		case "requestResourceMonitorData": {
 			const { ResourceMonitorService } = await import("../../services/resource-monitor/ResourceMonitorService")
 			ResourceMonitorService.getInstance().registerProvider(provider)
 			await ResourceMonitorService.getInstance().broadcastSnapshot()
 			break
 		}
-		// kilocode_change end
-		// kilocode_change start: Type-safe global state handler
+		// kade_change end
+		// kade_change start: Type-safe global state handler
 		case "updateGlobalState": {
 			const { stateKey, stateValue } = message as UpdateGlobalStateMessage
 			if (stateKey !== undefined && stateValue !== undefined && isGlobalStateKey(stateKey)) {
@@ -4482,7 +4482,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
-		// kilocode_change start: STT (Speech-to-Text) handlers
+		// kade_change start: STT (Speech-to-Text) handlers
 		case "stt:start":
 		case "stt:stop":
 		case "stt:cancel": {
@@ -4500,7 +4500,7 @@ export const webviewMessageHandler = async (
 			handleLocalWhisperMessage(provider, message as any)
 			break
 		}
-		// kilocode_change end: Type-safe global state handler
+		// kade_change end: Type-safe global state handler
 		case "insertTextToChatArea":
 			provider.postMessageToWebview({ type: "insertTextToChatArea", text: message.text })
 			break
@@ -4542,7 +4542,7 @@ export const webviewMessageHandler = async (
 				await provider.postMessageToWebview({ type: "keybindingsResponse", keybindings: {} })
 			}
 			break
-		} // kilocode_change start: Chat text area FIM autocomplete
+		} // kade_change start: Chat text area FIM autocomplete
 		case "requestChatCompletion": {
 			await handleChatCompletionRequest(
 				message as WebviewMessage & { type: "requestChatCompletion" },
@@ -4555,7 +4555,7 @@ export const webviewMessageHandler = async (
 			handleChatCompletionAccepted(message as WebviewMessage & { type: "chatCompletionAccepted" })
 			break
 		}
-		// kilocode_change end: Chat text area FIM autocomplete
+		// kade_change end: Chat text area FIM autocomplete
 		case "openCommandFile": {
 			try {
 				if (message.text) {
@@ -4733,7 +4733,7 @@ export const webviewMessageHandler = async (
 			break
 		}
 
-		// kilocode_change start - Auto-purge settings handlers
+		// kade_change start - Auto-purge settings handlers
 		case "autoPurgeEnabled":
 			await updateGlobalState("autoPurgeEnabled", message.bool ?? false)
 			await provider.debouncedPostStateToWebview()
@@ -4794,7 +4794,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 
-		// kilocode_change end
+		// kade_change end
 
 		/**
 		 * Chat Message Queue
@@ -4851,7 +4851,7 @@ export const webviewMessageHandler = async (
 			})
 			break
 		}
-		// kilocode_change start
+		// kade_change start
 		case "addTaskToHistory": {
 			if (message.historyItem) {
 				await provider.updateTaskHistory(message.historyItem)
@@ -5013,13 +5013,13 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
-		// kilocode_change end
-		// kilocode_change start - ManagedIndexer state
+		// kade_change end
+		// kade_change start - ManagedIndexer state
 		case "requestManagedIndexerState": {
 			ManagedIndexer.getInstance()?.sendStateToWebview()
 			break
 		}
-		// kilocode_change end
+		// kade_change end
 
 		case "openDebugApiHistory":
 		case "openDebugUiHistory": {
@@ -5077,14 +5077,14 @@ export const webviewMessageHandler = async (
 			break
 		}
 
-		// kilocode_change start - Device Auth handlers
+		// kade_change start - Device Auth handlers
 		case "startDeviceAuth":
 		case "cancelDeviceAuth":
 		case "deviceAuthCompleteWithProfile": {
 			await deviceAuthMessageHandler(provider, message)
 			break
 		}
-		// kilocode_change end
+		// kade_change end
 		case "selectFolder": {
 			const options: vscode.OpenDialogOptions = {
 				canSelectFiles: false,

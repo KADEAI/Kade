@@ -14,7 +14,7 @@ export const handleUri = async (uri: vscode.Uri) => {
 	}
 
 	switch (path) {
-		// kilocode_change start
+		// kade_change start
 		case "/glama": {
 			const code = query.get("code")
 			if (code) {
@@ -22,7 +22,7 @@ export const handleUri = async (uri: vscode.Uri) => {
 			}
 			break
 		}
-		// kilocode_change end
+		// kade_change end
 		case "/openrouter": {
 			const code = query.get("code")
 			if (code) {
@@ -37,7 +37,7 @@ export const handleUri = async (uri: vscode.Uri) => {
 			}
 			break
 		}
-		// kilocode_change start
+		// kade_change start
 		case "/kilocode/profile": {
 			await visibleProvider.postMessageToWebview({
 				type: "action",
@@ -63,7 +63,7 @@ export const handleUri = async (uri: vscode.Uri) => {
 			}
 			break
 		}
-		// kilocode_change end
+		// kade_change end
 		case "/requesty": {
 			const code = query.get("code")
 			const baseUrl = query.get("baseUrl")

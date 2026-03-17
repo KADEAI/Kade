@@ -163,7 +163,7 @@ export class CodeIndexServiceFactory {
 			}
 		}
 
-		// kilocode_change - start
+		// kade_change - start
 		// Use LanceDB
 		if (config.vectorStoreProvider === "lancedb") {
 			const { workspacePath } = this
@@ -182,7 +182,7 @@ export class CodeIndexServiceFactory {
 		if (config.vectorStoreProvider === "local-qdrant") {
 			return new LocalQdrantVectorStore(this.workspacePath, vectorSize)
 		}
-		// kilocode_change - end
+		// kade_change - end
 
 		// Use Qdrant
 		if (!config.qdrantUrl) {
@@ -202,7 +202,7 @@ export class CodeIndexServiceFactory {
 		parser: ICodeParser,
 		ignoreInstance: Ignore,
 	): DirectoryScanner {
-		// kilocode_change start: Get the configurable batch size and max retries from config manager
+		// kade_change start: Get the configurable batch size and max retries from config manager
 		const config = this.configManager.getConfig()
 		const batchSize = config.embeddingBatchSize
 const maxBatchRetries = config.scannerMaxBatchRetries
@@ -216,7 +216,7 @@ return new DirectoryScanner(
 		maxBatchRetries,
 	config.includePaths,
 )
-		// kilocode_change end
+		// kade_change end
 	}
 
 	/**
@@ -230,7 +230,7 @@ return new DirectoryScanner(
 		ignoreInstance: Ignore,
 		rooIgnoreController?: RooIgnoreController,
 	): IFileWatcher {
-		// kilocode_change start: Get the configurable batch size from config manager
+		// kade_change start: Get the configurable batch size from config manager
 		const config = this.configManager.getConfig()
 		const batchSize = config.embeddingBatchSize
 		const maxBatchRetries = config.scannerMaxBatchRetries
@@ -246,7 +246,7 @@ return new DirectoryScanner(
 			batchSize,
 			maxBatchRetries,
 		)
-		// kilocode_change end
+		// kade_change end
 	}
 
 	/**
@@ -272,7 +272,7 @@ return new DirectoryScanner(
 		const embedder = this.createEmbedder()
 		const vectorStore = this.createVectorStore()
 		const config = this.configManager.getConfig()
-		// kilocode_change: Use InsaneCodeParser by default for better chunking performance on large codebases
+		// kade_change: Use InsaneCodeParser by default for better chunking performance on large codebases
 		const parser = new InsaneCodeParser()
 		const scanner = this.createDirectoryScanner(embedder, vectorStore, parser, ignoreInstance)
 		const fileWatcher = this.createFileWatcher(

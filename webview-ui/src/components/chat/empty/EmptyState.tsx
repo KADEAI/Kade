@@ -3,7 +3,7 @@ import './EmptyState.css';
 import { useTaskHistory } from "@/kilocode/hooks/useTaskHistory";
 import { vscode } from "@/utils/vscode";
 import { useExtensionState } from "../../../context/ExtensionStateContext";
-import { KilocodeNotifications } from "../../kilocode/KilocodeNotifications"; // kilocode_change
+import { KilocodeNotifications } from "../../kilocode/KilocodeNotifications"; // kade_change
 import { brandLogoDataUri } from "../../../assets/brand-logo";
 import { Sparkles } from "lucide-react";
 

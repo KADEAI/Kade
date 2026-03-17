@@ -6,14 +6,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import {
 	ModelInfo,
-	openRouterDefaultModelId, // kilocode_change
+	openRouterDefaultModelId, // kade_change
 } from "@roo-code/types"
 
 import { ModelPicker } from "../ModelPicker"
 
 vi.mock("@src/context/ExtensionStateContext", () => ({
 	useExtensionState: vi.fn(() => ({
-		kilocodeDefaultModel: openRouterDefaultModelId, // kilocode_change
+		kilocodeDefaultModel: openRouterDefaultModelId, // kade_change
 	})),
 }))
 
@@ -41,7 +41,7 @@ describe("ModelPicker", () => {
 	const defaultProps = {
 		apiConfiguration: {},
 		defaultModelId: "model1",
-		modelIdKey: "glamaModelId" as const, // kilocode_change
+		modelIdKey: "glamaModelId" as const, // kade_change
 		serviceName: "Test Service",
 		serviceUrl: "https://test.service",
 		recommendedModel: "recommended-model",

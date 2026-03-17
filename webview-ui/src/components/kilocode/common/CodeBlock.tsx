@@ -47,10 +47,10 @@ const CodeBlockControls = styled.div`
 	gap: 0px;
 	z-index: 20;
 	opacity: 0;
-	/* kilocode_change: explicit depth boost to prevent z-fighting */
+	/* kade_change: explicit depth boost to prevent z-fighting */
 	transform: translateZ(10px);
 	backface-visibility: hidden;
-	/* kilocode_change: reduce transition complexity during scroll */
+	/* kade_change: reduce transition complexity during scroll */
 	transition: opacity 0.2s ease-out;
 	padding: 0.4px 4px;
 	background-color: color-mix(in srgb, var(--vscode-editor-background) 95%, transparent);
@@ -73,7 +73,7 @@ const CodeBlockContainer = styled.div`
 	overflow: hidden;
 	background-color: ${CODE_BLOCK_BG_COLOR};
 	border: 1px solid color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
-	/* kilocode_change: explicit 3D layer for compositor stability */
+	/* kade_change: explicit 3D layer for compositor stability */
 	transform-style: preserve-3d;
 	transform: translateZ(0);
 

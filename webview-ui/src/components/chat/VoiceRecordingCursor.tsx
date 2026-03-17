@@ -1,4 +1,4 @@
-// kilocode_change - new file: Visual cursor indicator during voice recording
+// kade_change - new file: Visual cursor indicator during voice recording
 import React, { useEffect, useState, useRef } from "react"
 import { cn } from "@/lib/utils"
 

@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 // npx vitest core/config/__tests__/CustomModesManager.organizationModes.spec.ts
 
 import type { Mock } from "vitest"

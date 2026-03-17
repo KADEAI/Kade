@@ -1,4 +1,4 @@
-// kilocode_change - new file Support JSON-based launch configurations
+// kade_change - new file Support JSON-based launch configurations
 import * as vscode from "vscode"
 
 interface LaunchConfig {

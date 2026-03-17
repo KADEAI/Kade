@@ -2,7 +2,7 @@ import * as vscode from "vscode"
 import * as path from "path"
 import * as fs from "fs/promises"
 import { constants as fsConstants } from "fs"
-import * as fsSync from "fs" // // kilocode_change
+import * as fsSync from "fs" // // kade_change
 
 import { Package } from "../shared/package"
 import { t } from "../i18n"
@@ -48,7 +48,7 @@ export async function getStorageBasePath(defaultPath: string): Promise<string> {
 	}
 }
 
-// kilocode_change - start
+// kade_change - start
 export function getStorageBasePathSync(defaultPath: string): string {
 	let customStoragePath = ""
 	try {
@@ -71,7 +71,7 @@ export function getStorageBasePathSync(defaultPath: string): string {
 		return defaultPath
 	}
 }
-// kilocode_change - end
+// kade_change - end
 
 /**
  * Gets the storage directory path for a task
@@ -103,7 +103,7 @@ export async function getCacheDirectoryPath(globalStoragePath: string): Promise<
 	return cacheDir
 }
 
-// kilocode_change - start
+// kade_change - start
 /**
  * Gets the local vector store directory path
  */
@@ -113,7 +113,7 @@ export function getLancedbVectorStoreDirectoryPath(globalStoragePath: string): s
 	fsSync.mkdirSync(cacheDir, { recursive: true })
 	return cacheDir
 }
-// kilocode_change - end
+// kade_change - end
 
 /**
  * Prompts the user to set a custom storage path

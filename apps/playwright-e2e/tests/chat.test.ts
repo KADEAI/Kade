@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import { test, type TestFixtures } from "./playwright-base-test"
 import {
 	sendMessage,

@@ -17,7 +17,7 @@ const cliProxyModels: Record<string, ModelInfo> = {
         maxTokens: 16384,
         contextWindow: 200000,
         supportsImages: true,
-        supportsPromptCache: false, // kilocode_change: Add missing property
+        supportsPromptCache: false, // kade_change: Add missing property
         supportsReasoningBinary: true,
         inputPrice: 5.0,
         outputPrice: 20.0,

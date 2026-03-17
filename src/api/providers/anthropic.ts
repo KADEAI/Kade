@@ -53,12 +53,12 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 			maxTokens,
 			temperature,
 			reasoning: thinking,
-			verbosity, // kilocode_change
+			verbosity, // kade_change
 		} = this.getModel()
 
 		// Filter out non-Anthropic blocks (reasoning, thoughtSignature, etc.) before sending to the API
 		const sanitizedMessages = filterNonAnthropicBlocks(messages)
-		const apiModelId = this.options.anthropicDeploymentName?.trim() || modelId // kilocode_change
+		const apiModelId = this.options.anthropicDeploymentName?.trim() || modelId // kade_change
 
 		// Add 1M context beta flag if enabled for Claude Sonnet 4 and 4.5
 		if (
@@ -68,11 +68,11 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 			betas.push("context-1m-2025-08-07")
 		}
 
-		// kilocode_change start
+		// kade_change start
 		if (verbosity) {
 			betas.push("effort-2025-11-24")
 		}
-		// kilocode_change end
+		// kade_change end
 
 		// Prepare native tool parameters if tools are provided and protocol is not XML
 		// Also exclude tools when tool_choice is "none" since that means "don't use tools"
@@ -121,7 +121,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 
 				stream = await this.client.messages.create(
 					{
-						model: apiModelId, // kilocode_change
+						model: apiModelId, // kade_change
 						max_tokens: maxTokens ?? ANTHROPIC_DEFAULT_MAX_TOKENS,
 						temperature,
 						thinking,
@@ -144,7 +144,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 							return message
 						}),
 						stream: true,
-						// kilocode_change start
+						// kade_change start
 						...(verbosity
 							? {
 								output_config: {
@@ -152,7 +152,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 								},
 							}
 							: {}),
-						// kilocode_change end
+						// kade_change end
 						...nativeToolParams,
 					},
 					(() => {
@@ -184,14 +184,14 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 			}
 			default: {
 				stream = await this.client.messages.create({
-					model: apiModelId, // kilocode_change
+					model: apiModelId, // kade_change
 					max_tokens: maxTokens ?? ANTHROPIC_DEFAULT_MAX_TOKENS,
 					temperature,
 					system: [{ text: systemPrompt, type: "text" }],
 					messages: sanitizedMessages,
 					stream: true,
 					...nativeToolParams,
-				}) // kilocode_change removed: as any
+				}) // kade_change removed: as any
 				break
 			}
 		}
@@ -201,11 +201,11 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 		let cacheWriteTokens = 0
 		let cacheReadTokens = 0
 
-		// kilocode_change start
+		// kade_change start
 		let thinkingDeltaAccumulator = ""
 		let thinkText = ""
 		let thinkSignature = ""
-		// kilocode_change end
+		// kade_change end
 
 		for await (const chunk of stream) {
 			switch (chunk.type) {
@@ -257,7 +257,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 
 							yield { type: "reasoning", text: chunk.content_block.thinking }
 
-							// kilocode_change start
+							// kade_change start
 							thinkText = chunk.content_block.thinking
 							thinkSignature = chunk.content_block.signature
 							if (thinkText && thinkSignature) {
@@ -267,11 +267,11 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 									signature: thinkSignature,
 								}
 							}
-							// kilocode_change end
+							// kade_change end
 
 							break
 
-						// kilocode_change start
+						// kade_change start
 						case "redacted_thinking":
 							yield {
 								type: "reasoning",
@@ -282,7 +282,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 								data: chunk.content_block.data,
 							}
 							break
-						// kilocode_change end
+						// kade_change end
 
 						case "text":
 							// We may receive multiple text blocks, in which
@@ -310,10 +310,10 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 					switch (chunk.delta.type) {
 						case "thinking_delta":
 							yield { type: "reasoning", text: chunk.delta.thinking }
-							thinkingDeltaAccumulator += chunk.delta.thinking // kilocode_change
+							thinkingDeltaAccumulator += chunk.delta.thinking // kade_change
 							break
 
-						// kilocode_change start
+						// kade_change start
 						case "signature_delta":
 							if (thinkingDeltaAccumulator && chunk.delta.signature) {
 								yield {
@@ -323,7 +323,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 								}
 							}
 							break
-						// kilocode_change end
+						// kade_change end
 
 						case "text_delta":
 							yield { type: "text", text: chunk.delta.text }
@@ -454,10 +454,10 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 
 	async completePrompt(prompt: string) {
 		let { id: model, temperature } = this.getModel()
-		const apiModelId = this.options.anthropicDeploymentName?.trim() || model // kilocode_change
+		const apiModelId = this.options.anthropicDeploymentName?.trim() || model // kade_change
 
 		const message = await this.client.messages.create({
-			model: apiModelId, // kilocode_change
+			model: apiModelId, // kade_change
 			max_tokens: ANTHROPIC_DEFAULT_MAX_TOKENS,
 			thinking: undefined,
 			temperature,
@@ -469,7 +469,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 		return content?.type === "text" ? content.text : ""
 	}
 
-	// kilocode_change start
+	// kade_change start
 	/**
 	 * Counts tokens for the given content using Anthropic's API
 	 *
@@ -480,10 +480,10 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 		try {
 			// Use the current model
 			const { id: model } = this.getModel()
-			const apiModelId = this.options.anthropicDeploymentName?.trim() || model // kilocode_change
+			const apiModelId = this.options.anthropicDeploymentName?.trim() || model // kade_change
 
 			const response = await this.client.messages.countTokens({
-				model: apiModelId, // kilocode_change
+				model: apiModelId, // kade_change
 				messages: [{ role: "user", content: content }],
 			})
 
@@ -496,5 +496,5 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 			return super.countTokens(content)
 		}
 	}
-	// kilocode_change end
+	// kade_change end
 }

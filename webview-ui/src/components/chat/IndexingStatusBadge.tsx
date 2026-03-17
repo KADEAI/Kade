@@ -10,9 +10,9 @@ import type { IndexingStatus, IndexingStatusUpdateMessage } from "@roo/Extension
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { PopoverTrigger, StandardTooltip, Button } from "@src/components/ui"
 
-import { CodeIndexPopover } from "./CodeIndexPopover" // kilocode_change
-import { useManagedIndexerState, useIsIndexing } from "./hooks/useManagedIndexerState" // kilocode_change
-import { ManagedCodeIndexPopover } from "./kilocode/ManagedCodeIndexPopover" // kilocode_change
+import { CodeIndexPopover } from "./CodeIndexPopover" // kade_change
+import { useManagedIndexerState, useIsIndexing } from "./hooks/useManagedIndexerState" // kade_change
+import { ManagedCodeIndexPopover } from "./kilocode/ManagedCodeIndexPopover" // kade_change
 
 interface IndexingStatusBadgeProps {
 	className?: string
@@ -33,8 +33,8 @@ export const IndexingStatusBadge: React.FC<IndexingStatusBadgeProps> = ({
 	const { cwd } = useExtensionState()
 
 	// Get managed indexer state
-	const managedIndexerState = useManagedIndexerState() // kilocode_change
-	const isManagedIndexing = useIsIndexing() // kilocode_change
+	const managedIndexerState = useManagedIndexerState() // kade_change
+	const isManagedIndexing = useIsIndexing() // kade_change
 
 	const [localIndexingStatus, setLocalIndexingStatus] = useState<IndexingStatus>({
 		systemStatus: "Standby",
@@ -143,7 +143,7 @@ export const IndexingStatusBadge: React.FC<IndexingStatusBadgeProps> = ({
 	}, [indexingStatus.systemStatus])
 
 	// Use ManagedCodeIndexPopover when organization is available, otherwise use regular CodeIndexPopover
-	const PopoverComponent = managedIndexerState.isEnabled ? ManagedCodeIndexPopover : CodeIndexPopover // kilocode_change
+	const PopoverComponent = managedIndexerState.isEnabled ? ManagedCodeIndexPopover : CodeIndexPopover // kade_change
 
 	return (
 		<PopoverComponent indexingStatus={indexingStatus} open={open} onOpenChange={onOpenChange}>
@@ -160,7 +160,7 @@ export const IndexingStatusBadge: React.FC<IndexingStatusBadgeProps> = ({
 							label && "w-full justify-start px-2 py-1.5 h-auto hover:bg-vscode-list-hoverBackground !opacity-100", // Full mode
 							"text-vscode-foreground",
 							"hover:bg-[rgba(255,255,255,0.03)]",
-							"focus:outline-none focus:ring-0 focus:border-none focus-visible:ring-0", // kilocode_change: no focus ring
+							"focus:outline-none focus:ring-0 focus:border-none focus-visible:ring-0", // kade_change: no focus ring
 							className,
 						)}>
 						<div className="relative flex items-center justify-center">

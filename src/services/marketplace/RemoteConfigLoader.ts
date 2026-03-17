@@ -1,13 +1,13 @@
 import axios from "axios"
 import * as yaml from "yaml"
 import { z } from "zod"
-import { getAppUrl } from "@roo-code/types" // kilocode_change
+import { getAppUrl } from "@roo-code/types" // kade_change
 import {
 	type MarketplaceItem,
 	type MarketplaceItemType,
 	mcpMarketplaceItemSchema,
 } from "@roo-code/types"
-//import { getRooCodeApiUrl } from "@roo-code/cloud" kilocode_change: use our own api
+//import { getRooCodeApiUrl } from "@roo-code/cloud" kade_change: use our own api
 
 
 
@@ -16,11 +16,11 @@ const mcpMarketplaceResponse = z.object({
 })
 
 export class RemoteConfigLoader {
-	// private apiBaseUrl: string // kilocode_change
+	// private apiBaseUrl: string // kade_change
 	private cache: Map<string, { data: MarketplaceItem[]; timestamp: number }> = new Map()
 	private cacheDuration = 5 * 60 * 1000 // 5 minutes
 
-	// kilocode_change - empty constructor
+	// kade_change - empty constructor
 	// constructor() {
 	// 	this.apiBaseUrl = getKiloBaseUriFromToken()
 	// }
@@ -376,7 +376,7 @@ export class RemoteConfigLoader {
 			return cached
 		}
 
-		const url = getAppUrl("/api/marketplace/mcps") // kilocode_change
+		const url = getAppUrl("/api/marketplace/mcps") // kade_change
 		const data = await this.fetchWithRetry<string>(url)
 
 		const yamlData = yaml.parse(data)

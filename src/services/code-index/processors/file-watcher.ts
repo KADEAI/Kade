@@ -39,8 +39,8 @@ export class FileWatcher implements IFileWatcher {
 	private batchProcessDebounceTimer?: NodeJS.Timeout
 	private readonly BATCH_DEBOUNCE_DELAY_MS = 500
 	private readonly FILE_PROCESSING_CONCURRENCY_LIMIT = 10
-	private batchSegmentThreshold: number // kilocode_change
-	private maxBatchRetries: number // kilocode_change
+	private batchSegmentThreshold: number // kade_change
+	private maxBatchRetries: number // kade_change
 
 	private readonly _onDidStartBatchProcessing = new vscode.EventEmitter<string[]>()
 	private readonly _onBatchProgressUpdate = new vscode.EventEmitter<{
@@ -103,7 +103,7 @@ export class FileWatcher implements IFileWatcher {
 			}
 		}
 
-		this.maxBatchRetries = maxBatchRetries !== undefined ? maxBatchRetries : MAX_BATCH_RETRIES // kilocode_change: Get the configurable max batch retries, fallback to default
+		this.maxBatchRetries = maxBatchRetries !== undefined ? maxBatchRetries : MAX_BATCH_RETRIES // kade_change: Get the configurable max batch retries, fallback to default
 	}
 
 	/**
@@ -123,7 +123,7 @@ export class FileWatcher implements IFileWatcher {
 		this.fileWatcher.onDidDelete(this.handleFileDeleted.bind(this))
 	}
 
-	// kilocode_change start
+	// kade_change start
 	/**
 	 * Updates the batch segment threshold
 	 * @param newThreshold New batch segment threshold value
@@ -131,7 +131,7 @@ export class FileWatcher implements IFileWatcher {
 	updateBatchSegmentThreshold(newThreshold: number): void {
 		this.batchSegmentThreshold = newThreshold
 	}
-	// kilocode_change end
+	// kade_change end
 
 	/**
 	 * Disposes the file watcher
@@ -379,23 +379,23 @@ export class FileWatcher implements IFileWatcher {
 					let retryCount = 0
 					let upsertError: Error | undefined
 
-					while (retryCount < this.maxBatchRetries /* kilocode_change */) {
+					while (retryCount < this.maxBatchRetries /* kade_change */) {
 						try {
 							await this.vectorStore.upsertPoints(batch)
 							break
 						} catch (error) {
 							upsertError = error as Error
 							retryCount++
-							if (retryCount === this.maxBatchRetries /* kilocode_change */) {
+							if (retryCount === this.maxBatchRetries /* kade_change */) {
 								// Log telemetry for upsert failure
 								TelemetryService.instance.captureEvent(TelemetryEventName.CODE_INDEX_ERROR, {
 									error: sanitizeErrorMessage(upsertError.message),
 									location: "upsertPoints",
 									errorType: "upsert_retry_exhausted",
-									retryCount: this.maxBatchRetries, // kilocode_change
+									retryCount: this.maxBatchRetries, // kade_change
 								})
 								throw new Error(
-									`Failed to upsert batch after ${this.maxBatchRetries} retries: ${upsertError.message}`, // kilocode_change
+									`Failed to upsert batch after ${this.maxBatchRetries} retries: ${upsertError.message}`, // kade_change
 								)
 							}
 							await new Promise((resolve) =>

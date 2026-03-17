@@ -185,7 +185,7 @@ export class AgentLoop {
             return
         }
 
-        // kilocode_change: Allow final updates to ensure no truncation.
+        // kade_change: Allow final updates to ensure no truncation.
         // If we skipped this, the very last chunk (which closes the boolean) would not be sent to the UI.
         // if (!partialToolUse.partial) {
         //    return;
@@ -288,7 +288,7 @@ export class AgentLoop {
 
         const stack: StackItem[] = [{ userContent, includeFileDetails, retryAttempt: 0 }]
 
-        // kilocode_change: Reset lock state to prevent stale locks from blocking execution
+        // kade_change: Reset lock state to prevent stale locks from blocking execution
         this.task.presentAssistantMessageLocked = false
         this.task.presentAssistantMessageHasPendingUpdates = false
         this.task.userMessageContentReady = false
@@ -333,7 +333,7 @@ export class AgentLoop {
 
             await this.task.say("api_req_started", JSON.stringify({ apiProtocol }))
 
-            // kilocode_change: Luxury Spa Treatment - Refresh all active file reads on every turn
+            // kade_change: Luxury Spa Treatment - Refresh all active file reads on every turn
             // This ensures that any file the agent has seen is always up-to-date in its history
             // before the next request is made.
             // 🚀 OPTIMIZATION: Use smart refresh to leverage hot cache from recent read tools
@@ -442,7 +442,7 @@ export class AgentLoop {
                 let pendingGroundingSources: GroundingSource[] = []
                 this.task.isStreaming = true
 
-                // kilocode_change: Stream-interrupt-on-tool-complete
+                // kade_change: Stream-interrupt-on-tool-complete
                 // Count completed (closed) tool blocks seen during streaming.
                 // When this reaches maxToolCalls, we break the stream immediately so
                 // the AI sees results sooner — exactly how JSON/native tool calling works.
@@ -454,7 +454,7 @@ export class AgentLoop {
                 if (this.task.apiConfiguration?.disableBatchToolUse) {
                     maxToolCalls = 1
                 }
-                // kilocode_change: The unified parser expands multi-file R blocks into N individual
+                // kade_change: The unified parser expands multi-file R blocks into N individual
                 // read_file tool calls — a hard cap would cut off all but the first file.
                 // Disable the limit entirely for the unified protocol; it uses a single stream turn
                 // per message anyway, so the AI won't see results until the next turn regardless.
@@ -685,7 +685,7 @@ export class AgentLoop {
                                             // Ensure final state is sent to UI
                                             await this.handlePartialUpdate(finalToolUse, event.id);
                                         } else {
-                                            // kilocode_change: Call handlePartial for the active streaming tool (Native)
+                                            // kade_change: Call handlePartial for the active streaming tool (Native)
                                             // This ensures that the final "partial: false" state is sent to the tool UI.
                                             await this.handlePartialUpdate(finalToolUse, event.id);
                                         }
@@ -752,14 +752,14 @@ export class AgentLoop {
 
                                 const prevBlockCount = this.task.assistantMessageContent.length
                                 
-                                // kilocode_change: Check how many tools were finalized BEFORE processing this chunk.
+                                // kade_change: Check how many tools were finalized BEFORE processing this chunk.
                                 const completedBefore = this.countCompletedToolCalls(this.task.assistantMessageContent as any[])
                                 const alreadyHadCompletedTool = (this.task.assistantMessageParser as any).hasCompletedToolCall?.() ?? false
 
                                 const result = this.task.assistantMessageParser.processChunk(textToProcess) as { blocks: any[], safeIndex: number }
                                 this.task.assistantMessageContent = this.stripTextAfterCompletedToolCall(result.blocks)
                                 
-                                // kilocode_change: Only accumulate text if we haven't reached the tool limit yet.
+                                // kade_change: Only accumulate text if we haven't reached the tool limit yet.
                                 // Trailing text after the LAST allowed tool call is hallucination and must NOT be saved to history.
                                 const completedAfter = this.countCompletedToolCalls(this.task.assistantMessageContent as any[])
                                 // We are at limit if we already had a completed tool (and maxToolCalls is 1) or if we hit the limit now.
@@ -778,7 +778,7 @@ export class AgentLoop {
                                 // Check if we have trailing text in the current chunk after a tool call was finalized
                                 const hasTrailingTextInChunk = justReachedLimit && result.safeIndex < textToProcess.length && textToProcess.slice(result.safeIndex).trim().length > 0
 
-                                // kilocode_change: If trailing text detected after tool, terminate stream immediately.
+                                // kade_change: If trailing text detected after tool, terminate stream immediately.
                                 // This prevents the AI from seeing its own hallucinated output.
                                 if ((isAtLimit || hasTrailingTextInChunk) && textToProcess.trim()) {
                                     console.log(`[AgentLoop] ✂️ Stream cut: Trailing text detected after tool call. Terminating stream.`)
@@ -976,7 +976,7 @@ export class AgentLoop {
                         }
                     }
 
-                    // kilocode_change: Call handlePartial for the active streaming tool (Unified/XML)
+                    // kade_change: Call handlePartial for the active streaming tool (Unified/XML)
                     // This ensures that any pending text flushed during finalization (e.g. the last few lines of a write)
                     // is sent to the tool UI.
                     const activeBlock = this.getLatestToolUseBlock()
@@ -1019,14 +1019,14 @@ export class AgentLoop {
                                 this.task.assistantMessageContent[toolUseIndex] = finalToolUse
                                 this.task.userMessageContentReady = false
 
-                                // kilocode_change: Ensure final update is sent during recovery
+                                // kade_change: Ensure final update is sent during recovery
                                 await this.handlePartialUpdate(finalToolUse, event.id);
                             }
                         }
                     }
                 }
 
-                // kilocode_change: Call presentAssistantMessage WITHOUT await!
+                // kade_change: Call presentAssistantMessage WITHOUT await!
                 // It may block on user interaction (tool approvals), so we let it run async.
                 // The pWaitFor below will wait for userMessageContentReady which 
                 // presentAssistantMessage sets when ALL blocks are processed.
@@ -1116,7 +1116,7 @@ export class AgentLoop {
                                 }
                             } else {
                                 const toolUse = block as ToolUse
-                                // kilocode_change: Only add JSON tool_use blocks for real native protocol IDs
+                                // kade_change: Only add JSON tool_use blocks for real native protocol IDs
                                 // Skip xml_ prefixed IDs (synthetic IDs from XML parser for EditHistoryService)
                                 // and toolUseId (XML protocol internal tracking)
                                 const id = toolUse.id || (toolUse as any).toolUseId
@@ -1190,7 +1190,7 @@ export class AgentLoop {
                         return false
                     }
 
-                    // kilocode_change: In our conversation-first approach, we don't nag the AI
+                    // kade_change: In our conversation-first approach, we don't nag the AI
                     // with "noToolsUsed" anymore. We trust it to respond conversationally
                     // and wait for user input if no actions are needed.
                     /*
@@ -1206,7 +1206,7 @@ export class AgentLoop {
                     }
                     */
 
-                    // kilocode_change start: Dynamic Context Processing
+                    // kade_change start: Dynamic Context Processing
                     // Updated to handle _toolUseIds array for multi-file reads AND @file mentions
                     if (this.task.userMessageContent.length > 0) {
                         // Collect all file mentions first to ensure deterministic processing
@@ -1232,7 +1232,7 @@ export class AgentLoop {
                             }
 
                             // 2. Scan for tool use IDs (read_file, edit, etc.)
-                            // kilocode_change: Get ALL tool IDs - use array if present, fall back to single ID
+                            // kade_change: Get ALL tool IDs - use array if present, fall back to single ID
                             const toolUseIds: string[] = (block as any)._toolUseIds ||
                                 ((block as any).tool_use_id ? [(block as any).tool_use_id] :
                                     ((block as any)._toolUseId ? [(block as any)._toolUseId] : []))
@@ -1256,10 +1256,10 @@ export class AgentLoop {
                                         for (const filePath of filePaths) {
                                             // 1. Handle Reads: Track and prune old context
                                             if (name === 'read_file' || name === 'read') {
-                                                // kilocode_change: Extract line ranges from nativeArgs if available
+                                                // kade_change: Extract line ranges from nativeArgs if available
                                                 const nativeArgs = (toolUse as any).nativeArgs || {}
                                                 let lineRanges: { start: number; end: number }[] | undefined
-                                                // kilocode_change: Use the clean path from nativeArgs.files if available
+                                                // kade_change: Use the clean path from nativeArgs.files if available
                                                 // For XML shorthand, args.path may contain line range (e.g. "file.txt 1-7")
                                                 // but nativeArgs.files[].path is already clean
                                                 let cleanFilePath = filePath
@@ -1307,7 +1307,7 @@ export class AgentLoop {
                                                         }
                                                     }
 
-                                                    // kilocode_change: If we still have a range in the path but no lineRanges extracted,
+                                                    // kade_change: If we still have a range in the path but no lineRanges extracted,
                                                     // strip the range from the path to get a clean filename for tracking
                                                     if (!lineRanges) {
                                                         const rangeMatch = cleanFilePath.match(/^(.*?)(?::|\s+)(\d+)-(\d+)$/)
@@ -1341,7 +1341,7 @@ export class AgentLoop {
                                                 this.task.luxurySpa.activeFileReads.delete(filePath)
                                                 this.task.luxurySpa.fileEditCounts.delete(path.resolve(this.task.cwd, filePath))
                                             } else if (isModification) {
-                                                // kilocode_change: Modified files get tracked as full-file if not already partial.
+                                                // kade_change: Modified files get tracked as full-file if not already partial.
                                                 // We normalize the path (e.g. stripping ./ ) to match how reads are tracked.
                                                 const normalizedPath = filePath.replace(/^(\.\/|\.\\)/, "")
                                                 if (!fileMentions.has(normalizedPath)) {
@@ -1367,7 +1367,7 @@ export class AgentLoop {
                         // Refresh once after all merges for efficiency
                         await this.task.luxurySpa.refreshAllActiveContexts()
                     }
-                    // kilocode_change end
+                    // kade_change end
 
                     if (this.task.userMessageContent.length > 0 || this.task.isPaused) {
                         stack.push({

@@ -1,4 +1,4 @@
-// kilocode_change - new file: Local Whisper STT service that uses FFmpeg for audio capture
+// kade_change - new file: Local Whisper STT service that uses FFmpeg for audio capture
 // Uses the same FFmpeg approach as OpenAI/Gemini to avoid webview microphone permission issues
 import { STTEventEmitter } from "./types"
 import { STTSegment } from "../../shared/sttContract"

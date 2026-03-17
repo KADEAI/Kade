@@ -6,7 +6,7 @@ export type AnthropicModelId = keyof typeof anthropicModels
 export const anthropicDefaultModelId: AnthropicModelId = "claude-sonnet-4-5"
 
 export const anthropicModels = {
-	// kilocode_change start
+	// kade_change start
 	"claude-opus-4-6": {
 		maxTokens: 128_000,
 		contextWindow: 200_000,
@@ -21,7 +21,7 @@ export const anthropicModels = {
 		supportsAdaptiveThinking: true,
 		supportsVerbosity: ["low", "medium", "high", "max"],
 	},
-	// kilocode_change end
+	// kade_change end
 	"claude-sonnet-4-6": {
 		maxTokens: 64_000, // Overridden to 8k if `enableReasoningEffort` is false.
 		contextWindow: 200_000, // Default 200K, extendable to 1M with beta flag 'context-1m-2025-08-07'
@@ -103,7 +103,7 @@ export const anthropicModels = {
 		cacheWritesPrice: 6.25, // $6.25 per million tokens
 		cacheReadsPrice: 0.5, // $0.50 per million tokens
 		supportsReasoningBudget: true,
-		supportsVerbosity: true, // kilocode_change
+		supportsVerbosity: true, // kade_change
 	},
 	"claude-opus-4-1-20250805": {
 		maxTokens: 32_000, // Overridden to 8k if `enableReasoningEffort` is false.

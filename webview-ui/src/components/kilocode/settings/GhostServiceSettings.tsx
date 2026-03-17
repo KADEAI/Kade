@@ -1,4 +1,4 @@
-//kilocode_change - new file
+//kade_change - new file
 import { HTMLAttributes, useCallback, useEffect, useState } from "react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { Trans } from "react-i18next"

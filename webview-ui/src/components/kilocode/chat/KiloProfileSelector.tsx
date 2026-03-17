@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import { SelectDropdown, DropdownOptionType, Button, StandardTooltip } from "@/components/ui"
 import { vscode } from "@/utils/vscode"
 import { useAppTranslation } from "@/i18n/TranslationContext"
@@ -111,12 +111,12 @@ export const KiloProfileSelector = ({
 					}
 				}}
 				contentClassName="max-h-[300px] overflow-y-auto"
-				// kilocode_change start - VSC Theme
+				// kade_change start - VSC Theme
 				triggerClassName={cn(
 					"w-auto px-0.5",
 					"bg-transparent border-transparent hover:bg-vscode-toolbar-hoverBackground",
 				)}
-				// kilocode_change end
+				// kade_change end
 				itemClassName="group"
 				renderItem={({ type, value, label, pinned }) => {
 					if (type !== DropdownOptionType.ITEM) {

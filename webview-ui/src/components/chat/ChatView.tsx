@@ -12,7 +12,7 @@ import { useEvent } from "react-use";
 import debounce from "debounce";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import removeMd from "remove-markdown";
-import { VSCodeButton as Button } from "@vscode/webview-ui-toolkit/react"; // kilocode_change: do not use rounded Roo buttons
+import { VSCodeButton as Button } from "@vscode/webview-ui-toolkit/react"; // kade_change: do not use rounded Roo buttons
 import useSound from "use-sound";
 import { LRUCache } from "lru-cache";
 // import { Trans } from "react-i18next"
@@ -43,16 +43,16 @@ import { vscode } from "@src/utils/vscode";
 import { useAppTranslation } from "@src/i18n/TranslationContext";
 import { useExtensionState } from "../../context/ExtensionStateContext";
 import { useSelectedModel } from "@src/components/ui/hooks/useSelectedModel";
-// import RooHero from "@src/components/welcome/RooHero" // kilocode_change: unused
-// import RooTips from "@src/components/welcome/RooTips" // kilocode_change: unused
+// import RooHero from "@src/components/welcome/RooHero" // kade_change: unused
+// import RooTips from "@src/components/welcome/RooTips" // kade_change: unused
 import { StandardTooltip } from "@src/components/ui";
 
-// import VersionIndicator from "../common/VersionIndicator" // kilocode_change: unused
+// import VersionIndicator from "../common/VersionIndicator" // kade_change: unused
 import { OrganizationSelector } from "../kilocode/common/OrganizationSelector";
-// import { useTaskSearch } from "../history/useTaskSearch" // kilocode_change: unused
-// import { CloudUpsellDialog } from "@src/components/cloud/CloudUpsellDialog" // kilocode_change: unused
+// import { useTaskSearch } from "../history/useTaskSearch" // kade_change: unused
+// import { CloudUpsellDialog } from "@src/components/cloud/CloudUpsellDialog" // kade_change: unused
 
-// import TelemetryBanner from "../common/TelemetryBanner" // kilocode_change: unused
+// import TelemetryBanner from "../common/TelemetryBanner" // kade_change: unused
 import HistoryDropdown from "../history/HistoryDropdown";
 import HistoryDropdownTopView from "../history/HistoryDropdownTopView";
 import Announcement from "./Announcement";
@@ -65,37 +65,37 @@ import ChatRow, {
 } from "./ChatRow";
 import { VirtualChatList, clearVirtualHeightCache } from "./VirtualChatRow";
 import { ChatTextArea } from "./ChatTextArea";
-// import TaskHeader from "./TaskHeader"// kilocode_change
-// import KiloTaskHeader from "../kilocode/KiloTaskHeader" // kilocode_change: unused
-// import AutoApproveMenu from "./AutoApproveMenu" // kilocode_change: unused
-// import BottomControls from "../kilocode/BottomControls" // kilocode_change: unused
-// import SystemPromptWarning from "./SystemPromptWarning" // kilocode_change: unused
-// import ProfileViolationWarning from "./ProfileViolationWarning" kilocode_change: unused
+// import TaskHeader from "./TaskHeader"// kade_change
+// import KiloTaskHeader from "../kilocode/KiloTaskHeader" // kade_change: unused
+// import AutoApproveMenu from "./AutoApproveMenu" // kade_change: unused
+// import BottomControls from "../kilocode/BottomControls" // kade_change: unused
+// import SystemPromptWarning from "./SystemPromptWarning" // kade_change: unused
+// import ProfileViolationWarning from "./ProfileViolationWarning" kade_change: unused
 import { ChatScrollDebugger } from "./ChatScrollDebugger";
 import { CheckpointWarning } from "./CheckpointWarning";
-// import { IdeaSuggestionsBox } from "../kilocode/chat/IdeaSuggestionsBox" // kilocode_change
-// import { KilocodeNotifications } from "../kilocode/KilocodeNotifications" // kilocode_change: unused
+// import { IdeaSuggestionsBox } from "../kilocode/chat/IdeaSuggestionsBox" // kade_change
+// import { KilocodeNotifications } from "../kilocode/KilocodeNotifications" // kade_change: unused
 import { Upload, FileText, ImageIcon } from "lucide-react";
 import { QueuedMessages } from "./QueuedMessages";
 import { EditHistoryTracker } from "./EditHistoryTracker";
 import { EmptyState } from "./empty/EmptyState";
 import { useStreamingScrollPin } from "./hooks/useStreamingScrollPin";
 // import { buildDocLink } from "@/utils/docLinks"
-// import DismissibleUpsell from "../common/DismissibleUpsell" // kilocode_change: unused
-// import { useCloudUpsell } from "@src/hooks/useCloudUpsell" // kilocode_change: unused
-// import { Cloud } from "lucide-react" // kilocode_change: unused
+// import DismissibleUpsell from "../common/DismissibleUpsell" // kade_change: unused
+// import { useCloudUpsell } from "@src/hooks/useCloudUpsell" // kade_change: unused
+// import { Cloud } from "lucide-react" // kade_change: unused
 
 export interface ChatViewProps {
   isHidden: boolean;
   showAnnouncement: boolean;
   hideAnnouncement: () => void;
-  historyViewType?: "dropdown" | "dropdown-top" | "view"; // kilocode_change
+  historyViewType?: "dropdown" | "dropdown-top" | "view"; // kade_change
 }
 
 export interface ChatViewRef {
   acceptInput: () => void;
   toggleHistory: () => void;
-  focusInput: () => void; // kilocode_change
+  focusInput: () => void; // kade_change
 }
 
 export const MAX_IMAGES_PER_MESSAGE = 20; // This is the Anthropic limit.
@@ -123,32 +123,32 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     clineMessages: messages,
     currentTaskItem,
     currentTaskTodos,
-    // taskHistoryFullLength, // kilocode_change: unused
-    // taskHistoryVersion, // kilocode_change: unused
+    // taskHistoryFullLength, // kade_change: unused
+    // taskHistoryVersion, // kade_change: unused
     showTaskTimeline, // Sync to module-level store for ChatRow
     apiConfiguration,
     organizationAllowList,
     mode,
     setMode,
     alwaysAllowModeSwitch,
-    // showAutoApproveMenu, // kilocode_change: unused
-    enableCheckpoints, // kilocode_change
+    // showAutoApproveMenu, // kade_change: unused
+    enableCheckpoints, // kade_change
     alwaysAllowUpdateTodoList,
     customModes,
     telemetrySetting,
-    // hasSystemPromptOverride, // kilocode_change: unused
-    historyPreviewCollapsed, // kilocode_change
-    reasoningBlockCollapsed, // kilocode_change
+    // hasSystemPromptOverride, // kade_change: unused
+    historyPreviewCollapsed, // kade_change
+    reasoningBlockCollapsed, // kade_change
     soundEnabled,
     soundVolume,
-    // cloudIsAuthenticated, // kilocode_change
+    // cloudIsAuthenticated, // kade_change
     messageQueue = [],
-    sendMessageOnEnter, // kilocode_change
+    sendMessageOnEnter, // kade_change
     isBrowserSessionActive,
-    experiments, // kilocode_change
+    experiments, // kade_change
     alwaysAllowReadOnly,
     alwaysAllowWrite,
-    alwaysAllowDelete, // kilocode_change
+    alwaysAllowDelete, // kade_change
     alwaysAllowExecute,
     alwaysAllowBrowser,
     alwaysAllowMcp,
@@ -235,7 +235,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   // Cline.abort).
   const task = useMemo(() => messages.at(0), [messages]);
 
-  // kilocode_change start
+  // kade_change start
   // Initialize expanded state based on the persisted setting (default to expanded if undefined)
   const [isExpanded, setIsExpanded] = useState(
     historyPreviewCollapsed === undefined ? true : !historyPreviewCollapsed,
@@ -247,7 +247,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   // 	// Send message to extension to persist the new collapsed state
   // 	vscode.postMessage({ type: "setHistoryPreviewCollapsed", bool: !newState })
   // }, [isExpanded])
-  // kilocode_change end: unused
+  // kade_change end: unused
 
   const latestTodos = useMemo(() => {
     // First check if we have initial todos from the state (for new subtasks)
@@ -287,10 +287,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [sendingDisabled, setSendingDisabled] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
-  const [chatAreaHeight, setChatAreaHeight] = useState(0); // kilocode_change
-  const chatAreaRef = useRef<HTMLDivElement>(null); // kilocode_change
+  const [chatAreaHeight, setChatAreaHeight] = useState(0); // kade_change
+  const chatAreaRef = useRef<HTMLDivElement>(null); // kade_change
 
-  // kilocode_change start: Measure chat area height for glass layout
+  // kade_change start: Measure chat area height for glass layout
   useLayoutEffect(() => {
     if (!chatAreaRef.current) return;
     const observer = new ResizeObserver((entries) => {
@@ -305,7 +305,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     observer.observe(chatAreaRef.current);
     return () => observer.disconnect();
   }, []);
-  // kilocode_change end
+  // kade_change end
 
   // We need to hold on to the ask because useEffect > lastMessage will always
   // let us know when an ask comes in and handle it, but by the time
@@ -369,7 +369,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     clineAskRef.current = clineAsk;
   }, [clineAsk]);
 
-  // kilocode_change: Auto-approve delay handling
+  // kade_change: Auto-approve delay handling
   const toolAutoApproveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -394,7 +394,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     (tool: ClineSayTool): boolean => {
       if (!autoApprovalEnabled) return false;
 
-      // kilocode_change: Mirror backend checkAutoApproval logic so the
+      // kade_change: Mirror backend checkAutoApproval logic so the
       // approve button never flashes for tools that will be auto-approved.
       const name = tool.tool as string;
 
@@ -476,7 +476,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     ],
   );
 
-  // kilocode_change start: unused
+  // kade_change start: unused
   // const {
   // 	isOpen: isUpsellOpen,
   // 	openUpsell,
@@ -485,7 +485,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   // } = useCloudUpsell({
   // 	autoOpenOnAuth: false,
   // })
-  // kilocode_change end
+  // kade_change end
 
   // Keep inputValueRef in sync with inputValue state
   useEffect(() => {
@@ -615,7 +615,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
               break;
             case "tool":
               const tool = JSON.parse(lastMessage.text || "{}") as ClineSayTool;
-              // kilocode_change: Auto-save generated images
+              // kade_change: Auto-save generated images
               if (tool.tool === "generateImage") {
                 setSendingDisabled(isPartial);
                 if (!isPartial) {
@@ -642,7 +642,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
                   case "appliedDiff":
                   case "newFileCreated":
                   case "generateImage":
-                    // kilocode_change: Don't show Save button in chat input
+                    // kade_change: Don't show Save button in chat input
                     break;
                   case "finishTask":
                     setPrimaryButtonText(t("chat:completeSubtaskAndReturn"));
@@ -654,18 +654,18 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
                       setSecondaryButtonText(t("chat:read-batch.deny.title"));
                     } else {
                       setPrimaryButtonText(t("chat:approve.title"));
-                      setSecondaryButtonText(undefined); // kilocode_change: remove reject button
+                      setSecondaryButtonText(undefined); // kade_change: remove reject button
                     }
                     break;
                   default:
                     setPrimaryButtonText(t("chat:approve.title"));
-                    setSecondaryButtonText(undefined); // kilocode_change: remove reject button
+                    setSecondaryButtonText(undefined); // kade_change: remove reject button
                     break;
                 }
               }
               break;
             case "browser_action_launch":
-              // kilocode_change: Auto-approve browser actions
+              // kade_change: Auto-approve browser actions
               if (!isPartial) {
                 vscode.postMessage({
                   type: "askResponse",
@@ -682,10 +682,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
                   }
                   setEnableButtons(!isPartial);
                   setPrimaryButtonText(t("chat:approve.title"));
-                  setSecondaryButtonText(undefined); // kilocode_change: remove reject button
+                  setSecondaryButtonText(undefined); // kade_change: remove reject button
                 };
 
-                // kilocode_change: When auto-approve is enabled, don't show buttons at all.
+                // kade_change: When auto-approve is enabled, don't show buttons at all.
                 if (!(autoApprovalEnabled && alwaysAllowBrowser)) {
                   showBrowserButtons();
                 }
@@ -702,10 +702,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
                 }
                 setEnableButtons(!isPartial);
                 setPrimaryButtonText(t("chat:runCommand.title"));
-                setSecondaryButtonText(undefined); // kilocode_change: remove reject button
+                setSecondaryButtonText(undefined); // kade_change: remove reject button
               };
 
-              // kilocode_change: When auto-approve is enabled, don't show buttons at all.
+              // kade_change: When auto-approve is enabled, don't show buttons at all.
               // The backend will auto-approve. If it rejects (denied command), a new ask arrives.
               if (!(autoApprovalEnabled && alwaysAllowExecute)) {
                 showCommandButtons();
@@ -730,10 +730,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
                 }
                 setEnableButtons(!isPartial);
                 setPrimaryButtonText(t("chat:approve.title"));
-                setSecondaryButtonText(undefined); // kilocode_change: remove reject button
+                setSecondaryButtonText(undefined); // kade_change: remove reject button
               };
 
-              // kilocode_change: When auto-approve is enabled, don't show buttons at all.
+              // kade_change: When auto-approve is enabled, don't show buttons at all.
               if (!(autoApprovalEnabled && alwaysAllowMcp)) {
                 showMcpButtons();
               }
@@ -746,8 +746,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
               }
               setSendingDisabled(isPartial);
               setClineAsk("completion_result");
-              setEnableButtons(false); // kilocode_change: remove start new task button
-              setPrimaryButtonText(undefined); // kilocode_change: remove start new task button
+              setEnableButtons(false); // kade_change: remove start new task button
+              setPrimaryButtonText(undefined); // kade_change: remove start new task button
               setSecondaryButtonText(undefined);
               break;
             case "resume_task":
@@ -766,10 +766,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
                     msg.say === "completion_result",
                 );
               if (isCompletedSubtask) {
-                setPrimaryButtonText(undefined); // kilocode_change: remove start new task button
+                setPrimaryButtonText(undefined); // kade_change: remove start new task button
                 setSecondaryButtonText(undefined);
               } else {
-                // kilocode_change: remove continue button - too annoying
+                // kade_change: remove continue button - too annoying
                 setPrimaryButtonText(undefined);
                 setSecondaryButtonText(undefined);
               }
@@ -778,12 +778,12 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
             case "resume_completed_task":
               setSendingDisabled(false);
               setClineAsk("resume_completed_task");
-              setEnableButtons(false); // kilocode_change: remove start new task button
-              setPrimaryButtonText(undefined); // kilocode_change: remove start new task button
+              setEnableButtons(false); // kade_change: remove start new task button
+              setPrimaryButtonText(undefined); // kade_change: remove start new task button
               setSecondaryButtonText(undefined);
               setDidClickCancel(false);
               break;
-            // kilocode_change begin
+            // kade_change begin
             case "report_bug":
               if (!isPartial) {
                 playSound("notification");
@@ -802,7 +802,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
               );
               setSecondaryButtonText(undefined);
               break;
-            // kilocode_change end
+            // kade_change end
           }
           break;
         case "say":
@@ -850,7 +850,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
           msg.ask === "completion_result" || msg.say === "completion_result",
       );
       if (hasCompletionResult) {
-        setPrimaryButtonText(undefined); // kilocode_change: remove start new task button
+        setPrimaryButtonText(undefined); // kade_change: remove start new task button
         setSecondaryButtonText(undefined);
       }
     }
@@ -898,7 +898,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     userRespondedRef.current = false;
   }, [task?.ts]);
 
-  // kilocode_change: Initial scroll to bottom when entering a chat
+  // kade_change: Initial scroll to bottom when entering a chat
   useEffect(() => {
     if (!task?.ts) return;
 
@@ -1050,7 +1050,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       return false;
     }
 
-    // kilocode_change: Check raw messages for explicit finish signal
+    // kade_change: Check raw messages for explicit finish signal
     // regardless of whether combineApiRequests has merged cost yet.
     // We use findLastIndex to find the absolute last relevant signal.
     // If the last 'api_req_finished' is after the last 'api_req_started', we are done.
@@ -1173,7 +1173,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
    * @param text - The message text to send
    * @param images - Array of image data URLs to send with the message
    */
-  // kilocode_change: Manual scroll helpers
+  // kade_change: Manual scroll helpers
   const manualScrollToBottom = useCallback(() => {
     if (virtuosoRef.current) {
       virtuosoRef.current.scrollToIndex({
@@ -1189,14 +1189,14 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   // 		virtuosoRef.current.scrollToIndex({ index: "LAST", align: "end", behavior: "smooth" })
   // 	}
   // }, [])
-  // kilocode_change: unused
+  // kade_change: unused
 
   // const scrollToMessageTop = useCallback((index: number) => {
   // 	if (virtuosoRef.current) {
   // 		virtuosoRef.current.scrollToIndex({ index, align: "start", behavior: "smooth" })
   // 	}
   // }, [])
-  // kilocode_change: unused
+  // kade_change: unused
 
   // handleScroll is handled by Virtuoso's atBottomStateChange
 
@@ -1210,7 +1210,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       text = text.trim();
       setDidClickCancel(false);
 
-      // kilocode_change: Focus user message at top when sending
+      // kade_change: Focus user message at top when sending
       if (text || images.length > 0) {
         // Don't manual scroll to bottom here, as it might fight with the top-snapper
         stickyFollowRef.current = true;
@@ -1401,14 +1401,14 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
             terminalOperation: "continue",
           });
           break;
-        // kilocode_change start
+        // kade_change start
         case "condense":
           vscode.postMessage({
             type: "condense",
             text: lastMessage?.text,
           });
           break;
-        // kilocode_change end
+        // kade_change end
       }
 
       setSendingDisabled(true);
@@ -1417,7 +1417,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       setPrimaryButtonText(undefined);
       setSecondaryButtonText(undefined);
     },
-    [clineAsk, startNewTask, currentTaskItem?.parentTaskId, lastMessage?.text], // kilocode_change: add lastMessage?.text
+    [clineAsk, startNewTask, currentTaskItem?.parentTaskId, lastMessage?.text], // kade_change: add lastMessage?.text
   );
 
   const handleSecondaryButtonClick = useCallback(
@@ -1481,7 +1481,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   const handleTaskCloseButtonClick = useCallback(
     () => startNewTask(),
     [startNewTask],
-  ); // kilocode_change
+  ); // kade_change
 
   const { info: model } = useSelectedModel(apiConfiguration);
 
@@ -1739,7 +1739,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
         (lastMessage.say === "text" ||
           lastMessage.say === "completion_result") && // is a text message
         !lastMessage.partial && // not a partial message
-        typeof lastMessage.text === "string" && // kilocode_change: is a string
+        typeof lastMessage.text === "string" && // kade_change: is a string
         !lastMessage.text.startsWith("{") // not a json object
       ) {
         let text = lastMessage?.text || "";
@@ -2058,7 +2058,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   // scrollToBottom calls here creates competing scroll adjustments that
   // cause visible jank.
   useEffect(() => {
-    // kilocode_change: Top-snapping logic for new turns
+    // kade_change: Top-snapping logic for new turns
     if (pendingUserMessageScroll && groupedMessages.length > 0) {
       setPendingUserMessageScroll(false);
 
@@ -2145,7 +2145,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     manualScrollToBottom();
   }, [manualScrollToBottom]);
 
-  // kilocode_change start
+  // kade_change start
   // Animated "blink" to highlight a specific message. Used by the TaskTimeline
   const highlightClearTimerRef = useRef<NodeJS.Timeout | undefined>();
   const [highlightedMessageIndex, setHighlightedMessageIndex] = useState<
@@ -2186,7 +2186,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       }
     };
   }, []);
-  // kilocode_change end
+  // kade_change end
 
   const handleSetExpandedRow = useCallback(
     (ts: number, currentExpanded?: boolean) => {
@@ -2232,7 +2232,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   // Also disable sticky follow when the chat container is scrolled away from bottom
   // Handled by Virtuoso atBottomStateChange
 
-  //kilocode_change
+  //kade_change
   // Effect to clear checkpoint warning when messages appear or task changes
   useEffect(() => {
     if (isHidden || !task) {
@@ -2318,7 +2318,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     [],
   );
 
-  // kilocode_change start: Virtuoso Footer for bottom spacing
+  // kade_change start: Virtuoso Footer for bottom spacing
   // Keep footer spacer in sync with composer height.
   // A stale footer height can look like random extra chat padding until remount.
   const footerSpacerHeight = useMemo(() => {
@@ -2341,7 +2341,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     }),
     [footerSpacerHeight],
   );
-  // kilocode_change end
+  // kade_change end
 
   const itemContent = useCallback(
     (index: number, messageOrGroup: ClineMessage) => {
@@ -2401,7 +2401,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
         );
       }
 
-      // kilocode_change: Check if asking to proceed
+      // kade_change: Check if asking to proceed
       // Use ref to avoid callback recreation
       const currentGroupedMessages = groupedMessagesRef.current;
       const isLastCommand =
@@ -2441,8 +2441,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
           isStreaming={isLastRow ? isStreaming : false}
           onSuggestionClick={handleSuggestionClickInRow} // This was already stabilized
           onBatchFileResponse={handleBatchFileResponse}
-          highlighted={highlightedMessageIndex === index} // kilocode_change: add highlight prop
-          enableCheckpoints={enableCheckpoints} // kilocode_change
+          highlighted={highlightedMessageIndex === index} // kade_change: add highlight prop
+          enableCheckpoints={enableCheckpoints} // kade_change
           isFollowUpAnswered={
             messageOrGroup.isAnswered === true ||
             messageOrGroup.ts === currentFollowUpTs
@@ -2517,8 +2517,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       isStreaming,
       handleSuggestionClickInRow,
       handleBatchFileResponse,
-      highlightedMessageIndex, // kilocode_change: add highlightedMessageIndex
-      enableCheckpoints, // kilocode_change
+      highlightedMessageIndex, // kade_change: add highlightedMessageIndex
+      enableCheckpoints, // kade_change
       currentFollowUpTs,
       isFollowUpAutoApprovalPaused,
       alwaysAllowUpdateTodoList,
@@ -2571,12 +2571,12 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("wheel", handleWheel, { passive: true }); // kilocode_change
+    window.addEventListener("wheel", handleWheel, { passive: true }); // kade_change
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("wheel", handleWheel); // kilocode_change
+      window.removeEventListener("wheel", handleWheel); // kade_change
     };
-  }, [handleKeyDown, handleWheel]); // kilocode_change
+  }, [handleKeyDown, handleWheel]); // kade_change
 
   useImperativeHandle(ref, () => ({
     toggleHistory: () => {
@@ -2593,13 +2593,13 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
         handleSendMessage(inputValue, selectedImages);
       }
     },
-    // kilocode_change start
+    // kade_change start
     focusInput: () => {
       if (textAreaRef.current) {
         textAreaRef.current.focus();
       }
     },
-    // kilocode_change end
+    // kade_change end
   }));
 
   const handleCondenseContext = (taskId: string) => {
@@ -2611,10 +2611,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     vscode.postMessage({ type: "condenseTaskContextRequest", text: taskId });
   };
 
-  // kilocode_change: only show footer if we have the scroll button. Action buttons are now in ChatTextArea.
+  // kade_change: only show footer if we have the scroll button. Action buttons are now in ChatTextArea.
   const areButtonsVisible = showScrollToBottom;
 
-  const showTelemetryBanner = telemetrySetting === "unset"; // kilocode_change
+  const showTelemetryBanner = telemetrySetting === "unset"; // kade_change
 
   const SCROLL_DEBUG = false; // Disabled debug overlay
   const FORCE_STABLE_CHAT_LIST = false; // Re-enabled Virtuoso for better performance
@@ -2643,7 +2643,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     [itemContent],
   );
 
-  // kilocode_change start: Full-view drag-and-drop
+  // kade_change start: Full-view drag-and-drop
   const [isDraggingOverView, setIsDraggingOverView] = useState(false);
   const dragCounterRef = useRef(0);
 
@@ -2766,7 +2766,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     },
     [cwd, setInputValue, shouldDisableImages, setSelectedImages],
   );
-  // kilocode_change end: Full-view drag-and-drop
+  // kade_change end: Full-view drag-and-drop
 
   useEffect(() => {
     if (!FORCE_STABLE_CHAT_LIST) return;
@@ -2879,7 +2879,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       onDragOver={handleViewDragOver}
       onDrop={handleViewDrop}
     >
-      {/* kilocode_change start: Full-view drop overlay */}
+      {/* kade_change start: Full-view drop overlay */}
       {isDraggingOverView && (
         <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-none">
           <div className="flex flex-col items-center gap-3 p-8 rounded-2xl border-2 border-dashed border-vscode-focusBorder bg-vscode-editor-background/80">
@@ -2898,7 +2898,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
           </div>
         </div>
       )}
-      {/* kilocode_change end: Full-view drop overlay */}
+      {/* kade_change end: Full-view drop overlay */}
       {SCROLL_DEBUG && (
         <ChatScrollDebugger
           virtuosoRef={virtuosoRef}
@@ -2932,7 +2932,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
             ) : (
               <HistoryDropdown onClose={() => setShowHistoryDropdown(false)} />
             ))}
-          {/* kilocode_change start */}
+          {/* kade_change start */}
           {/* <TaskHeader
 						task={task}
 						tokensIn={apiMetrics.totalTokensIn}
@@ -2945,8 +2945,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 						handleCondenseContext={handleCondenseContext}
 						todos={latestTodos}
 					/> */}
-          {/* kilocode_change: KiloTaskHeader moved to ChatTextArea */}
-          {/* kilocode_change start */}
+          {/* kade_change: KiloTaskHeader moved to ChatTextArea */}
+          {/* kade_change start */}
 
           {checkpointWarning && (
             <div className="px-3">
@@ -3160,7 +3160,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
               <div
                 className={`flex h-9 items-center mb-1 px-[15px] ${
                   showScrollToBottom
-                    ? "opacity-0 pointer-events-none" // kilocode_change: hide scroll to bottom
+                    ? "opacity-0 pointer-events-none" // kade_change: hide scroll to bottom
                     : enableButtons || (isStreaming && !didClickCancel)
                       ? "opacity-100"
                       : "opacity-50"
@@ -3235,9 +3235,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
           mode={mode}
           setMode={setMode}
           modeShortcutText={modeShortcutText}
-          sendMessageOnEnter={sendMessageOnEnter} // kilocode_change
+          sendMessageOnEnter={sendMessageOnEnter} // kade_change
           showBrowserDockToggle={showBrowserDockToggle}
-          // kilocode_change start: Props for KiloTaskHeader inside ChatTextArea
+          // kade_change start: Props for KiloTaskHeader inside ChatTextArea
           task={task}
           tokensIn={apiMetrics.totalTokensIn}
           tokensOut={apiMetrics.totalTokensOut}
@@ -3251,11 +3251,11 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
           groupedMessages={groupedMessages}
           onMessageClick={handleMessageClick}
           todos={latestTodos}
-          isStreaming={isStreaming} // kilocode_change
+          isStreaming={isStreaming} // kade_change
           enableSubAgents={enableSubAgents}
           setEnableSubAgents={setEnableSubAgents}
-          onStop={() => handleSecondaryButtonClick()} // kilocode_change
-          // kilocode_change: pass button props
+          onStop={() => handleSecondaryButtonClick()} // kade_change
+          // kade_change: pass button props
           primaryButtonText={primaryButtonText}
           secondaryButtonText={secondaryButtonText}
           enableButtons={enableButtons}
@@ -3268,22 +3268,22 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
           onSecondaryButtonClick={(text, images) =>
             handleSecondaryButtonClick(text, images)
           }
-          // kilocode_change end
-          // kilocode_change end
+          // kade_change end
+          // kade_change end
         />
       </div>
-      {/* kilocode_change: added settings toggle the profile and model selection */}
+      {/* kade_change: added settings toggle the profile and model selection */}
       {/* <BottomControls showApiConfig /> */}
-      {/* kilocode_change: end */}
+      {/* kade_change: end */}
 
-      {/* kilocode_change: disable {isProfileDisabled && (
+      {/* kade_change: disable {isProfileDisabled && (
 				<div className="px-3">
 					<ProfileViolationWarning />
 				</div>
 			)} */}
 
       <div id="roo-portal" />
-      {/* kilocode_change: disable  */}
+      {/* kade_change: disable  */}
       {/* <CloudUpsellDialog open={isUpsellOpen} onOpenChange={closeUpsell} onConnect={handleConnect} /> */}
     </div>
   );

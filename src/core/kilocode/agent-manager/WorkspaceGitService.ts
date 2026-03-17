@@ -1,4 +1,4 @@
-// kilocode_change - new file: Service for accessing workspace git repository via VS Code Git API
+// kade_change - new file: Service for accessing workspace git repository via VS Code Git API
 import * as vscode from "vscode"
 import { type GitAPI, type Repository } from "./vscodeGitTypes"
 

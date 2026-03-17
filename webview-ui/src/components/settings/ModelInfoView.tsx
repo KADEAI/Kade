@@ -215,7 +215,7 @@ const CostPill = ({ label, price }: { label: string; price: string }) => (
 	</div>
 )
 
-export /*kilocode_change*/ const ModelInfoSupportsItem = ({
+export /*kade_change*/ const ModelInfoSupportsItem = ({
 	isSupported,
 	supportsLabel,
 	doesNotSupportLabel,

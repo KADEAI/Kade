@@ -14,16 +14,16 @@ interface ModelSelectorProps {
 	currentApiConfigName?: string
 	apiConfiguration: ProviderSettings
 	fallbackText: string
-	virtualQuotaActiveModel?: { id: string; name: string } // kilocode_change: Add virtual quota active model for UI display
-	scope?: "task" | "global" // kilocode_change: Scope for settings updates
+	virtualQuotaActiveModel?: { id: string; name: string } // kade_change: Add virtual quota active model for UI display
+	scope?: "task" | "global" // kade_change: Scope for settings updates
 }
 
 export const ModelSelector = ({
 	currentApiConfigName,
 	apiConfiguration,
 	fallbackText,
-	virtualQuotaActiveModel, //kilocode_change
-	scope, // kilocode_change
+	virtualQuotaActiveModel, //kade_change
+	scope, // kade_change
 }: ModelSelectorProps) => {
 	const { t } = useAppTranslation()
 	const { provider, providerModels, providerDefaultModel, isLoading, isError } = useProviderModels(apiConfiguration)
@@ -71,7 +71,7 @@ export const ModelSelector = ({
 				[modelIdKey]: value,
 				openRouterSpecificProvider: OPENROUTER_DEFAULT_PROVIDER_NAME,
 			},
-			scope, // kilocode_change
+			scope, // kade_change
 		})
 	}
 
@@ -79,7 +79,7 @@ export const ModelSelector = ({
 		return null
 	}
 
-	// kilocode_change start: Display active model for virtual quota fallback
+	// kade_change start: Display active model for virtual quota fallback
 	if (provider === "virtual-quota-fallback" && virtualQuotaActiveModel) {
 		return (
 			<span className="text-xs text-vscode-descriptionForeground opacity-70 truncate">
@@ -87,7 +87,7 @@ export const ModelSelector = ({
 			</span>
 		)
 	}
-	// kilocode_change end
+	// kade_change end
 
 	if (isError || isAutocomplete || options.length <= 0) {
 		return <span className="text-xs text-vscode-descriptionForeground opacity-70 truncate">{fallbackText}</span>

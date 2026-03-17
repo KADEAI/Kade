@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import OpenAI from "openai"
 import { Anthropic } from "@anthropic-ai/sdk"
 

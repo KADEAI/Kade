@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 
 interface UsePromptHistoryProps {
 	clineMessages: ClineMessage[] | undefined
-	taskHistoryVersion: number // kilocode_change
+	taskHistoryVersion: number // kade_change
 	cwd: string | undefined
 	inputValue: string
 	setInputValue: (value: string) => void
@@ -27,7 +27,7 @@ export interface UsePromptHistoryReturn {
 
 export const usePromptHistory = ({
 	clineMessages,
-	taskHistoryVersion, // kilocode_change
+	taskHistoryVersion, // kade_change
 	cwd,
 	inputValue,
 	setInputValue,
@@ -40,7 +40,7 @@ export const usePromptHistory = ({
 	const [tempInput, setTempInput] = useState("")
 	const [promptHistory, setPromptHistory] = useState<string[]>([])
 
-	// kilocode_change start
+	// kade_change start
 	const { data } = useTaskHistory(
 		{
 			workspace: "current",
@@ -71,7 +71,7 @@ export const usePromptHistory = ({
 			return []
 		}
 
-		const taskHistory = data?.historyItems ?? [] // kilocode_change
+		const taskHistory = data?.historyItems ?? [] // kade_change
 
 		// Fall back to task history only when starting fresh (no active conversation)
 		if (!taskHistory?.length || !cwd) {
@@ -84,7 +84,7 @@ export const usePromptHistory = ({
 			.map((item) => item.task)
 			.slice(0, MAX_PROMPT_HISTORY_SIZE)
 	}, [
-		data, // kilocode_change
+		data, // kade_change
 		clineMessages,
 		cwd,
 	])

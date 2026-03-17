@@ -15,19 +15,19 @@ import ChatView, { ChatViewRef } from "./components/chat/ChatView"
 import { BashGlobalStyles } from "./components/tools/Bash"
 import HistoryView from "./components/history/HistoryView"
 import SettingsView, { SettingsViewRef } from "./components/settings/SettingsView"
-import WelcomeView from "./components/kilocode/welcome/WelcomeView" // kilocode_change
-import ProfileView from "./components/kilocode/profile/ProfileView" // kilocode_change
-import McpView from "./components/mcp/McpView" // kilocode_change
-import AuthView from "./components/kilocode/auth/AuthView" // kilocode_change
+import WelcomeView from "./components/kilocode/welcome/WelcomeView" // kade_change
+import ProfileView from "./components/kilocode/profile/ProfileView" // kade_change
+import McpView from "./components/mcp/McpView" // kade_change
+import AuthView from "./components/kilocode/auth/AuthView" // kade_change
 import { MarketplaceView } from "./components/marketplace/MarketplaceView"
 import { HumanRelayDialog } from "./components/human-relay/HumanRelayDialog"
-// import BottomControls from "./components/kilocode/BottomControls" // kilocode_change
-import { MemoryService } from "./services/MemoryService" // kilocode_change
+// import BottomControls from "./components/kilocode/BottomControls" // kade_change
+import { MemoryService } from "./services/MemoryService" // kade_change
 import { CheckpointRestoreDialog } from "./components/chat/CheckpointRestoreDialog"
 import { DeleteMessageDialog, EditMessageDialog } from "./components/chat/MessageModificationConfirmationDialog"
 import ErrorBoundary from "./components/ErrorBoundary"
-// import { AccountView } from "./components/account/AccountView" // kilocode_change: we have our own profile view
-// import { CloudView } from "./components/cloud/CloudView" // kilocode_change: not rendering this
+// import { AccountView } from "./components/account/AccountView" // kade_change: we have our own profile view
+// import { CloudView } from "./components/cloud/CloudView" // kade_change: not rendering this
 import { useAddNonInteractiveClickListener } from "./components/ui/hooks/useNonInteractiveClick"
 import { TooltipProvider } from "./components/ui/tooltip"
 import { STANDARD_TOOLTIP_DELAY } from "./components/ui/standard-tooltip"
@@ -35,11 +35,11 @@ import { useKiloIdentity } from "./utils/kilocode/useKiloIdentity"
 import { MemoryWarningBanner } from "./kilocode/MemoryWarningBanner"
 import { getFileChangesInRange } from "./utils/tool-utils"
 import { ToolThemeProvider } from "./context/ToolThemeContext"
-import ResourceMonitorView from "./components/resources/ResourceMonitorView" // kilocode_change
+import ResourceMonitorView from "./components/resources/ResourceMonitorView" // kade_change
 
-type Tab = "settings" | "history" | "modes" | "chat" | "marketplace" | "account" | "cloud" | "profile" | "auth" | "resources" // kilocode_change: add "profile", "auth", "resources", remove "mcp"
+type Tab = "settings" | "history" | "modes" | "chat" | "marketplace" | "account" | "cloud" | "profile" | "auth" | "resources" // kade_change: add "profile", "auth", "resources", remove "mcp"
 
-export type HistoryViewType = "dropdown" | "dropdown-top" | "view" // kilocode_change
+export type HistoryViewType = "dropdown" | "dropdown-top" | "view" // kade_change
 
 interface HumanRelayDialogState {
 	isOpen: boolean
@@ -70,15 +70,15 @@ const MemoizedHumanRelayDialog = React.memo(HumanRelayDialog)
 const tabsByMessageAction: Partial<Record<NonNullable<ExtensionMessage["action"]>, Tab>> = {
 	chatButtonClicked: "chat",
 	settingsButtonClicked: "settings",
-	// historyButtonClicked: "history", // kilocode_change: handled in onMessage to toggle dropdown
+	// historyButtonClicked: "history", // kade_change: handled in onMessage to toggle dropdown
 	profileButtonClicked: "profile",
 	marketplaceButtonClicked: "marketplace",
-	promptsButtonClicked: "settings", // kilocode_change: Navigate to settings with modes section
-	mcpButtonClicked: "marketplace", // kilocode_change
-	// cloudButtonClicked: "cloud", // kilocode_change: no cloud
+	promptsButtonClicked: "settings", // kade_change: Navigate to settings with modes section
+	mcpButtonClicked: "marketplace", // kade_change
+	// cloudButtonClicked: "cloud", // kade_change: no cloud
 }
 
-// kilocode_change start: Map certain actions to a default section when navigating to settings
+// kade_change start: Map certain actions to a default section when navigating to settings
 const defaultSectionByAction: Partial<Record<NonNullable<ExtensionMessage["action"]>, string>> = {
 	promptsButtonClicked: "modes",
 }
@@ -86,7 +86,7 @@ const defaultSectionByAction: Partial<Record<NonNullable<ExtensionMessage["actio
 const defaultMarketplaceTabByAction: Partial<Record<NonNullable<ExtensionMessage["action"]>, string>> = {
 	mcpButtonClicked: "installed",
 }
-// kilocode_change end
+// kade_change end
 
 const App = () => {
 	const {
@@ -96,15 +96,15 @@ const App = () => {
 		telemetrySetting,
 		telemetryKey,
 		machineId,
-		// kilocode_change start: unused
+		// kade_change start: unused
 		// cloudUserInfo,
 		// cloudIsAuthenticated,
 		// cloudApiUrl,
 		// cloudOrganizations,
-		// kilocode_change end
+		// kade_change end
 		renderContext,
 		mdmCompliant,
-		apiConfiguration, // kilocode_change
+		apiConfiguration, // kade_change
 		clineMessages,
 		undoneToolIds,
 	} = useExtensionState()
@@ -117,7 +117,7 @@ const App = () => {
 	const [authReturnTo, setAuthReturnTo] = useState<"chat" | "settings">("chat")
 	const [authProfileName, setAuthProfileName] = useState<string | undefined>(undefined)
 	const [settingsEditingProfile, setSettingsEditingProfile] = useState<string | undefined>(undefined)
-	const [historyViewType, setHistoryViewType] = useLocalStorage<HistoryViewType>("historyViewType", "dropdown-top") // kilocode_change
+	const [historyViewType, setHistoryViewType] = useLocalStorage<HistoryViewType>("historyViewType", "dropdown-top") // kade_change
 
 	const [humanRelayDialogState, setHumanRelayDialogState] = useState<HumanRelayDialogState>({
 		isOpen: false,
@@ -150,7 +150,7 @@ const App = () => {
 	}, [editMessageDialogState.isOpen, editMessageDialogState.messageTs, clineMessages])
 
 	const settingsRef = useRef<SettingsViewRef>(null)
-	const chatViewRef = useRef<ChatViewRef & { focusInput: () => void }>(null) // kilocode_change
+	const chatViewRef = useRef<ChatViewRef & { focusInput: () => void }>(null) // kade_change
 
 	const switchTab = useCallback(
 		(newTab: Tab) => {
@@ -165,11 +165,11 @@ const App = () => {
 			setCurrentSection(undefined)
 			setCurrentMarketplaceTab(undefined)
 
-			// kilocode_change start - Bypass unsaved changes check when navigating to auth tab
+			// kade_change start - Bypass unsaved changes check when navigating to auth tab
 			if (newTab === "auth") {
 				setTab(newTab)
 			} else if (settingsRef.current?.checkUnsaveChanges) {
-				// kilocode_change: end
+				// kade_change: end
 				settingsRef.current.checkUnsaveChanges(() => setTab(newTab))
 			} else {
 				setTab(newTab)
@@ -186,7 +186,7 @@ const App = () => {
 			const message: ExtensionMessage = e.data
 
 			if (message.type === "action" && message.action) {
-				// kilocode_change begin
+				// kade_change begin
 				if (message.action === "focusChatInput") {
 					if (tab !== "chat") {
 						switchTab("chat")
@@ -194,10 +194,10 @@ const App = () => {
 					chatViewRef.current?.focusInput()
 					return
 				}
-				// kilocode_change end
+				// kade_change end
 
 				if (message.action === "historyButtonClicked") {
-					// kilocode_change: check preference
+					// kade_change: check preference
 					if (historyViewType === "view") {
 						switchTab("history")
 					} else if (historyViewType === "dropdown" || historyViewType === "dropdown-top") {
@@ -215,7 +215,7 @@ const App = () => {
 				// Handle switchTab action with tab parameter
 				if (message.action === "switchTab" && message.tab) {
 					const targetTab = message.tab as Tab
-					// kilocode_change start - Handle auth tab with returnTo and profileName parameters
+					// kade_change start - Handle auth tab with returnTo and profileName parameters
 					if (targetTab === "auth") {
 						if (message.values?.returnTo) {
 							const returnTo = message.values.returnTo as "chat" | "settings"
@@ -227,7 +227,7 @@ const App = () => {
 							setSettingsEditingProfile(profileName)
 						}
 					}
-					// kilocode_change end
+					// kade_change end
 					switchTab(targetTab)
 					// Extract targetSection from values if provided
 					const targetSection = message.values?.section as string | undefined
@@ -236,20 +236,20 @@ const App = () => {
 				} else {
 					// Handle other actions using the mapping
 					const newTab = tabsByMessageAction[message.action]
-					// kilocode_change start
+					// kade_change start
 					const section =
 						(message.values?.section as string | undefined) ?? defaultSectionByAction[message.action]
-					// kilocode_change end
+					// kade_change end
 					const marketplaceTab =
 						(message.values?.marketplaceTab as string | undefined) ??
 						defaultMarketplaceTabByAction[message.action]
-					const editingProfile = message.values?.editingProfile as string | undefined // kilocode_change
+					const editingProfile = message.values?.editingProfile as string | undefined // kade_change
 
 					if (newTab) {
 						switchTab(newTab)
 						setCurrentSection(section)
 						setCurrentMarketplaceTab(marketplaceTab)
-						// kilocode_change start - If navigating to settings with editingProfile, forward it
+						// kade_change start - If navigating to settings with editingProfile, forward it
 						if (newTab === "settings" && editingProfile) {
 							// Re-send the message to SettingsView with the editingProfile
 							setTimeout(() => {
@@ -263,7 +263,7 @@ const App = () => {
 								)
 							}, 100)
 						}
-						// kilocode_change end
+						// kade_change end
 					}
 				}
 			}
@@ -295,7 +295,7 @@ const App = () => {
 				chatViewRef.current?.acceptInput()
 			}
 		},
-		// kilocode_change: add tab and historyViewType
+		// kade_change: add tab and historyViewType
 		[tab, switchTab, historyViewType],
 	)
 
@@ -308,20 +308,20 @@ const App = () => {
 		}
 	}, [shouldShowAnnouncement, tab])
 
-	// kilocode_change start
+	// kade_change start
 	const telemetryDistinctId = useKiloIdentity(apiConfiguration?.kilocodeToken ?? "", machineId ?? "")
 	useEffect(() => {
 		if (didHydrateState) {
 			telemetryClient.updateTelemetryState(telemetrySetting, telemetryKey, telemetryDistinctId)
 
-			// kilocode_change start
+			// kade_change start
 			const memoryService = new MemoryService()
 			memoryService.start()
 			return () => memoryService.stop()
-			// kilocode_change end
+			// kade_change end
 		}
 	}, [telemetrySetting, telemetryKey, telemetryDistinctId, didHydrateState])
-	// kilocode_change end
+	// kade_change end
 
 	// Tell the extension that we are ready to receive messages.
 	useEffect(() => vscode.postMessage({ type: "webviewDidLaunch" }), [])
@@ -362,15 +362,15 @@ const App = () => {
 
 	// Do not conditionally load ChatView, it's expensive and there's state we
 	// don't want to lose (user input, disableInput, askResponse promise, etc.)
-	// kilocode_change: no WelcomeViewProvider toggle
+	// kade_change: no WelcomeViewProvider toggle
 	return showWelcome ? (
 		<WelcomeView />
 	) : (
 		<>
 			<MemoryWarningBanner />
-			{/* kilocode_change end */}
+			{/* kade_change end */}
 			{tab === "history" && <HistoryView onDone={() => switchTab("chat")} />}
-			{/* kilocode_change: add profileview, authview, and resourceview */}
+			{/* kade_change: add profileview, authview, and resourceview */}
 			{tab === "resources" && <ResourceMonitorView />}
 			{tab === "profile" && <ProfileView onDone={() => switchTab("chat")} />}
 			{tab === "auth" && <AuthView returnTo={authReturnTo} profileName={authProfileName} />}
@@ -381,8 +381,8 @@ const App = () => {
 					targetTab={(currentMarketplaceTab as any) || "mcp"}
 				/>
 			)}
-			{/* kilocode_change: no cloud view */}
-			{/* kilocode_change: we have our own profile view */}
+			{/* kade_change: no cloud view */}
+			{/* kade_change: we have our own profile view */}
 			{/* Settings renders as an overlay panel on top of ChatView */}
 			<ChatView
 				ref={chatViewRef}
@@ -391,7 +391,7 @@ const App = () => {
 				hideAnnouncement={() => setShowAnnouncement(false)}
 				historyViewType={historyViewType}
 			/>
-			{/* kilocode_change: Settings rendered as overlay panel */}
+			{/* kade_change: Settings rendered as overlay panel */}
 			{tab === "settings" && (
 				<div
 					style={{
@@ -442,8 +442,8 @@ const App = () => {
 							onDone={() => switchTab("chat")}
 							targetSection={currentSection}
 							editingProfile={settingsEditingProfile}
-							historyViewType={historyViewType} // kilocode_change
-							setHistoryViewType={setHistoryViewType} // kilocode_change
+							historyViewType={historyViewType} // kade_change
+							setHistoryViewType={setHistoryViewType} // kade_change
 						/>
 					</div>
 				</div>
@@ -603,7 +603,7 @@ const App = () => {
 					}}
 				/>
 			)}
-			{/* kilocode_change */}
+			{/* kade_change */}
 			{/* Chat, and history view contain their own bottom controls, settings doesn't need it */}
 		</>
 	)

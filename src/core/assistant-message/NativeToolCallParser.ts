@@ -6,7 +6,7 @@ import {
 	toolParamNames,
 	type NativeToolArgs,
 } from "../../shared/tools"
-import { resolveToolAlias } from "../../shared/tool-aliases" // kilocode_change
+import { resolveToolAlias } from "../../shared/tool-aliases" // kade_change
 import { parseJSON } from "partial-json"
 import type {
 	ApiStreamToolCallStartChunk,
@@ -262,7 +262,7 @@ export class NativeToolCallParser {
 			return null
 		}
 
-		// kilocode_change: AGGRESSIVE attempt_completion streaming - bypass JSON parsing entirely
+		// kade_change: AGGRESSIVE attempt_completion streaming - bypass JSON parsing entirely
 		// This treats the result field as raw text stream for immediate character-by-character updates
 		if (toolCall.name.includes("attempt_completion")) {
 			console.log(`[NativeToolCallParser] Processing attempt_completion chunk: "${chunk}"`);
@@ -914,7 +914,7 @@ export class NativeToolCallParser {
 					}
 					break
 
-				// kilocode_change start
+				// kade_change start
 				case "edit":
 					// Allow tolerant path resolution
 					const editFilePath = args.file_path || args.path;
@@ -959,7 +959,7 @@ export class NativeToolCallParser {
 				case "new_rule":
 				case "report_bug":
 					break
-				// kilocode_change end
+				// kade_change end
 
 
 

@@ -2,11 +2,11 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { Gemini } from "../Gemini"
 
-// kilocode_change start
+// kade_change start
 import type { ProviderSettings } from "@roo-code/types"
 import { ExtensionStateContextProvider } from "@src/context/ExtensionStateContext"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-// kilocode_change end
+// kade_change end
 
 vi.mock("@vscode/webview-ui-toolkit/react", () => ({
 	VSCodeTextField: ({ children, value, onInput, type }: any) => (
@@ -15,13 +15,13 @@ vi.mock("@vscode/webview-ui-toolkit/react", () => ({
 			<input type={type} value={value} onChange={(e) => onInput(e)} />
 		</div>
 	),
-	// kilocode_change start
+	// kade_change start
 	VSCodeLink: ({ children, href, onClick, className }: any) => (
 		<a href={href} onClick={onClick} className={className}>
 			{children}
 		</a>
 	),
-	// kilocode_change end
+	// kade_change end
 }))
 
 vi.mock("vscrui", () => ({
@@ -41,12 +41,12 @@ vi.mock("@src/components/common/VSCodeButtonLink", () => ({
 	VSCodeButtonLink: ({ children, href }: any) => <a href={href}>{children}</a>,
 }))
 
-// kilocode_change start
+// kade_change start
 vi.mock("../ModelPicker", () => ({
 	__esModule: true,
 	ModelPicker: () => <div data-testid="model-picker" />,
 }))
-// kilocode_change end
+// kade_change end
 
 describe("Gemini", () => {
 	const defaultApiConfiguration: ProviderSettings = {
@@ -57,7 +57,7 @@ describe("Gemini", () => {
 
 	const mockSetApiConfigurationField = vi.fn()
 
-	// kilocode_change start: Custom render function with required providers
+	// kade_change start: Custom render function with required providers
 	const renderGemini_kiloCode = (props: React.ComponentProps<typeof Gemini>) => {
 		const queryClient = new QueryClient()
 		return render(
@@ -68,7 +68,7 @@ describe("Gemini", () => {
 			</QueryClientProvider>,
 		)
 	}
-	// kilocode_change end
+	// kade_change end
 
 	beforeEach(() => {
 		vi.clearAllMocks()
@@ -154,7 +154,7 @@ describe("Gemini", () => {
 		})
 	})
 
-	// kilocode_change start: Tests changed from render() to renderGemini_kiloCode()
+	// kade_change start: Tests changed from render() to renderGemini_kiloCode()
 	describe("simplifySettings prop", () => {
 		it("should hide URL context and grounding checkboxes when simplifySettings is true, but keep custom base URL", () => {
 			renderGemini_kiloCode({
@@ -195,5 +195,5 @@ describe("Gemini", () => {
 			expect(screen.getByTestId("checkbox-grounding-search")).toBeInTheDocument()
 		})
 	})
-	// kilocode_change end
+	// kade_change end
 })

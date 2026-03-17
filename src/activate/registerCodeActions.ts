@@ -11,7 +11,7 @@ export const registerCodeActions = (context: vscode.ExtensionContext) => {
 	registerCodeAction(context, "fixCode", "FIX")
 	registerCodeAction(context, "improveCode", "IMPROVE")
 	registerCodeAction(context, "addToContext", "ADD_TO_CONTEXT")
-	registerCodeAction(context, "addToContextAndFocus", "ADD_TO_CONTEXT") // kilocode_change
+	registerCodeAction(context, "addToContextAndFocus", "ADD_TO_CONTEXT") // kade_change
 }
 
 const registerCodeAction = (context: vscode.ExtensionContext, command: CodeActionId, promptType: CodeActionName) => {

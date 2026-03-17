@@ -8,7 +8,7 @@ import { ExtensionMessage, ClineAskUseMcpServer } from "../../../../src/shared/E
 import { safeJsonParse } from "../../../../src/shared/safeJsonParse"
 import { cn } from "@src/lib/utils"
 import { Button } from "@src/components/ui"
-import CodeBlock from "../kilocode/common/CodeBlock" // kilocode_change
+import CodeBlock from "../kilocode/common/CodeBlock" // kade_change
 import McpToolRow from "../mcp/McpToolRow"
 import { Markdown } from "./Markdown"
 
@@ -28,7 +28,7 @@ interface McpExecutionProps {
 	}
 	useMcpServer?: ClineAskUseMcpServer
 	alwaysAllowMcp?: boolean
-	initiallyExpanded?: boolean // kilocode_change: For Storybook stories only
+	initiallyExpanded?: boolean // kade_change: For Storybook stories only
 }
 
 function removeRenamedPrefix_kilocode(text: string): string {
@@ -47,7 +47,7 @@ export const McpExecution = ({
 	server,
 	useMcpServer,
 	alwaysAllowMcp = false,
-	initiallyExpanded = false, // kilocode_change
+	initiallyExpanded = false, // kade_change
 }: McpExecutionProps) => {
 	const { t } = useTranslation("mcp")
 
@@ -58,7 +58,7 @@ export const McpExecution = ({
 	const [serverName, setServerName] = useState(initialServerName)
 	const [toolName, setToolName] = useState(initialToolName)
 
-	// kilocode_change: Main collapse state for the entire MCP execution content
+	// kade_change: Main collapse state for the entire MCP execution content
 	const [isResponseExpanded, setIsResponseExpanded] = useState(initiallyExpanded)
 
 	// Try to parse JSON and return both the result and formatted text
@@ -79,7 +79,7 @@ export const McpExecution = ({
 		}
 	}, [])
 
-	// kilocode_change: Only parse response data when main content is expanded AND complete to avoid parsing partial JSON
+	// kade_change: Only parse response data when main content is expanded AND complete to avoid parsing partial JSON
 	const responseData = useMemo(() => {
 		if (!isResponseExpanded) {
 			return { isJson: false, formatted: responseText }
@@ -189,11 +189,11 @@ export const McpExecution = ({
 		<>
 			<div
 				className="flex flex-row items-center justify-between gap-2 mb-1 cursor-pointer select-none"
-				onClick={onToggleResponseExpand /* kilocode_change */}>
+				onClick={onToggleResponseExpand /* kade_change */}>
 				<div className="flex flex-row items-center gap-1 flex-wrap">
 					<Server size={16} className="text-vscode-descriptionForeground" />
 					<div className="flex items-center gap-1 flex-wrap">
-						{/* kilocode_change: Show tool name instead of server name since server is already shown above */}
+						{/* kade_change: Show tool name instead of server name since server is already shown above */}
 						{toolName && <span className="font-bold text-vscode-foreground">{toolName}</span>}
 					</div>
 				</div>
@@ -225,7 +225,7 @@ export const McpExecution = ({
 							</div>
 						)}
 					</div>
-					{/* kilocode_change start - moved Chevron button */}
+					{/* kade_change start - moved Chevron button */}
 					<Button
 						variant="ghost"
 						size="icon"
@@ -235,7 +235,7 @@ export const McpExecution = ({
 						}}>
 						{!isResponseExpanded ? <ChevronRight className="size-4" /> : <ChevronDown className="size-4" />}
 					</Button>
-					{/* kilocode_change end - moved Chevron button */}
+					{/* kade_change end - moved Chevron button */}
 				</div>
 			</div>
 

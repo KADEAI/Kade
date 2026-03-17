@@ -29,11 +29,11 @@ export abstract class BaseTelemetryClient implements TelemetryClient {
 	 * Determines if a specific property should be included in telemetry events
 	 * Override in subclasses to filter specific properties
 	 * @param _propertyName The name of the property to check
-	 * @param _allProperties All properties for context (e.g., to check organization membership) // kilocode_change
+	 * @param _allProperties All properties for context (e.g., to check organization membership) // kade_change
 	 */
 	protected isPropertyCapturable(
 		_propertyName: string,
-		_allProperties: Record<string, unknown>, // kilocode_change
+		_allProperties: Record<string, unknown>, // kade_change
 	): boolean {
 		return true
 	}
@@ -51,7 +51,7 @@ export abstract class BaseTelemetryClient implements TelemetryClient {
 				console.error(
 					`Error getting telemetry properties: ${error instanceof Error ? error.message : String(error)}`,
 				)
-				providerProperties.exception = error instanceof Error ? error.stack || error.message : String(error) // kilocode_change
+				providerProperties.exception = error instanceof Error ? error.stack || error.message : String(error) // kade_change
 			}
 		}
 
@@ -59,17 +59,17 @@ export abstract class BaseTelemetryClient implements TelemetryClient {
 		// Event properties take precedence in case of conflicts.
 		const mergedProperties = { ...providerProperties, ...(event.properties || {}) }
 
-		// kilocode_change start
+		// kade_change start
 		// Add organization ID if available from provider properties
 		// This ensures all events include the organization ID when present
 		if (providerProperties.kilocodeOrganizationId && !mergedProperties.kilocodeOrganizationId) {
 			mergedProperties.kilocodeOrganizationId = providerProperties.kilocodeOrganizationId
 		}
-		// kilocode_change end
+		// kade_change end
 
 		// Filter out properties that shouldn't be captured by this client
 		return Object.fromEntries(
-			Object.entries(mergedProperties).filter(([key]) => this.isPropertyCapturable(key, mergedProperties)), // kilocode_change: pass mergedProperties for org filtering
+			Object.entries(mergedProperties).filter(([key]) => this.isPropertyCapturable(key, mergedProperties)), // kade_change: pass mergedProperties for org filtering
 		)
 	}
 
@@ -81,13 +81,13 @@ export abstract class BaseTelemetryClient implements TelemetryClient {
 
 	public abstract updateTelemetryState(didUserOptIn: boolean): void
 
-	// kilocode_change start
+	// kade_change start
 	public async captureException(_error: Error, _properties?: Record<string | number, unknown>): Promise<void> {}
 
 	public updateIdentity(_kilocodeToken: string): Promise<void> {
 		return Promise.resolve()
 	}
-	// kilocode_change end
+	// kade_change end
 
 	public isTelemetryEnabled(): boolean {
 		return this.telemetryEnabled

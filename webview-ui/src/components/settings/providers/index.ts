@@ -9,14 +9,14 @@ export { ClaudeCode } from "./ClaudeCode"
 export { DeepSeek } from "./DeepSeek"
 export { Doubao } from "./Doubao"
 export { Gemini } from "./Gemini"
-export { Glama } from "./Glama" // kilocode_change
+export { Glama } from "./Glama" // kade_change
 export { Groq } from "./Groq"
 export { HuggingFace } from "./HuggingFace"
 export { IOIntelligence } from "./IOIntelligence"
 export { LMStudio } from "./LMStudio"
 export { Mistral } from "./Mistral"
 export { Moonshot } from "./Moonshot"
-export { NanoGpt } from "./NanoGpt" // kilocode_change
+export { NanoGpt } from "./NanoGpt" // kade_change
 export { Ollama } from "./Ollama"
 export { OpenAI } from "./OpenAI"
 export { OpenAICompatible } from "./OpenAICompatible"
@@ -29,7 +29,7 @@ export { Unbound } from "./Unbound"
 export { Vertex } from "./Vertex"
 export { VSCodeLM } from "./VSCodeLM"
 export { XAI } from "./XAI"
-// kilocode_change start
+// kade_change start
 export { OvhCloudAiEndpoints } from "./OvhCloud"
 export { GeminiCli } from "./GeminiCli"
 export { VirtualQuotaFallbackProvider } from "./VirtualQuotaFallbackProvider"
@@ -38,7 +38,7 @@ export { Synthetic } from "./Synthetic"
 export { default as SapAiCore } from "./SapAiCore"
 export { OpenCode } from "./OpenCode"
 export { CliProxy } from "./CliProxy"
-// kilocode_change end
+// kade_change end
 export { ZAi } from "./ZAi"
 export { LiteLLM } from "./LiteLLM"
 export { Fireworks } from "./Fireworks"

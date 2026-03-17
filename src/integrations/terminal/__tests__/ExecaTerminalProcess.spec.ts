@@ -17,11 +17,11 @@ vitest.mock("execa", () => {
 	return { execa, ExecaError: class extends Error {} }
 })
 
-// kilocode_change start
+// kade_change start
 vitest.mock("ps-list", () => ({
 	default: vitest.fn(async () => []),
 }))
-// kilocode_change end
+// kade_change end
 
 import { execa } from "execa"
 import { ExecaTerminalProcess } from "../ExecaTerminalProcess"

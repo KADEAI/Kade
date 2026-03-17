@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client"
 import "./index.css"
 import App from "./App"
 import "@vscode/codicons/dist/codicon.css"
-import "./codicon-custom.css" // kilocode_change
+import "./codicon-custom.css" // kade_change
 import "katex/dist/katex.min.css"
 
 import { getHighlighter } from "./utils/highlighter"

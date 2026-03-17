@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import { ICommitMessageAdapter } from "./ICommitMessageAdapter"
 import { ICommitMessageIntegration } from "./ICommitMessageIntegration"
 import { CommitMessageRequest, CommitMessageResult } from "../types/core"

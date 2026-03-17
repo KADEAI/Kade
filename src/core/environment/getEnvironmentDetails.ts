@@ -25,7 +25,7 @@ import { Task } from "../task/Task"
 import { formatReminderSection } from "./reminder"
 import { getLineCounts, getDirectoryMetadata } from "../../services/ripgrep"
 
-// kilocode_change start
+// kade_change start
 import { OpenRouterHandler } from "../../api/providers/openrouter"
 import { TelemetryService } from "@roo-code/telemetry"
 import { t } from "../../i18n"
@@ -64,7 +64,7 @@ function trimFileList(fileListStr: string, maxFiles: number) {
 
 	return lines.join("\n") + "\n\n" + truncationMsg
 }
-// kilocode_change end
+// kade_change end
 
 export async function getEnvironmentDetails(cline: Task, includeFileDetails: boolean = false) {
 	let details = ""
@@ -257,7 +257,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 		details += `\n# Current Cost\n${totalCost !== null ? `$${totalCost.toFixed(2)}` : "(Not available)"}`
 	}
 
-	// kilocode_change start
+	// kade_change start
 	// Be sure to fetch the model information before we need it.
 	if (cline.api instanceof OpenRouterHandler || ("fetchModel" in cline.api && cline.api.fetchModel)) {
 		try {
@@ -271,7 +271,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 			return `## Environment Context\n${details.trim()}`
 		}
 	}
-	// kilocode_change end
+	// kade_change end
 
 	const { id: modelId } = cline.api.getModel()
 
@@ -291,7 +291,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 		language: language ?? formatLanguage(vscode.env.language),
 	})
 
-	const currentMode = modeDetails.slug ?? mode // kilocode_change: don't try to use non-existent modes
+	const currentMode = modeDetails.slug ?? mode // kade_change: don't try to use non-existent modes
 	// Resolve and add tool protocol information
 	const modelInfo = cline.api.getModel().info
 	const toolProtocol = resolveToolProtocol(state?.apiConfiguration ?? {}, modelInfo)
@@ -343,7 +343,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 			} else {
 				const { showRooIgnoredFiles = false } = state ?? {}
 
-				// kilocode_change start: Parallelize heavy workspace operations
+				// kade_change start: Parallelize heavy workspace operations
 				const fetchLimit = showRooIgnoredFiles ? maxFiles : maxFiles * FILE_LIST_OVER_FETCH_MULTIPLIER
 
 				// PERF: Check cache for expensive ripgrep operations
@@ -401,7 +401,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 				} else {
 					details += result
 				}
-				// kilocode_change end
+				// kade_change end
 			}
 		}
 		cline.latestFileList = details.slice(fileDetailsStart)

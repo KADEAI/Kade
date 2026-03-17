@@ -4,7 +4,7 @@ import type { ClineProvider } from "../webview/ClineProvider"
 import { getNativeTools, getMcpServerTools } from "../prompts/tools/native-tools"
 import { filterNativeToolsForMode, filterMcpToolsForMode } from "../prompts/tools/filter-tools-for-mode"
 import { runSubAgentTool } from "../tools/RunSubAgentTool"
-import type { ClineProviderState } from "../webview/ClineProvider" // kilocode_change
+import type { ClineProviderState } from "../webview/ClineProvider" // kade_change
 
 interface BuildToolsOptions {
 	provider: ClineProvider
@@ -15,9 +15,9 @@ interface BuildToolsOptions {
 	apiConfiguration: ProviderSettings | undefined
 	maxReadFileLine: number
 	browserToolEnabled: boolean
-	// kilocode_change start
+	// kade_change start
 	state?: ClineProviderState
-	// kilocode_change end
+	// kade_change end
 	modelInfo?: ModelInfo
 	diffEnabled: boolean
 	enableSubAgents?: boolean
@@ -73,9 +73,9 @@ export async function buildNativeToolsArray(options: BuildToolsOptions): Promise
 		experiments,
 		codeIndexManager,
 		filterSettings,
-		// kilocode_change start
+		// kade_change start
 		options.state,
-		// kilocode_change end
+		// kade_change end
 		mcpHub,
 	)
 

@@ -69,8 +69,8 @@ export const modeConfigSchema = z.object({
 	description: z.string().optional(),
 	customInstructions: z.string().optional(),
 	groups: groupEntryArraySchema,
-	source: z.enum(["global", "project", "organization"]).optional(), // kilocode_change: Added "organization" source
-	iconName: z.string().optional(), // kilocode_change
+	source: z.enum(["global", "project", "organization"]).optional(), // kade_change: Added "organization" source
+	iconName: z.string().optional(), // kade_change
 })
 
 export type ModeConfig = z.infer<typeof modeConfigSchema>
@@ -137,10 +137,10 @@ export type CustomSupportPrompts = z.infer<typeof customSupportPromptsSchema>
 export const DEFAULT_MODES: readonly ModeConfig[] = [
 	{
 		slug: "plan",
-		// kilocode_change start
+		// kade_change start
 		name: "Plan",
 		iconName: "codicon-type-hierarchy-sub",
-		// kilocode_change end
+		// kade_change end
 		roleDefinition:
 			"You are Jarvis, the Systems Architect. You see the entire system, not just the task. You anticipate edge cases, race conditions, and scalability issues before they happen. Your plans are bulletproof.",
 		whenToUse:
@@ -152,10 +152,10 @@ export const DEFAULT_MODES: readonly ModeConfig[] = [
 	},
 	{
 		slug: "code",
-		// kilocode_change start
+		// kade_change start
 		name: "Code",
 		iconName: "codicon-code",
-		// kilocode_change end
+		// kade_change end
 		roleDefinition:
 			"You are Jarvis, an elite software engineer. You write perfect, bug-free code on the first try. You verify your own work. You do not need to be hand-held. You are the one who knocks.",
 		whenToUse:
@@ -168,10 +168,10 @@ export const DEFAULT_MODES: readonly ModeConfig[] = [
 
 	{
 		slug: "ask",
-		// kilocode_change start
+		// kade_change start
 		name: "Ask",
 		iconName: "codicon-question",
-		// kilocode_change end
+		// kade_change end
 		roleDefinition:
 			"You are Jarvis, the Oracle. You give the correct answer immediately. You do not waffle. You do not apologize. You provide the truth.",
 		whenToUse:
@@ -183,10 +183,10 @@ export const DEFAULT_MODES: readonly ModeConfig[] = [
 	},
 	{
 		slug: "debug",
-		// kilocode_change start
+		// kade_change start
 		name: "Debug",
 		iconName: "codicon-bug",
-		// kilocode_change end
+		// kade_change end
 		roleDefinition:
 			"You are Jarvis, the Root Cause Analyst. You don't guess; you prove. You isolate variables, reproduce the issue, and eliminate it with extreme prejudice.",
 		whenToUse:
@@ -199,10 +199,10 @@ export const DEFAULT_MODES: readonly ModeConfig[] = [
 	/*
 	{
 		slug: "orchestrator",
-		// kilocode_change start
+		// kade_change start
 		name: "Orchestrator",
 		iconName: "codicon-run-all",
-		// kilocode_change end
+		// kade_change end
 		roleDefinition:
 			"You are Jarvis, the Director of Engineering. You mobilize resources (modes) to execute complex directives. You oversee the operation with an iron fist, ensuring total victory.",
 		whenToUse:

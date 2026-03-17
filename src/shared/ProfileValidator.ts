@@ -66,13 +66,13 @@ export class ProfileValidator {
 			case "deepseek":
 			case "xai":
 			case "zai":
-			case "minimax": // kilocode_change
+			case "minimax": // kade_change
 			case "groq":
 			case "sambanova":
 			case "chutes":
 			case "fireworks":
-			case "synthetic": // kilocode_change
-			case "antigravity": // kilocode_change
+			case "synthetic": // kade_change
+			case "antigravity": // kade_change
 			case "openai-codex":
 			case "featherless":
 				return profile.apiModelId
@@ -87,10 +87,10 @@ export class ProfileValidator {
 				return profile.vsCodeLmModelSelector?.id
 			case "openrouter":
 				return profile.openRouterModelId
-			// kilocode_change start
+			// kade_change start
 			case "glama":
 				return profile.glamaModelId
-			// kilocode_change end
+			// kade_change end
 			case "ollama":
 				return profile.ollamaModelId
 			case "requesty":
@@ -99,12 +99,12 @@ export class ProfileValidator {
 				return profile.ioIntelligenceModelId
 			case "deepinfra":
 				return profile.deepInfraModelId
-			// kilocode_change start
+			// kade_change start
 			case "ovhcloud":
 				return profile.ovhCloudAiEndpointsModelId
 			case "inception":
 				return profile.inceptionLabsModelId
-			// kilocode_change end
+			// kade_change end
 			case "human-relay":
 			case "fake-ai":
 			default:

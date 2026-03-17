@@ -23,7 +23,7 @@ import { getModelParams } from "../transform/model-params"
 
 import { BaseProvider } from "./base-provider"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
-import { normalizeObjectAdditionalPropertiesFalse } from "./kilocode/openai-strict-schema" // kilocode_change
+import { normalizeObjectAdditionalPropertiesFalse } from "./kilocode/openai-strict-schema" // kade_change
 
 export type OpenAiNativeModel = ReturnType<OpenAiNativeHandler["getModel"]>
 
@@ -294,7 +294,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 						type: "function",
 						name: tool.function.name,
 						description: tool.function.description,
-						// kilocode_change start: normalize invalid schemes for strict mode
+						// kade_change start: normalize invalid schemes for strict mode
 						parameters: normalizeObjectAdditionalPropertiesFalse(
 							ensureAllRequired(tool.function.parameters),
 						),
@@ -390,7 +390,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 							content.push({ type: "input_text", text: block.text })
 						} else if (block.type === "image") {
 							const image = block as Anthropic.Messages.ImageBlockParam
-							// kilocode_change start
+							// kade_change start
 							let imageUrl: string
 							if (image.source.type === "base64") {
 								// Base64ImageSource has media_type and data
@@ -399,7 +399,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 								// URLImageSource only has url
 								imageUrl = image.source.url
 							}
-							// kilocode_change end
+							// kade_change end
 							content.push({ type: "input_image", image_url: imageUrl })
 						} else if (block.type === "tool_result") {
 							// Map Anthropic tool_result to Responses API function_call_output item

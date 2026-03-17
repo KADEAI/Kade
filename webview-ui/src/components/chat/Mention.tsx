@@ -23,7 +23,7 @@ export const Mention = ({ text, withShadow = false }: MentionProps) => {
 					key={index}
 					className={`${withShadow ? "mention-context-highlight-with-shadow" : "mention-context-highlight"} text-[0.9em] cursor-pointer`}
 					onClick={() => {
-						// kilocode_change: Strip leading slash for workspace-relative paths to fix Mac compatibility
+						// kade_change: Strip leading slash for workspace-relative paths to fix Mac compatibility
 						const mentionPath = part.startsWith("/") ? part.substring(1) : part
 						vscode.postMessage({ type: "openMention", text: mentionPath })
 					}}>

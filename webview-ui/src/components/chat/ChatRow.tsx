@@ -89,7 +89,7 @@ import { ResearchWebTool } from "./tools/ResearchWebTool"
 import { McpTool } from "./tools/McpTool"
 
 
-// kilocode_change start
+// kade_change start
 import { LowCreditWarning } from "../kilocode/chat/LowCreditWarning"
 import { NewTaskPreview } from "../kilocode/chat/NewTaskPreview"
 import { KiloChatRowGutterBar } from "../kilocode/chat/KiloChatRowGutterBar"
@@ -101,8 +101,8 @@ import ChatTimestamps from "./ChatTimestamps"
 import { removeLeadingNonAlphanumeric } from "@/utils/removeLeadingNonAlphanumeric"
 import { KILOCODE_TOKEN_REQUIRED_ERROR } from "@roo/kilocode/errorUtils"
 import { ToolHeader } from "./tools/ToolHeader"
-// kilocode_change end
-// kilocode_change end
+// kade_change end
+// kade_change end
 import { ResponseActions } from "./ResponseActions"
 import { StreamingLoadingText } from "./StreamingLoadingText"
 import { motion } from "framer-motion"
@@ -395,7 +395,7 @@ function getPreviousTodos(messages: ClineMessage[], currentMessageTs: number): a
     return []
 }
 
-// kilocode_change end
+// kade_change end
 
 interface ChatRowProps {
     message: ClineMessage
@@ -406,8 +406,8 @@ interface ChatRowProps {
     onHeightChange: (isTaller: boolean) => void
     onSuggestionClick?: (suggestion: SuggestionItem, event?: React.MouseEvent) => void
     onBatchFileResponse?: (response: { [key: string]: boolean }) => void
-    highlighted?: boolean // kilocode_change: Add highlighted prop
-    enableCheckpoints?: boolean // kilocode_change
+    highlighted?: boolean // kade_change: Add highlighted prop
+    enableCheckpoints?: boolean // kade_change
     onFollowUpUnmount?: () => void
     isFollowUpAnswered?: boolean
     isFollowUpAutoApprovalPaused?: boolean
@@ -585,7 +585,7 @@ const ChatRow = memo(
 
         useEffect(() => {
             // used for partials, command output, etc.
-            // kilocode_change: only force scroll if we are actively streaming
+            // kade_change: only force scroll if we are actively streaming
             // Static messages fluctuating by 0.5px shouldn't snap the scrollbar
             const isInitialRender = prevHeightRef.current === 0
             const delta = Math.abs(height - prevHeightRef.current)
@@ -702,7 +702,7 @@ export const ChatRowContent = ({
     }, [isNewMessage, message.ts])
     const { t, i18n } = useTranslation()
 
-    // kilocode_change: use prop-based messages and only essential context
+    // kade_change: use prop-based messages and only essential context
     // REMOVED: useExtensionState() - it was causing ALL ChatRows to re-render on ANY state change
     // Now reads from module-level store that ChatView keeps in sync
     const {
@@ -723,7 +723,7 @@ export const ChatRowContent = ({
         autoApprovalEnabled
     } = getExtensionStateStore()
 
-    // kilocode_change: Check if this message is redundant (error text already displayed)
+    // kade_change: Check if this message is redundant (error text already displayed)
     const isRedundant = useMemo(() => {
         const myIndex = getMessageIndex(message.ts);
 
@@ -752,7 +752,7 @@ export const ChatRowContent = ({
 
     // NOTE: isRedundant check moved to after all hooks (React Rules of Hooks)
 
-    // kilocode_change: Check if this is the latest task completed message
+    // kade_change: Check if this is the latest task completed message
     const isLatestTaskCompleted = useMemo(() => {
         if (message.say !== "completion_result") return false
         for (let i = clineMessages.length - 1; i >= 0; i--) {
@@ -827,7 +827,7 @@ export const ChatRowContent = ({
         vscode.postMessage({ type: "selectImages", context: "edit", messageTs: message.ts })
     }, [message.ts])
 
-    // kilocode_change: usageMissing, inferenceProvider
+    // kade_change: usageMissing, inferenceProvider
     const [cost, usageMissing, apiReqCancelReason, apiReqStreamingFailedMessage] = useMemo(() => {
         if (message.text !== null && message.text !== undefined && message.say === "api_req_started") {
             const info = safeJsonParse<ClineApiReqInfo>(message.text)
@@ -842,7 +842,7 @@ export const ChatRowContent = ({
         return [undefined, undefined, undefined]
     }, [message.text, message.say])
 
-    // kilocode_change start: hide cost display check
+    // kade_change start: hide cost display check
     // REMOVED: useExtensionState() - read from module-level store instead
     const { hideCostBelowThreshold } = getExtensionStateStore()
     const shouldShowCost = useMemo(() => {
@@ -851,7 +851,7 @@ export const ChatRowContent = ({
         const threshold = hideCostBelowThreshold ?? 0
         return cost >= threshold
     }, [cost, isExpanded, hideCostBelowThreshold])
-    // kilocode_change end: hide cost display check
+    // kade_change end: hide cost display check
 
     // When resuming task, last wont be api_req_failed but a resume_task
     // message, so api_req_started will show loading spinner. That's why we just
@@ -861,7 +861,7 @@ export const ChatRowContent = ({
             ? lastModifiedMessage?.text
             : undefined
 
-    // kilocode_change: Check if the error is the Gemini Clean 429 that the user wants to mask as loading
+    // kade_change: Check if the error is the Gemini Clean 429 that the user wants to mask as loading
     const isGeminiRateLimitLoading =
         (apiRequestFailedMessage?.includes("Rate limit exceeded") && apiRequestFailedMessage?.includes("Free tier limits")) ||
         (apiReqStreamingFailedMessage?.includes("Rate limit exceeded") && apiReqStreamingFailedMessage?.includes("Free tier limits"))
@@ -875,7 +875,7 @@ export const ChatRowContent = ({
     const successColor = "var(--vscode-charts-green)"
     const cancelledColor = "var(--vscode-descriptionForeground)"
 
-    // kilocode_change: Check if this message is followed by a masked Gemini retry
+    // kade_change: Check if this message is followed by a masked Gemini retry
     const isNextMessageMaskedRetry = useMemo(() => {
         if (!isLast && clineMessages && message.say === "api_req_started") {
             const myIndex = getMessageIndex(message.ts)
@@ -889,7 +889,7 @@ export const ChatRowContent = ({
         return false
     }, [isLast, clineMessages, message.ts, message.say])
 
-    // kilocode_change: Check if this message is followed by a tool use (edit/write)
+    // kade_change: Check if this message is followed by a tool use (edit/write)
     const isNextMessageToolUse = useMemo(() => {
         const index = getMessageIndex(message.ts)
         // If there's a message after this one in the store, check if it's a tool use
@@ -904,7 +904,7 @@ export const ChatRowContent = ({
         return false
     }, [clineMessages, message.ts, message.say])
 
-    // kilocode_change: Check if this message is followed by a reasoning block
+    // kade_change: Check if this message is followed by a reasoning block
     const isNextMessageReasoning = useMemo(() => {
         const index = getMessageIndex(message.ts)
         if (index !== -1 && index < clineMessages.length - 1 && message.say === "api_req_started") {
@@ -1036,9 +1036,9 @@ export const ChatRowContent = ({
                             getIconSpan("error", errorColor)
                         )
                     ) : cost !== null && cost !== undefined ? (
-                        // kilocode_change start: hide api req started and cost
+                        // kade_change start: hide api req started and cost
                         null
-                        // kilocode_change end
+                        // kade_change end
                     ) : apiRequestFailedMessage && !isGeminiRateLimitLoading ? (
                         getIconSpan("error", errorColor)
                     ) : (
@@ -1056,9 +1056,9 @@ export const ChatRowContent = ({
                             </span>
                         )
                     ) : cost !== null && cost !== undefined ? (
-                        // kilocode_change start: hide api req started and cost
+                        // kade_change start: hide api req started and cost
                         null
-                        // kilocode_change end
+                        // kade_change end
                     ) :
                         apiRequestFailedMessage && !isGeminiRateLimitLoading ? (
                             <span style={{ color: errorColor }}>{t("chat:apiRequest.failed")}</span>
@@ -1072,7 +1072,7 @@ export const ChatRowContent = ({
                         ),
                 ]
             case "followup":
-                // kilocode_change: hide question icon and title
+                // kade_change: hide question icon and title
                 return [null, null]
             default:
                 return [null, null]
@@ -1108,7 +1108,7 @@ export const ChatRowContent = ({
         [message.ask, message.say, message.text],
     )
 
-    // kilocode_change: Look ahead to find the result of this tool execution
+    // kade_change: Look ahead to find the result of this tool execution
     // Uses module-level cache to prevent oscillation during re-renders
     const toolResult = useMemo(() => {
         if (!tool) return undefined
@@ -1238,13 +1238,13 @@ export const ChatRowContent = ({
                                 <WriteTool tool={tool} toolResult={toolResult} isLastMessage={isLast} shouldAnimate={isNewMessage} autoApprovalEnabled={alwaysAllowWrite} />
                             </FlashFixWrapper>
                             {
-                                // kilocode_change start
+                                // kade_change start
                                 tool.fastApplyResult && (
                                     <div className="border border-vscode-editorGroup-border rounded-lg mt-2 overflow-hidden bg-vscode-editor-background">
                                         <FastApplyChatDisplay fastApplyResult={tool.fastApplyResult} />
                                     </div>
                                 )
-                                // kilocode_change end
+                                // kade_change end
                             }
                         </div>
                     )
@@ -1257,13 +1257,13 @@ export const ChatRowContent = ({
                         </FlashFixWrapper>
 
                         {
-                            // kilocode_change start
+                            // kade_change start
                             tool.fastApplyResult && (
                                 <div className="border border-vscode-editorGroup-border rounded-lg mt-2 overflow-hidden bg-vscode-editor-background">
                                     <FastApplyChatDisplay fastApplyResult={tool.fastApplyResult} />
                                 </div>
                             )
-                            // kilocode_change end
+                            // kade_change end
                         }
                     </div>
                 )
@@ -1370,13 +1370,13 @@ export const ChatRowContent = ({
                         </FlashFixWrapper>
 
                         {
-                            // kilocode_change start
+                            // kade_change start
                             tool.fastApplyResult && (
                                 <div className="border border-vscode-editorGroup-border rounded-lg mt-2 overflow-hidden bg-vscode-editor-background">
                                     <FastApplyChatDisplay fastApplyResult={tool.fastApplyResult} />
                                 </div>
                             )
-                            // kilocode_change end
+                            // kade_change end
                         }
                     </div>
                 )
@@ -1386,7 +1386,7 @@ export const ChatRowContent = ({
                 return <WebFetchTool tool={tool} toolResult={tool} isLastMessage={isLast} shouldAnimate={isNewMessage} />
             case "research_web":
                 return <ResearchWebTool tool={tool} toolResult={tool} isLastMessage={isLast} shouldAnimate={isNewMessage} />
-            // kilocode_change start
+            // kade_change start
 
             case "deleteFile":
                 return (
@@ -1433,7 +1433,7 @@ export const ChatRowContent = ({
                         </div>
                     </>
                 )
-            // kilocode_change end
+            // kade_change end
             case "readFile": {
                 // STICKY component selection for read tools
                 let readComponentType = toolComponentCache.get(message.ts)
@@ -1816,12 +1816,12 @@ export const ChatRowContent = ({
                         </div>
                     )
                 case "api_req_started":
-                    // kilocode_change start: hide entire block when request is finished or when the turn has moved to reasoning/text
+                    // kade_change start: hide entire block when request is finished or when the turn has moved to reasoning/text
                     // Also hide when there's an active reasoning block to prevent loading text appearing above thinking indicator
                     if ((cost !== null && cost !== undefined && !apiReqCancelReason && !apiRequestFailedMessage) || (!isLast && !isNextMessageMaskedRetry && !shouldKeepApiRequestRowVisible) || isNextMessageReasoning) {
                         return null
                     }
-                    // kilocode_change end
+                    // kade_change end
                     // Determine if the API request is in progress
                     const isApiRequestInProgress =
                         (apiReqCancelReason === undefined && apiRequestFailedMessage === undefined && cost === undefined) ||
@@ -1843,14 +1843,14 @@ export const ChatRowContent = ({
                                 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "10px", flexGrow: 1 }}>
                                     {icon}
-                                    {/* kilocode_change start */}
+                                    {/* kade_change start */}
                                     <div style={{ display: "flex", alignItems: "center", gap: "8px", flexGrow: 1 }}>
                                         {title}
                                         {showTimestamps && <ChatTimestamps ts={message.ts} />}
                                     </div>
-                                    {/* kilocode_change end */}
+                                    {/* kade_change end */}
                                 </div>
-                                {/* kilocode_change: hide cost display
+                                {/* kade_change: hide cost display
 								<div
 									className="text-xs text-vscode-dropdown-foreground border-vscode-dropdown-border/50 border px-1.5 py-0.5 rounded-lg"
 									style={{ opacity: shouldShowCost ? 1 : 0 }}>
@@ -1858,7 +1858,7 @@ export const ChatRowContent = ({
 								</div>
 								*/}
                                 {
-                                    // kilocode_change start
+                                    // kade_change start
                                     !cost && usageMissing && (
                                         <StandardTooltip content={t("kilocode:pricing.costUnknownDescription")}>
                                             <div className="flex items-center text-xs text-vscode-dropdown-foreground border-vscode-dropdown-border/50 border px-1.5 py-0.5 rounded-lg whitespace-nowrap">
@@ -1867,7 +1867,7 @@ export const ChatRowContent = ({
                                             </div>
                                         </StandardTooltip>
                                     )
-                                    // kilocode_change end
+                                    // kade_change end
                                 }
                             </div>
                             {(((cost === null || cost === undefined) && apiRequestFailedMessage && !isGeminiRateLimitLoading) ||
@@ -1912,7 +1912,7 @@ export const ChatRowContent = ({
                             body = message.text
                         }
 
-                        // kilocode_change: Hide the retry delay error row if it's the Gemini rate limit
+                        // kade_change: Hide the retry delay error row if it's the Gemini rate limit
                         if ((body.includes("Rate limit exceeded") && body.includes("Free tier limits")) || (message.text.includes("Rate limit exceeded") && message.text.includes("Free tier limits"))) {
                             // Use a tiny placeholder to keep the list structure if needed, or null.
                             // However, we want the PREVIOUS api_req_started (loading spinner) to be visible.
@@ -1953,7 +1953,7 @@ export const ChatRowContent = ({
                     return null // we should never see this message type as a visible row
                 case "text": {
                     const sayText = message.text || ""
-                    // kilocode_change: surgically strip "cancer blocks" (redundant code echoes and protocol noise)
+                    // kade_change: surgically strip "cancer blocks" (redundant code echoes and protocol noise)
                     const sayCleanText = sayText
                         .replace(/```(?:tool|cmd)[\s\S]*?```/g, "")
                         .replace(/<(?:tool|cmd|cmd_execution|update_todo_list|todo)[\s\S]*?<\/(?:tool|cmd|cmd_execution|update_todo_list|todo)>/g, "")
@@ -1988,7 +1988,7 @@ export const ChatRowContent = ({
                 case "task":
                 case "user_feedback": {
                     const rawUserText = message.text || ""
-                    // kilocode_change: also strip protocol noise from user bubbles if it leaks there
+                    // kade_change: also strip protocol noise from user bubbles if it leaks there
                     const cleanUserText = rawUserText
                         .replace(/\[(?:execute_command|read|edit|write|grep|glob|ls) for[\s\S]*?\] Result:/g, "")
                         .replace(/Command:\s*[\s\S]*?\nOutput:[\s\S]*/i, "")
@@ -2097,7 +2097,7 @@ export const ChatRowContent = ({
                         </div>
                     )
                 case "error":
-                    // kilocode_change start: Show login button for KiloCode auth errors
+                    // kade_change start: Show login button for KiloCode auth errors
                     const isKiloCodeAuthError =
                         apiConfiguration?.apiProvider === "kilocode" &&
                         message.text?.includes(KILOCODE_TOKEN_REQUIRED_ERROR)
@@ -2120,7 +2120,7 @@ export const ChatRowContent = ({
                             }
                         />
                     )
-                // kilocode_change end
+                // kade_change end
 
                 case "completion_result":
                     const commitRange = message.metadata?.kiloCode?.commitRange
@@ -2334,7 +2334,7 @@ export const ChatRowContent = ({
                             <ImageBlock imageUri={imageInfo.imageUri} imagePath={imageInfo.imagePath} />
                         </div>
                     )
-                // kilocode_change start: upstream pr https://github.com/RooCodeInc/Roo-Code/pull/5452
+                // kade_change start: upstream pr https://github.com/RooCodeInc/Roo-Code/pull/5452
                 case "browser_action":
                     return null
                 case "browser_action_result":
@@ -2368,10 +2368,10 @@ export const ChatRowContent = ({
                             </div>
                         </>
                     )
-                // kilocode_change end
+                // kade_change end
                 default: {
                     const defaultText = message.text || ""
-                    // kilocode_change: surgically strip "cancer blocks" (redundant code echoes and protocol noise)
+                    // kade_change: surgically strip "cancer blocks" (redundant code echoes and protocol noise)
                     const defaultCleanText = defaultText
                         .replace(/```(?:tool|cmd)[\s\S]*?```/gi, "")
                         .replace(/<(?:tool|cmd|cmd_execution|update_todo_list|todo)[\s\S]*?<\/(?:tool|cmd|cmd_execution|update_todo_list|todo)>/gi, "")
@@ -2390,12 +2390,12 @@ export const ChatRowContent = ({
                             {title && (
                                 <div style={headerStyle}>
                                     {icon}
-                                    {/* kilocode_change start */}
+                                    {/* kade_change start */}
                                     <div style={{ display: "flex", alignItems: "center", gap: "8px", flexGrow: 1 }}>
                                         {title}
                                         {showTimestamps && <ChatTimestamps ts={message.ts} />}
                                     </div>
-                                    {/* kilocode_change end */}
+                                    {/* kade_change end */}
                                 </div>
                             )}
                             <div style={{ paddingTop: 10 }}>
@@ -2508,7 +2508,7 @@ export const ChatRowContent = ({
                                     {!message.partial && !isStreaming && showResponseActions && (
                                         <ResponseActions text={followUpData?.question || message?.text || ""} copyClassName="mt-1 ml-auto" />
                                     )}
-                                    {/* kilocode_change: hide suggestions
+                                    {/* kade_change: hide suggestions
 								<FollowUpSuggest
 									suggestions={followUpData?.suggest}
 									onSuggestionClick={onSuggestionClick}
@@ -2604,7 +2604,7 @@ export const ChatRowContent = ({
                         )
                     }
 
-                // kilocode_change begin
+                // kade_change begin
                 case "condense":
                     return (
                         <>
@@ -2651,7 +2651,7 @@ export const ChatRowContent = ({
                             <ReportBugPreview data={message.text || ""} />
                         </>
                     )
-                // kilocode_change end
+                // kade_change end
                 case "auto_approval_max_req_reached": {
                     return <AutoApprovedRequestLimitWarning message={message} />
                 }

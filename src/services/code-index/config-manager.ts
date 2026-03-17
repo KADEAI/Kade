@@ -12,10 +12,10 @@ import { getDefaultModelId, getModelDimension, getModelScoreThreshold } from "..
 export class CodeIndexConfigManager {
 	private codebaseIndexEnabled: boolean = false
 	private embedderProvider: EmbedderProvider = "openai"
-	// kilocode_change - start
+	// kade_change - start
 	private vectorStoreProvider: "lancedb" | "qdrant" | "local-qdrant" = "qdrant"
 	private lancedbVectorStoreDirectory?: string
-	// kilocode_change - end
+	// kade_change - end
 	private modelId?: string
 	private modelDimension?: number
 	private openAiOptions?: ApiHandlerOptions
@@ -30,26 +30,26 @@ export class CodeIndexConfigManager {
 	private qdrantApiKey?: string
 	private searchMinScore?: number
 	private searchMaxResults?: number
-	// kilocode_change start
+	// kade_change start
 	private embeddingBatchSize?: number
 	private scannerMaxBatchRetries?: number
-	// kilocode_change end
+	// kade_change end
 	private includePaths: string[] = []
 
-	// kilocode_change start: Kilo org indexing props
+	// kade_change start: Kilo org indexing props
 	private _kiloOrgProps: {
 		organizationId: string
 		kilocodeToken: string
 		projectId: string
 	} | null = null
-	// kilocode_change end
+	// kade_change end
 
 	constructor(private readonly contextProxy: ContextProxy) {
 		// Initialize with current configuration to avoid false restart triggers
 		this._loadAndSetConfiguration()
 	}
 
-	// kilocode_change start: Kilo org indexing methods
+	// kade_change start: Kilo org indexing methods
 	/**
 	 * Sets Kilo organization properties for cloud-based indexing
 	 */
@@ -74,7 +74,7 @@ export class CodeIndexConfigManager {
 			this._kiloOrgProps?.projectId
 		)
 	}
-	// kilocode_change end
+	// kade_change end
 
 	/**
 	 * Gets the context proxy instance
@@ -115,16 +115,16 @@ export class CodeIndexConfigManager {
 			codebaseIndexEmbedderProvider,
 			codebaseIndexEmbedderBaseUrl,
 			codebaseIndexEmbedderModelId,
-			codebaseIndexLancedbVectorStoreDirectory, // kilocode_change
+			codebaseIndexLancedbVectorStoreDirectory, // kade_change
 			codebaseIndexSearchMinScore,
 			codebaseIndexSearchMaxResults,
-			// kilocode_change start
+			// kade_change start
 			codebaseIndexEmbeddingBatchSize,
 			codebaseIndexScannerMaxBatchRetries,
-			// kilocode_change end
+			// kade_change end
 			codebaseIndexIncludePaths,
 		} = codebaseIndexConfig
-		// kilocode_change
+		// kade_change
 		const codebaseIndexVectorStoreProvider = codebaseIndexConfig.codebaseIndexVectorStoreProvider ?? "qdrant"
 
 		const openAiKey =
@@ -161,18 +161,18 @@ export class CodeIndexConfigManager {
 
 		// Update instance variables with configuration
 		this.codebaseIndexEnabled = codebaseIndexEnabled ?? false
-		// kilocode_change - start
+		// kade_change - start
 		this.vectorStoreProvider = codebaseIndexVectorStoreProvider ?? "qdrant"
 		this.lancedbVectorStoreDirectory = codebaseIndexLancedbVectorStoreDirectory
-		// kilocode_change - end
+		// kade_change - end
 		this.qdrantUrl = codebaseIndexQdrantUrl
 		this.qdrantApiKey = qdrantApiKey ?? ""
 		this.searchMinScore = codebaseIndexSearchMinScore
 		this.searchMaxResults = codebaseIndexSearchMaxResults
-		// kilocode_change start
+		// kade_change start
 		this.embeddingBatchSize = codebaseIndexEmbeddingBatchSize
 		this.scannerMaxBatchRetries = codebaseIndexScannerMaxBatchRetries
-		// kilocode_change end
+		// kade_change end
 		this.includePaths = codebaseIndexIncludePaths ?? []
 
 		// Validate and set model dimension
@@ -267,10 +267,10 @@ export class CodeIndexConfigManager {
 			enabled: this.codebaseIndexEnabled,
 			configured: this.isConfigured(),
 			embedderProvider: this.embedderProvider,
-			// kilocode_change - start
+			// kade_change - start
 			vectorStoreProvider: this.vectorStoreProvider,
 			lancedbVectorStoreDirectory: this.lancedbVectorStoreDirectory,
-			// kilocode_change - end
+			// kade_change - end
 			modelId: this.modelId,
 			modelDimension: this.modelDimension,
 			openAiKey: this.openAiOptions?.openAiNativeApiKey ?? "",
@@ -322,14 +322,14 @@ export class CodeIndexConfigManager {
 
 	/**
 	 * Checks if the service is properly configured based on the embedder type.
-	 * kilocode_change: Also returns true if Kilo org mode is available
+	 * kade_change: Also returns true if Kilo org mode is available
 	 */
 	public isConfigured(): boolean {
-		// kilocode_change start: Allow Kilo org mode as configured
+		// kade_change start: Allow Kilo org mode as configured
 		if (this.isKiloOrgMode) {
 			return true
 		}
-		// kilocode_change end
+		// kade_change end
 
 		if (this.embedderProvider === "openai") {
 			const openAiKey = this.openAiOptions?.openAiNativeApiKey
@@ -413,10 +413,10 @@ export class CodeIndexConfigManager {
 		const prevOpenRouterSpecificProvider = prev?.openRouterSpecificProvider ?? ""
 		const prevQdrantUrl = prev?.qdrantUrl ?? ""
 		const prevQdrantApiKey = prev?.qdrantApiKey ?? ""
-		// kilocode_change - start
+		// kade_change - start
 		const prevVectorStoreProvider = prev?.vectorStoreProvider ?? "qdrant"
 		const prevLocalDbPath = prev?.lancedbVectorStoreDirectory ?? ""
-		// kilocode_change - end
+		// kade_change - end
 
 		// 1. Transition from disabled/unconfigured to enabled/configured
 		if ((!prevEnabled || !prevConfigured) && this.codebaseIndexEnabled && nowConfigured) {
@@ -444,7 +444,7 @@ export class CodeIndexConfigManager {
 			return true
 		}
 
-		// kilocode_change - start
+		// kade_change - start
 		// Vector store provider change
 		if (prevVectorStoreProvider !== this.vectorStoreProvider) {
 			return true
@@ -454,7 +454,7 @@ export class CodeIndexConfigManager {
 		if (this.vectorStoreProvider === "lancedb" && prevLocalDbPath !== (this.lancedbVectorStoreDirectory ?? "")) {
 			return true
 		}
-		// kilocode_change - end
+		// kade_change - end
 
 		// Authentication changes (API keys)
 		const currentOpenAiKey = this.openAiOptions?.openAiNativeApiKey ?? ""
@@ -572,10 +572,10 @@ export class CodeIndexConfigManager {
 		return {
 			isConfigured: this.isConfigured(),
 			embedderProvider: this.embedderProvider,
-			// kilocode_change - start
+			// kade_change - start
 			vectorStoreProvider: this.vectorStoreProvider ?? "qdrant",
 			lancedbVectorStoreDirectoryPlaceholder: this.lancedbVectorStoreDirectory,
-			// kilocode_change - end
+			// kade_change - end
 			modelId: this.modelId,
 			modelDimension: this.modelDimension,
 			openAiOptions: this.openAiOptions,
@@ -590,10 +590,10 @@ export class CodeIndexConfigManager {
 			qdrantApiKey: this.qdrantApiKey,
 			searchMinScore: this.currentSearchMinScore,
 			searchMaxResults: this.currentSearchMaxResults,
-			// kilocode_change start
+			// kade_change start
 			embeddingBatchSize: this.currentEmbeddingBatchSize,
 			scannerMaxBatchRetries: this.currentScannerMaxBatchRetries,
-			// kilocode_change end
+			// kade_change end
 			includePaths: this.includePaths,
 		}
 	}
@@ -677,7 +677,7 @@ export class CodeIndexConfigManager {
 		return this.searchMaxResults ?? DEFAULT_MAX_SEARCH_RESULTS
 	}
 
-	// kilocode_change start
+	// kade_change start
 	/**
 	 * Gets the configured embedding batch size.
 	 * Returns user setting if configured, otherwise returns undefined (will use default from constants).
@@ -693,5 +693,5 @@ export class CodeIndexConfigManager {
 	public get currentScannerMaxBatchRetries(): number | undefined {
 		return this.scannerMaxBatchRetries
 	}
-	// kilocode_change end
+	// kade_change end
 }

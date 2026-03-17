@@ -1,4 +1,4 @@
-// kilocode_change - provider added
+// kade_change - provider added
 
 import { useCallback } from "react"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"

@@ -67,7 +67,7 @@ export const globalSettingsSchema = z.object({
 	dismissedUpsells: z.array(z.string()).optional(),
 
 	// Image generation settings (experimental) - flattened for simplicity
-	imageGenerationProvider: z.enum(["openrouter", "kilocode"]).optional(), // kilocode_change: Updated from "roo" to "kilocode"
+	imageGenerationProvider: z.enum(["openrouter", "kilocode"]).optional(), // kade_change: Updated from "roo" to "kilocode"
 	openRouterImageApiKey: z.string().optional(),
 	openRouterImageGenerationSelectedModel: z.string().optional(),
 	kiloCodeImageApiKey: z.string().optional(),
@@ -81,14 +81,14 @@ export const globalSettingsSchema = z.object({
 	systemPromptInjectedSkills: z.array(z.string()).optional(), // Array of skill IDs whose SKILL.md content is injected directly into the system prompt
 	showSubAgentBanner: z.boolean().optional(),
 	proLicenseKey: z.string().optional(),
-	yoloMode: z.boolean().optional(), // kilocode_change
-	yoloGatekeeperApiConfigId: z.string().optional(), // kilocode_change: AI gatekeeper for YOLO mode
+	yoloMode: z.boolean().optional(), // kade_change
+	yoloGatekeeperApiConfigId: z.string().optional(), // kade_change: AI gatekeeper for YOLO mode
 	alwaysAllowReadOnly: z.boolean().optional(),
 	alwaysAllowReadOnlyOutsideWorkspace: z.boolean().optional(),
 	alwaysAllowWrite: z.boolean().optional(),
 	alwaysAllowWriteOutsideWorkspace: z.boolean().optional(),
 	alwaysAllowWriteProtected: z.boolean().optional(),
-	alwaysAllowDelete: z.boolean().optional(), // kilocode_change
+	alwaysAllowDelete: z.boolean().optional(), // kade_change
 	writeDelayMs: z.number().min(0).optional(),
 	alwaysAllowBrowser: z.boolean().optional(),
 	alwaysApproveResubmit: z.boolean().optional(),
@@ -100,7 +100,7 @@ export const globalSettingsSchema = z.object({
 	alwaysAllowFollowupQuestions: z.boolean().optional(),
 	followupAutoApproveTimeoutMs: z.number().optional(),
 	alwaysAllowUpdateTodoList: z.boolean().optional(),
-	alwaysAllowWeb: z.boolean().optional(), // kilocode_change
+	alwaysAllowWeb: z.boolean().optional(), // kade_change
 	allowedCommands: z.array(z.string()).optional(),
 	deniedCommands: z.array(z.string()).optional(),
 	commandExecutionTimeout: z.number().optional(),
@@ -111,7 +111,7 @@ export const globalSettingsSchema = z.object({
 	autoCondenseContext: z.boolean().optional(),
 	autoCondenseContextPercent: z.number().optional(),
 	maxConcurrentFileReads: z.number().optional(),
-	allowVeryLargeReads: z.boolean().optional(), // kilocode_change
+	allowVeryLargeReads: z.boolean().optional(), // kade_change
 
 	/**
 	 * Whether to include current time in the environment details
@@ -134,7 +134,7 @@ export const globalSettingsSchema = z.object({
 	 * Sliding window size for context management (0 for unlimited)
 	 * @default 50
 	 */
-	slidingWindowSize: z.number().optional(), // kilocode_change
+	slidingWindowSize: z.number().optional(), // kade_change
 
 	/**
 	 * Infinity feature - recurring prompts
@@ -163,17 +163,17 @@ export const globalSettingsSchema = z.object({
 
 	browserToolEnabled: z.boolean().optional(),
 	browserViewportSize: z.string().optional(),
-	showAutoApproveMenu: z.boolean().optional(), // kilocode_change
-	disableBrowserHeadless: z.boolean().optional(), // kilocode_change: Allow "Live" mode
-	showTaskTimeline: z.boolean().optional(), // kilocode_change
-	sendMessageOnEnter: z.boolean().optional(), // kilocode_change: Enter key behavior
-	showTimestamps: z.boolean().optional(), // kilocode_change
-	hideCostBelowThreshold: z.number().min(0).optional(), // kilocode_change
+	showAutoApproveMenu: z.boolean().optional(), // kade_change
+	disableBrowserHeadless: z.boolean().optional(), // kade_change: Allow "Live" mode
+	showTaskTimeline: z.boolean().optional(), // kade_change
+	sendMessageOnEnter: z.boolean().optional(), // kade_change: Enter key behavior
+	showTimestamps: z.boolean().optional(), // kade_change
+	hideCostBelowThreshold: z.number().min(0).optional(), // kade_change
 	collapseCodeToolsByDefault: z.boolean().optional(),
-	localWorkflowToggles: z.record(z.string(), z.boolean()).optional(), // kilocode_change
-	globalWorkflowToggles: z.record(z.string(), z.boolean()).optional(), // kilocode_change
-	localRulesToggles: z.record(z.string(), z.boolean()).optional(), // kilocode_change
-	globalRulesToggles: z.record(z.string(), z.boolean()).optional(), // kilocode_change
+	localWorkflowToggles: z.record(z.string(), z.boolean()).optional(), // kade_change
+	globalWorkflowToggles: z.record(z.string(), z.boolean()).optional(), // kade_change
+	localRulesToggles: z.record(z.string(), z.boolean()).optional(), // kade_change
+	globalRulesToggles: z.record(z.string(), z.boolean()).optional(), // kade_change
 	screenshotQuality: z.number().optional(),
 	remoteBrowserEnabled: z.boolean().optional(),
 	remoteBrowserHost: z.string().optional(),
@@ -187,20 +187,20 @@ export const globalSettingsSchema = z.object({
 		.max(MAX_CHECKPOINT_TIMEOUT_SECONDS)
 		.optional(),
 
-	// kilocode_change start - Auto-purge settings
+	// kade_change start - Auto-purge settings
 	autoPurgeEnabled: z.boolean().optional(),
 	autoPurgeDefaultRetentionDays: z.number().min(1).optional(),
 	autoPurgeFavoritedTaskRetentionDays: z.number().min(1).nullable().optional(),
 	autoPurgeCompletedTaskRetentionDays: z.number().min(1).optional(),
 	autoPurgeIncompleteTaskRetentionDays: z.number().min(1).optional(),
 	autoPurgeLastRunTimestamp: z.number().optional(),
-	// kilocode_change end
+	// kade_change end
 
 	ttsEnabled: z.boolean().optional(),
 	ttsSpeed: z.number().optional(),
 	soundEnabled: z.boolean().optional(),
 	soundVolume: z.number().optional(),
-	systemNotificationsEnabled: z.boolean().optional(), // kilocode_change
+	systemNotificationsEnabled: z.boolean().optional(), // kade_change
 
 	maxOpenTabsContext: z.number().optional(),
 	maxWorkspaceFiles: z.number().optional(),
@@ -228,11 +228,11 @@ export const globalSettingsSchema = z.object({
 	fuzzyMatchThreshold: z.number().optional(),
 	experiments: experimentsSchema.optional(),
 
-	// kilocode_change start: Morph fast apply
+	// kade_change start: Morph fast apply
 	morphApiKey: z.string().optional(),
 	fastApplyModel: fastApplyModelSchema.optional(),
 	fastApplyApiProvider: fastApplyApiProviderSchema.optional(),
-	// kilocode_change end
+	// kade_change end
 
 	codebaseIndexModels: codebaseIndexModelsSchema.optional(),
 	codebaseIndexConfig: codebaseIndexConfigSchema.optional(),
@@ -243,7 +243,7 @@ export const globalSettingsSchema = z.object({
 
 	mcpEnabled: z.boolean().optional(),
 	enableMcpServerCreation: z.boolean().optional(),
-	mcpMarketplaceCatalog: z.any().optional(), // kilocode_change: MCP marketplace catalog
+	mcpMarketplaceCatalog: z.any().optional(), // kade_change: MCP marketplace catalog
 
 	mode: z.string().optional(),
 	modeApiConfigs: z.record(z.string(), z.string()).optional(),
@@ -251,11 +251,11 @@ export const globalSettingsSchema = z.object({
 	customModePrompts: customModePromptsSchema.optional(),
 	customSupportPrompts: customSupportPromptsSchema.optional(),
 	enhancementApiConfigId: z.string().optional(),
-	dismissedNotificationIds: z.string().array().optional(), // kilocode_change
-	commitMessageApiConfigId: z.string().optional(), // kilocode_change
-	terminalCommandApiConfigId: z.string().optional(), // kilocode_change
-	ghostServiceSettings: ghostServiceSettingsSchema, // kilocode_change
-	hasPerformedOrganizationAutoSwitch: z.boolean().optional(), // kilocode_change
+	dismissedNotificationIds: z.string().array().optional(), // kade_change
+	commitMessageApiConfigId: z.string().optional(), // kade_change
+	terminalCommandApiConfigId: z.string().optional(), // kade_change
+	ghostServiceSettings: ghostServiceSettingsSchema, // kade_change
+	hasPerformedOrganizationAutoSwitch: z.boolean().optional(), // kade_change
 	includeTaskHistoryInEnhance: z.boolean().optional(),
 	historyPreviewCollapsed: z.boolean().optional(),
 	reasoningBlockCollapsed: z.boolean().optional(),
@@ -289,7 +289,7 @@ export type RooCodeSettings = GlobalSettings & ProviderSettings
  */
 export const SECRET_STATE_KEYS = [
 	"apiKey",
-	"glamaApiKey", // kilocode_change
+	"glamaApiKey", // kade_change
 	"openRouterApiKey",
 	"awsAccessKey",
 	"awsApiKey",
@@ -314,13 +314,13 @@ export const SECRET_STATE_KEYS = [
 	"deepInfraApiKey",
 	"codeIndexOpenAiKey",
 	"codeIndexQdrantApiKey",
-	// kilocode_change start
+	// kade_change start
 	"minimaxApiKey",
 	"kilocodeToken",
 	"syntheticApiKey",
 	"ovhCloudAiEndpointsApiKey",
 	"inceptionLabsApiKey",
-	// kilocode_change end
+	// kade_change end
 	"codebaseIndexOpenAiCompatibleApiKey",
 	"codebaseIndexGeminiApiKey",
 	"codebaseIndexMistralApiKey",
@@ -333,7 +333,7 @@ export const SECRET_STATE_KEYS = [
 	"featherlessApiKey",
 	"ioIntelligenceApiKey",
 	"vercelAiGatewayApiKey",
-	"sapAiCoreServiceKey", // kilocode_change
+	"sapAiCoreServiceKey", // kade_change
 	"basetenApiKey",
 ] as const
 
@@ -387,7 +387,7 @@ export const EVALS_SETTINGS: RooCodeSettings = {
 	alwaysAllowWrite: true,
 	alwaysAllowWriteOutsideWorkspace: false,
 	alwaysAllowWriteProtected: false,
-	alwaysAllowDelete: true, // kilocode_change
+	alwaysAllowDelete: true, // kade_change
 	writeDelayMs: 1000,
 	alwaysAllowBrowser: true,
 	alwaysApproveResubmit: true,
@@ -398,7 +398,7 @@ export const EVALS_SETTINGS: RooCodeSettings = {
 	alwaysAllowExecute: true,
 	alwaysAllowFollowupQuestions: true,
 	alwaysAllowUpdateTodoList: true,
-	alwaysAllowWeb: true, // kilocode_change
+	alwaysAllowWeb: true, // kade_change
 	followupAutoApproveTimeoutMs: 0,
 	allowedCommands: ["*"],
 	commandExecutionTimeout: 20,
@@ -415,9 +415,9 @@ export const EVALS_SETTINGS: RooCodeSettings = {
 	ttsSpeed: 1,
 	soundEnabled: false,
 	soundVolume: 0.5,
-	dismissedNotificationIds: [], // kilocode_change
-	systemNotificationsEnabled: true, // kilocode_change
-	ghostServiceSettings: {}, // kilocode_change
+	dismissedNotificationIds: [], // kade_change
+	systemNotificationsEnabled: true, // kade_change
+	ghostServiceSettings: {}, // kade_change
 
 	terminalOutputLineLimit: 500,
 	terminalOutputCharacterLimit: DEFAULT_TERMINAL_OUTPUT_CHARACTER_LIMIT,
@@ -438,19 +438,19 @@ export const EVALS_SETTINGS: RooCodeSettings = {
 
 	enableCheckpoints: false,
 
-	// kilocode_change start - Auto-purge defaults
+	// kade_change start - Auto-purge defaults
 	autoPurgeEnabled: false,
 	autoPurgeDefaultRetentionDays: 30,
 	autoPurgeFavoritedTaskRetentionDays: null, // null = never purge
 	autoPurgeCompletedTaskRetentionDays: 30,
 	autoPurgeIncompleteTaskRetentionDays: 7,
-	// kilocode_change end
+	// kade_change end
 
 	rateLimitSeconds: 0,
 	maxOpenTabsContext: 20,
 	maxWorkspaceFiles: 200,
 	maxGitStatusFiles: 20,
-	slidingWindowSize: 50, // kilocode_change
+	slidingWindowSize: 50, // kade_change
 	showRooIgnoredFiles: true,
 	maxReadFileLine: -1, // -1 to enable full file reading.
 

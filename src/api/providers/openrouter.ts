@@ -32,7 +32,7 @@ import { DEFAULT_HEADERS } from "./constants"
 import { BaseProvider } from "./base-provider"
 import { verifyFinishReason } from "./kilocode/verifyFinishReason"
 
-// kilocode_change start
+// kade_change start
 type OpenRouterProviderParams = {
 	order?: string[]
 	only?: string[]
@@ -44,7 +44,7 @@ type OpenRouterProviderParams = {
 
 import { safeJsonParse } from "../../shared/safeJsonParse"
 import { isAnyRecognizedKiloCodeError } from "../../shared/kilocode/errorUtils"
-// kilocode_change end
+// kade_change end
 
 import type { ApiHandlerCreateMessageMetadata, SingleCompletionHandler } from "../index"
 import { handleOpenAIError } from "./utils/openai-error-handler"
@@ -57,7 +57,7 @@ type OpenRouterChatCompletionParams = OpenAI.Chat.ChatCompletionCreateParams & {
 	include_reasoning?: boolean
 	// https://openrouter.ai/docs/use-cases/reasoning-tokens
 	reasoning?: OpenRouterReasoningParams
-	provider?: OpenRouterProviderParams // kilocode_change
+	provider?: OpenRouterProviderParams // kade_change
 }
 
 // OpenRouter error structure that may include metadata.raw with actual upstream error
@@ -70,7 +70,7 @@ interface OpenRouterErrorResponse {
 // See `OpenAI.Chat.Completions.ChatCompletionChunk["usage"]`
 // `CompletionsAPI.CompletionUsage`
 // See also: https://openrouter.ai/docs/use-cases/usage-accounting
-export // kilocode_change
+export // kade_change
 	interface CompletionUsage {
 	completion_tokens?: number
 	completion_tokens_details?: {
@@ -82,7 +82,7 @@ export // kilocode_change
 	}
 	total_tokens?: number
 	cost?: number
-	is_byok?: boolean // kilocode_change
+	is_byok?: boolean // kade_change
 	cost_details?: {
 		upstream_inference_cost?: number
 	}
@@ -94,11 +94,11 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 	protected models: ModelRecord = {}
 	protected endpoints: ModelRecord = {}
 
-	// kilocode_change start property
+	// kade_change start property
 	protected get providerName(): "OpenRouter" | "KiloCode" {
 		return "OpenRouter" as const
 	}
-	// kilocode_change end
+	// kade_change end
 	private currentReasoningDetails: any[] = []
 	// PERF: Cache the in-flight model fetch promise to avoid redundant network calls
 	private modelFetchPromise?: Promise<void>
@@ -142,7 +142,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 		}
 	}
 
-	// kilocode_change start
+	// kade_change start
 	customRequestOptions(_metadata?: ApiHandlerCreateMessageMetadata): { headers: Record<string, string> } | undefined {
 		return undefined
 	}
@@ -182,7 +182,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 		}
 		return {}
 	}
-	// kilocode_change end
+	// kade_change end
 
 	getReasoningDetails(): any[] | undefined {
 		return this.currentReasoningDetails.length > 0 ? this.currentReasoningDetails : undefined
@@ -300,7 +300,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 		// https://openrouter.ai/docs/features/prompt-caching
 		// TODO: Add a `promptCacheStratey` field to `ModelInfo`.
 		if (
-			modelId.startsWith("anthropic/claude") /* kilocode_change */ ||
+			modelId.startsWith("anthropic/claude") /* kade_change */ ||
 			OPEN_ROUTER_PROMPT_CACHING_MODELS.has(modelId)
 		) {
 			if (modelId.startsWith("google")) {
@@ -309,7 +309,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 				addAnthropicCacheBreakpoints(systemPrompt, openAiMessages)
 			}
 		}
-		// kilocode_change end
+		// kade_change end
 
 		const transforms = (this.options.openRouterUseMiddleOutTransform ?? true) ? ["middle-out"] : undefined
 
@@ -322,28 +322,28 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 			messages: openAiMessages,
 			stream: true,
 			stream_options: { include_usage: true },
-			...this.getProviderParams(), // kilocode_change: original expression was moved into function
+			...this.getProviderParams(), // kade_change: original expression was moved into function
 			parallel_tool_calls: false, // Ensure only one tool call at a time
 			...(transforms && { transforms }),
 			...(reasoning && { reasoning }),
 			...(metadata?.tools && { tools: this.convertToolsForOpenAI(metadata.tools) }),
 			...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
-			verbosity: model.verbosity, // kilocode_change
+			verbosity: model.verbosity, // kade_change
 		}
 
-		// kilocode_change start
+		// kade_change start
 		const requestOptions = this.customRequestOptions(metadata) ?? { headers: {} }
 		if (modelId.startsWith("anthropic/")) {
 			requestOptions.headers["x-anthropic-beta"] =
 				"fine-grained-tool-streaming-2025-05-14,structured-outputs-2025-11-13"
 		}
-		// kilocode_change end
+		// kade_change end
 
 		let stream
 		try {
 			stream = await this.client.chat.completions.create(completionParams, requestOptions)
 		} catch (error) {
-			// kilocode_change start
+			// kade_change start
 			// KiloCode backend errors are already user-readable and should be handled upstream.
 			if (this.providerName === "KiloCode" && isAnyRecognizedKiloCodeError(error)) {
 				throw error
@@ -356,11 +356,11 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 			// Preserve existing readability improvements for user-facing errors.
 			const readableMessage = makeOpenRouterErrorReadable(error)
 			throw new Error(readableMessage)
-			// kilocode_change end
+			// kade_change end
 		}
 
 		let lastUsage: CompletionUsage | undefined = undefined
-		let inferenceProvider: string | undefined // kilocode_change
+		let inferenceProvider: string | undefined // kade_change
 		let hasStartedTextOutput = false
 		// Accumulator for reasoning_details: accumulate text by type-index key
 		const reasoningDetailsAccumulator = new Map<
@@ -383,15 +383,15 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 				this.handleStreamingError(chunk.error as OpenRouterErrorResponse, modelId, "createMessage")
 			}
 
-			// kilocode_change start
+			// kade_change start
 			const kiloCodeChunk = KiloCodeChunkSchema.safeParse(chunk).data
 			inferenceProvider =
 				kiloCodeChunk?.choices?.[0]?.delta?.provider_metadata?.gateway?.routing?.resolvedProvider ??
 				kiloCodeChunk?.provider ??
 				inferenceProvider
-			// kilocode_change end
+			// kade_change end
 
-			verifyFinishReason(chunk.choices[0]) // kilocode_change
+			verifyFinishReason(chunk.choices[0]) // kade_change
 			const delta = chunk.choices[0]?.delta
 			const finishReason = chunk.choices[0]?.finish_reason
 
@@ -522,10 +522,10 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 				outputTokens: lastUsage.completion_tokens || 0,
 				cacheReadTokens: lastUsage.prompt_tokens_details?.cached_tokens,
 				reasoningTokens: lastUsage.completion_tokens_details?.reasoning_tokens,
-				// kilocode_change start
+				// kade_change start
 				totalCost: this.getTotalCost(lastUsage),
 				inferenceProvider,
-				// kilocode_change end
+				// kade_change end
 			}
 		}
 	}
@@ -585,7 +585,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 			maxTokens,
 			temperature,
 			reasoning,
-			verbosity, // kilocode_change
+			verbosity, // kade_change
 		} = await this.fetchModel()
 
 		const completionParams: OpenRouterChatCompletionParams = {
@@ -594,18 +594,18 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 			temperature,
 			messages: [{ role: "user", content: prompt }],
 			stream: false,
-			...this.getProviderParams(), // kilocode_change: original expression was moved into function
+			...this.getProviderParams(), // kade_change: original expression was moved into function
 			...(reasoning && { reasoning }),
-			verbosity, // kilocode_change
+			verbosity, // kade_change
 		}
 
-		// kilocode_change start
+		// kade_change start
 		const requestOptions = this.customRequestOptions() ?? { headers: {} }
 		if (modelId.startsWith("anthropic/")) {
 			requestOptions.headers["x-anthropic-beta"] =
 				"fine-grained-tool-streaming-2025-05-14,structured-outputs-2025-11-13"
 		}
-		// kilocode_change end
+		// kade_change end
 
 		let response
 
@@ -640,7 +640,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 		model: string,
 		apiKey: string,
 		inputImage?: string,
-		taskId?: string, // kilocode_change
+		taskId?: string, // kade_change
 	): Promise<ImageGenerationResult> {
 		if (!apiKey) {
 			return {
@@ -658,12 +658,12 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 			model,
 			prompt,
 			inputImage,
-			headers: { ...DEFAULT_HEADERS, ...this.getCustomRequestHeaders(taskId) }, // kilocode_change
+			headers: { ...DEFAULT_HEADERS, ...this.getCustomRequestHeaders(taskId) }, // kade_change
 		})
 	}
 }
 
-// kilocode_change start
+// kade_change start
 function makeOpenRouterErrorReadable(error: any) {
 	const metadata = error?.error?.metadata as { raw?: string; provider_name?: string } | undefined
 	const parsedJson = safeJsonParse(metadata?.raw)
@@ -692,4 +692,4 @@ function makeOpenRouterErrorReadable(error: any) {
 
 	return `Rate limit exceeded, try again later.\n${error?.message || error}`
 }
-// kilocode_change end
+// kade_change end

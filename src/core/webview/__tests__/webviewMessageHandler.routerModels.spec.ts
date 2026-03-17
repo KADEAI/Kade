@@ -8,11 +8,11 @@ vi.mock("vscode", () => ({
 		showErrorMessage: vi.fn(),
 		showWarningMessage: vi.fn(),
 		showInformationMessage: vi.fn(),
-		// kilocode_change start
+		// kade_change start
 		createTextEditorDecorationType: vi.fn(() => ({
 			dispose: vi.fn(),
 		})),
-		// kilocode_change end
+		// kade_change end
 	},
 	workspace: {
 		workspaceFolders: undefined,
@@ -81,10 +81,10 @@ describe("webviewMessageHandler - requestRouterModels provider filter", () => {
 					return { "requesty/model": { contextWindow: 8192, supportsPromptCache: false } }
 				case "deepinfra":
 					return { "deepinfra/model": { contextWindow: 8192, supportsPromptCache: false } }
-				// kilocode_change start
+				// kade_change start
 				case "glama":
 					return { "glama/model": { contextWindow: 8192, supportsPromptCache: false } }
-				// kilocode_change end
+				// kade_change end
 				case "kiro":
 					return { "kiro/model": { contextWindow: 8192, supportsPromptCache: false } }
 				case "unbound":

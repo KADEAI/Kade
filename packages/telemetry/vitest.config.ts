@@ -1,6 +1,6 @@
 import { defineConfig } from "vitest/config"
 
-// kilocode_change start
+// kade_change start
 const isCI = process.env.CI === "true" || process.env.CI === "1" || Boolean(process.env.CI)
 
 export default defineConfig({
@@ -11,4 +11,4 @@ export default defineConfig({
 		reporters: isCI ? ["verbose"] : ["default"],
 	},
 })
-// kilocode_change end
+// kade_change end

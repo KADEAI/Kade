@@ -59,7 +59,7 @@ export default defineConfig(({ mode }) => {
 	const enableSourceMapProcessing = process.env.ROO_PROCESS_WEBVIEW_SOURCEMAPS === "1"
 	const enableWebviewObfuscation = process.env.ROO_OBFUSCATE_WEBVIEW === "1"
 
-	// kilocode_change start - read package.json fresh every time to avoid caching issues
+	// kade_change start - read package.json fresh every time to avoid caching issues
 	const getPkg = () => {
 		try {
 			return JSON.parse(fs.readFileSync(path.join(__dirname, "..", "src", "package.json"), "utf8"))
@@ -69,7 +69,7 @@ export default defineConfig(({ mode }) => {
 	}
 
 	const pkg = getPkg()
-	// kilocode_change end
+	// kade_change end
 	const gitSha = getGitSha()
 
 	const define: Record<string, any> = {
@@ -105,7 +105,7 @@ export default defineConfig(({ mode }) => {
 			outDir,
 		}),
 		obfuscatePlugin(isProduction && enableWebviewObfuscation),
-		// cssPerEntryPlugin(), // kilocode_change: enable per-entry CSS files
+		// cssPerEntryPlugin(), // kade_change: enable per-entry CSS files
 	]
 
 	return {
@@ -127,15 +127,15 @@ export default defineConfig(({ mode }) => {
 			// Advanced minification and obfuscation
 			minify: isProduction ? "esbuild" : false,
 			// Use a single combined CSS bundle so both webviews share styles
-			cssCodeSplit: false, // kilocode_change: changed to true to enable cssPerEntryPlugin
+			cssCodeSplit: false, // kade_change: changed to true to enable cssPerEntryPlugin
 			rollupOptions: {
 				input: {
-					index: resolve(__dirname, "index.html"), // kilocode_change - DO NOT CHANGE
-					"agent-manager": resolve(__dirname, "agent-manager.html"), // kilocode_change
-					"group-chat": resolve(__dirname, "group-chat.html"), // kilocode_change
+					index: resolve(__dirname, "index.html"), // kade_change - DO NOT CHANGE
+					"agent-manager": resolve(__dirname, "agent-manager.html"), // kade_change
+					"group-chat": resolve(__dirname, "group-chat.html"), // kade_change
 					"browser-panel": resolve(__dirname, "browser-panel.html"),
 				},
-				external: ["vscode"], // kilocode_change: we inadvertently import vscode into the webview: @roo/modes => src/shared/modes => ../core/prompts/sections/custom-instructions
+				external: ["vscode"], // kade_change: we inadvertently import vscode into the webview: @roo/modes => src/shared/modes => ../core/prompts/sections/custom-instructions
 				output: {
 					entryFileNames: `assets/[name].js`,
 					chunkFileNames: (chunkInfo) => {
@@ -148,12 +148,12 @@ export default defineConfig(({ mode }) => {
 					assetFileNames: (assetInfo) => {
 						const name = assetInfo.name || ""
 
-						// kilocode_change start -  cssPerEntryPlugin
+						// kade_change start -  cssPerEntryPlugin
 						// Force all CSS into a single predictable file used by both webviews
 						if (name.endsWith(".css")) {
 							return "assets/index.css"
 						}
-						// kilocode_change end
+						// kade_change end
 
 						if (name.endsWith(".woff2") || name.endsWith(".woff") || name.endsWith(".ttf")) {
 							return "assets/fonts/[name][extname]"
@@ -192,9 +192,9 @@ export default defineConfig(({ mode }) => {
 			},
 		},
 		server: {
-			host: "0.0.0.0", // kilocode_change
+			host: "0.0.0.0", // kade_change
 			hmr: {
-				// host: "localhost", kilocode_change
+				// host: "localhost", kade_change
 				protocol: "ws",
 			},
 			// Disable built-in CORS — wildcard "*" doesn't work for vscode-webview:// origins.
@@ -214,7 +214,7 @@ export default defineConfig(({ mode }) => {
 				"dagre", // Explicitly include dagre for pre-bundling
 				// Add other known large mermaid dependencies if identified
 			],
-			exclude: ["@vscode/codicons", "vscode-oniguruma", "shiki", "vscode" /*kilocode_change*/],
+			exclude: ["@vscode/codicons", "vscode-oniguruma", "shiki", "vscode" /*kade_change*/],
 		},
 		assetsInclude: ["**/*.wasm", "**/*.wav"],
 	}

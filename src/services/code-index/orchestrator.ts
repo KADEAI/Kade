@@ -15,7 +15,7 @@ import { t } from "../../i18n"
 export class CodeIndexOrchestrator {
 	private _fileWatcherSubscriptions: vscode.Disposable[] = []
 	private _isProcessing: boolean = false
-	private _cancelRequested: boolean = false // kilocode_change
+	private _cancelRequested: boolean = false // kade_change
 
 	constructor(
 		private readonly configManager: CodeIndexConfigManager,
@@ -27,7 +27,7 @@ export class CodeIndexOrchestrator {
 		private readonly fileWatcher: IFileWatcher,
 	) { }
 
-	// kilocode_change start
+	// kade_change start
 	/**
 	 * Updates the batch segment threshold for both scanner and file watcher
 	 * @param newThreshold New batch segment threshold value
@@ -36,7 +36,7 @@ export class CodeIndexOrchestrator {
 		this.scanner.updateBatchSegmentThreshold(newThreshold)
 		this.fileWatcher.updateBatchSegmentThreshold(newThreshold)
 	}
-	// kilocode_change end
+	// kade_change end
 
 	/**
 	 * Starts the file watcher if not already running.
@@ -132,7 +132,7 @@ export class CodeIndexOrchestrator {
 			return
 		}
 
-		this._cancelRequested = false // kilocode_change
+		this._cancelRequested = false // kade_change
 		this._isProcessing = true
 		this.stateManager.setSystemState("Indexing", "Initializing services...")
 
@@ -162,13 +162,13 @@ export class CodeIndexOrchestrator {
 					"[CodeIndexOrchestrator] Collection already has indexed data. Running incremental scan for new/changed files...",
 				)
 
-				// kilocode_change start
+				// kade_change start
 				if (this._cancelRequested) {
 					this._isProcessing = false
 					this.stateManager.setSystemState("Standby", t("embeddings:orchestrator.indexingCancelled"))
 					return
 				}
-				// kilocode_change end
+				// kade_change end
 
 				this.stateManager.setSystemState("Indexing", "Checking for new or modified files...")
 
@@ -207,7 +207,7 @@ export class CodeIndexOrchestrator {
 					throw new Error("Incremental scan failed, is scanner initialized?")
 				}
 
-				// kilocode_change start
+				// kade_change start
 				if (this._cancelRequested || this.scanner.isCancelled) {
 					this._isProcessing = false
 					if (this.stateManager.state !== "Error") {
@@ -215,7 +215,7 @@ export class CodeIndexOrchestrator {
 					}
 					return
 				}
-				// kilocode_change end
+				// kade_change end
 
 				// If new files were found and indexed, log the results
 				if (cumulativeBlocksFoundSoFar > 0) {
@@ -321,7 +321,7 @@ export class CodeIndexOrchestrator {
 				stack: error instanceof Error ? error.stack : undefined,
 				location: "startIndexing",
 			})
-			// kilocode_change: Preserving vector store data even on error to prevent total index loss
+			// kade_change: Preserving vector store data even on error to prevent total index loss
 			// If we clear the collection here, we lose all progress. Better to keep potential partial data.
 			/*
 			if (indexingStarted) {
@@ -342,7 +342,7 @@ export class CodeIndexOrchestrator {
 			// If we never connected to Qdrant, preserve cache for incremental scan when it comes back
 			if (indexingStarted) {
 				// Indexing started but failed mid-way
-				// kilocode_change: Preserving cache even on error to prevent total index loss ("glitching out")
+				// kade_change: Preserving cache even on error to prevent total index loss ("glitching out")
 				// The next incremental scan should handle discrepancies.
 				console.log(
 					"[CodeIndexOrchestrator] Indexing failed after starting. Preserving cache to avoid total index loss.",
@@ -380,7 +380,7 @@ export class CodeIndexOrchestrator {
 		this._isProcessing = false
 	}
 
-	// kilocode_change start
+	// kade_change start
 	/**
 	 * Gracefully cancels any ongoing indexing work.
 	 * - Stops the watcher if active
@@ -404,7 +404,7 @@ export class CodeIndexOrchestrator {
 		// Clear processing flag
 		this._isProcessing = false
 	}
-	// kilocode_change end
+	// kade_change end
 
 	/**
 	 * Clears all index data by stopping the watcher, clearing the vector store,

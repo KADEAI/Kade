@@ -8,7 +8,7 @@ import type {
 	PromptComponent,
 	CustomModePrompts,
 	TodoItem,
-	Experiments, // kilocode_change
+	Experiments, // kade_change
 } from "@roo-code/types"
 
 import type { SystemPromptSettings } from "./types"
@@ -40,7 +40,7 @@ import {
 	getSubAgentsSection,
 	getSkillsSection,
 } from "./sections"
-import { type ClineProviderState } from "../webview/ClineProvider" // kilocode_change
+import { type ClineProviderState } from "../webview/ClineProvider" // kade_change
 
 import { getUnifiedToolsPrompt } from "./sections/unified-tools"
 import { getUnifiedToolsPrompt as getUnifiedToolsSimplePrompt } from "./sections/unified-tools-simple"
@@ -81,7 +81,7 @@ async function generatePrompt(
 	settings?: SystemPromptSettings,
 	todoList?: TodoItem[],
 	modelId?: string,
-	clineProviderState?: ClineProviderState, // kilocode_change
+	clineProviderState?: ClineProviderState, // kade_change
 	enabledSkills?: string[],
 	installedSkills?: Array<{ id: string; name: string; path: string; content?: string }>,
 	projectInit?: string,
@@ -147,15 +147,15 @@ async function generatePrompt(
 			settings,
 			enableMcpServerCreation,
 			modelId,
-			clineProviderState, // kilocode_change
+			clineProviderState, // kade_change
 		)}`
 	}
 
 	const customInstructions = await addCustomInstructions(baseInstructions, globalCustomInstructions || "", cwd, mode, {
 		language: language ?? formatLanguage(vscode.env.language),
 		rooIgnoreInstructions,
-		localRulesToggleState: context.workspaceState.get("localRulesToggles"), // kilocode_change
-		globalRulesToggleState: context.globalState.get("globalRulesToggles"), // kilocode_change
+		localRulesToggleState: context.workspaceState.get("localRulesToggles"), // kade_change
+		globalRulesToggleState: context.globalState.get("globalRulesToggles"), // kade_change
 		settings,
 	})
 
@@ -163,7 +163,7 @@ async function generatePrompt(
 	const basePrompt = promptTemplate(
 		toolsCatalog,
 		getSharedToolUseSection(effectiveProtocol) + "\n" + getToolUseGuidelinesSection(effectiveProtocol),
-		getRulesSection(cwd, settings, clineProviderState /* kilocode_change */),
+		getRulesSection(cwd, settings, clineProviderState /* kade_change */),
 		getSystemInfoSection(cwd),
 		mcpServersSection,
 		getCapabilitiesSection(cwd, shouldIncludeMcp ? mcpHub : undefined),
@@ -186,12 +186,12 @@ export const SYSTEM_PROMPT = async (
 	mcpHub?: McpHub,
 	diffStrategy?: DiffStrategy,
 	browserViewportSize?: string,
-	inputMode: Mode = defaultModeSlug, // kilocode_change: name changed to inputMode
+	inputMode: Mode = defaultModeSlug, // kade_change: name changed to inputMode
 	customModePrompts?: CustomModePrompts,
 	customModes?: ModeConfig[],
 	globalCustomInstructions?: string,
 	diffEnabled?: boolean,
-	experiments?: Experiments, // kilocode_change: type
+	experiments?: Experiments, // kade_change: type
 	enableMcpServerCreation?: boolean,
 	language?: string,
 	rooIgnoreInstructions?: string,
@@ -199,7 +199,7 @@ export const SYSTEM_PROMPT = async (
 	settings?: SystemPromptSettings,
 	todoList?: TodoItem[],
 	modelId?: string,
-	clineProviderState?: ClineProviderState, // kilocode_change
+	clineProviderState?: ClineProviderState, // kade_change
 	enabledSkills?: string[],
 	installedSkills?: Array<{ id: string; name: string; path: string; content?: string }>,
 ): Promise<string> => {
@@ -208,7 +208,7 @@ export const SYSTEM_PROMPT = async (
 	}
 
 	const mode =
-		getModeBySlug(inputMode, customModes)?.slug || modes.find((m) => m.slug === inputMode)?.slug || defaultModeSlug // kilocode_change: don't try to use non-existent modes
+		getModeBySlug(inputMode, customModes)?.slug || modes.find((m) => m.slug === inputMode)?.slug || defaultModeSlug // kade_change: don't try to use non-existent modes
 
 	// Try to load custom system prompt from file
 	const variablesForPrompt: PromptVariables = {
@@ -286,7 +286,7 @@ ${customInstructions}`
 		settings,
 		todoList,
 		modelId,
-		clineProviderState, // kilocode_change
+		clineProviderState, // kade_change
 		enabledSkills,
 		installedSkills,
 		projectInit,

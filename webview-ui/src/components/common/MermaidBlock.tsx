@@ -93,19 +93,19 @@ interface MermaidBlockProps {
 	code: string
 }
 
-// kilocode_change next line rename to originalCode to keep the difference with Roo smaller
+// kade_change next line rename to originalCode to keep the difference with Roo smaller
 export default function MermaidBlock({ code: originalCode }: MermaidBlockProps) {
 	const containerRef = useRef<HTMLDivElement>(null)
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [isErrorExpanded, setIsErrorExpanded] = useState(false)
-	// kilocode_change start
+	// kade_change start
 	const [svgContent, setSvgContent] = useState<string>("")
 	const [isFixing, setIsFixing] = useState(false)
 	const [code, setCode] = useState("")
 	const [needsExpand, setNeedsExpand] = useState(false)
 	const [isExpanded, setIsExpanded] = useState(false)
-	// kilocode_change end
+	// kade_change end
 	const [selectedImage, setSelectedImage] = useState<string | null>(null)
 	const skipNextRenderRef = useRef(false)
 	const { showCopyFeedback, copyWithFeedback } = useCopyToClipboard()
@@ -115,10 +115,10 @@ export default function MermaidBlock({ code: originalCode }: MermaidBlockProps) 
 	useEffect(() => {
 		setIsLoading(true)
 		setError(null)
-		// kilocode_change start
+		// kade_change start
 		setCode(originalCode)
 		setIsFixing(false)
-		// kilocode_change end
+		// kade_change end
 		setIsExpanded(false)
 
 		const cacheKey = originalCode.trim()
@@ -129,9 +129,9 @@ export default function MermaidBlock({ code: originalCode }: MermaidBlockProps) 
 			setIsLoading(false)
 			skipNextRenderRef.current = true
 		}
-	}, [originalCode]) // kilocode_change originalCode instead of code
+	}, [originalCode]) // kade_change originalCode instead of code
 
-	// kilocode_change start
+	// kade_change start
 	const handleSyntaxFix = async () => {
 		if (isFixing) return
 
@@ -150,20 +150,20 @@ export default function MermaidBlock({ code: originalCode }: MermaidBlockProps) 
 		setIsFixing(false)
 		setIsLoading(false)
 	}
-	// kilocode_change end
+	// kade_change end
 
 	// 2) Debounce the actual parse/render
 	// the LLM is still 'typing', and we do not want to start rendering and/or autofixing before it is fully done.
 	useDebounceEffect(
 		() => {
-			//kilocode_change start
+			//kade_change start
 			if (isFixing) return
 			if (skipNextRenderRef.current) {
 				skipNextRenderRef.current = false
 				return
 			}
 			setIsLoading(true)
-			//kilocode_change end
+			//kade_change end
 
 			mermaid
 				.parse(code)
@@ -172,7 +172,7 @@ export default function MermaidBlock({ code: originalCode }: MermaidBlockProps) 
 					return mermaid.render(id, code)
 				})
 				.then(({ svg }) => {
-					//kilocode_change start
+					//kade_change start
 					const sanitizedSvg = svg
 						.replace(/(<svg\b[^>]*)(>)/i, `$1 width="100%" height="100%" preserveAspectRatio="xMidYMid meet"$2`)
 						.replace(/max-width:\s*[^;]+;?/gi, "")
@@ -182,25 +182,25 @@ export default function MermaidBlock({ code: originalCode }: MermaidBlockProps) 
 					if (cacheKey) {
 						MERMAID_SVG_CACHE.set(cacheKey, { svg: sanitizedSvg, error: null })
 					}
-					// kilocode_change end
+					// kade_change end
 				})
 				.catch((err) => {
 					console.warn("Mermaid parse/render failed:", err)
-					// kilocode_change start
+					// kade_change start
 					const errorMessage = err instanceof Error ? err.message : t("common:mermaid.render_error")
 					setError(errorMessage)
 					const cacheKey = code.trim()
 					if (cacheKey) {
 						MERMAID_SVG_CACHE.set(cacheKey, { svg: "", error: errorMessage })
 					}
-					// kilocode_change end
+					// kade_change end
 				})
 				.finally(() => {
 					setIsLoading(false)
 				})
 		},
 		500, // Delay 500ms
-		[code, isFixing, originalCode, t], // Dependencies for scheduling // kilocode_change added isFixing, originalCode and t
+		[code, isFixing, originalCode, t], // Dependencies for scheduling // kade_change added isFixing, originalCode and t
 	)
 
 	useEffect(() => {
@@ -258,7 +258,7 @@ export default function MermaidBlock({ code: originalCode }: MermaidBlockProps) 
 		<MermaidBlockContainer>
 			{isLoading && (
 				<LoadingMessage>
-					{isFixing /* kilocode_change */ ? t("common:mermaid.fixing_syntax") : t("common:mermaid.loading")}
+					{isFixing /* kade_change */ ? t("common:mermaid.fixing_syntax") : t("common:mermaid.loading")}
 				</LoadingMessage>
 			)}
 
@@ -297,7 +297,7 @@ export default function MermaidBlock({ code: originalCode }: MermaidBlockProps) 
 							<span style={{ fontWeight: "bold" }}>{t("common:mermaid.render_error")}</span>
 						</div>
 						<div style={{ display: "flex", alignItems: "center" }}>
-							{/* kilocode_change start */}
+							{/* kade_change start */}
 							{!!error && (
 								<MermaidFixButton
 									onClick={(e) => {
@@ -309,7 +309,7 @@ export default function MermaidBlock({ code: originalCode }: MermaidBlockProps) 
 									<span className={`codicon codicon-${isFixing ? "loading" : "wand"}`}></span>
 								</MermaidFixButton>
 							)}
-							{/* kilocode_change end */}
+							{/* kade_change end */}
 							<CopyButton
 								onClick={(e) => {
 									e.stopPropagation()
@@ -332,7 +332,7 @@ export default function MermaidBlock({ code: originalCode }: MermaidBlockProps) 
 								{error}
 							</div>
 							<CodeBlock language="mermaid" source={code} />
-							{/* kilocode_change start */}
+							{/* kade_change start */}
 							{code !== originalCode && (
 								<div style={{ marginTop: "8px" }}>
 									<div style={{ marginBottom: "4px", fontSize: "0.9em", fontWeight: "bold" }}>
@@ -341,14 +341,14 @@ export default function MermaidBlock({ code: originalCode }: MermaidBlockProps) 
 									<CodeBlock language="mermaid" source={originalCode} />
 								</div>
 							)}
-							{/* kilocode_change end */}
+							{/* kade_change end */}
 						</div>
 					)}
 				</ErrorShell>
 			) : (
 				<MermaidButton containerRef={containerRef} code={code} isLoading={isLoading} svgToPng={svgToPng}>
 					<DiagramSurface>
-						{/* kilocode_change start switched from ref to dangerouslySetInnerHTML */}
+						{/* kade_change start switched from ref to dangerouslySetInnerHTML */}
 						<SvgContainer
 							onClick={handleClick}
 							ref={containerRef}

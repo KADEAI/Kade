@@ -219,7 +219,7 @@ describe("McpHub", () => {
 				close: vi.fn().mockResolvedValue(undefined),
 				getInstructions: vi.fn().mockReturnValue("test instructions"),
 				request: vi.fn().mockResolvedValue({ tools: [], resources: [], resourceTemplates: [] }),
-				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kilocode_change
+				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kade_change
 			}
 
 			Client.mockImplementation(() => mockClient)
@@ -388,7 +388,7 @@ describe("McpHub", () => {
 				close: vi.fn().mockResolvedValue(undefined),
 				getInstructions: vi.fn().mockReturnValue("test instructions"),
 				request: vi.fn().mockResolvedValue({ tools: [], resources: [], resourceTemplates: [] }),
-				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kilocode_change
+				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kade_change
 			}
 
 			Client.mockImplementation(() => mockClient)
@@ -462,7 +462,7 @@ describe("McpHub", () => {
 				close: vi.fn().mockResolvedValue(undefined),
 				getInstructions: vi.fn().mockReturnValue("test instructions"),
 				request: vi.fn().mockResolvedValue({ tools: [], resources: [], resourceTemplates: [] }),
-				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kilocode_change
+				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kade_change
 			}
 
 			Client.mockImplementation(() => mockClient)
@@ -673,7 +673,7 @@ describe("McpHub", () => {
 				close: vi.fn().mockResolvedValue(undefined),
 				getInstructions: vi.fn().mockReturnValue("test instructions"),
 				request: vi.fn().mockResolvedValue({ tools: [], resources: [], resourceTemplates: [] }),
-				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kilocode_change
+				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kade_change
 			}
 
 			Client.mockImplementation(() => mockClient)
@@ -746,7 +746,7 @@ describe("McpHub", () => {
 				close: vi.fn().mockResolvedValue(undefined),
 				getInstructions: vi.fn().mockReturnValue("test instructions"),
 				request: vi.fn().mockResolvedValue({ tools: [], resources: [], resourceTemplates: [] }),
-				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kilocode_change
+				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kade_change
 			}
 
 			Client.mockImplementation(() => mockClient)
@@ -1557,7 +1557,7 @@ describe("McpHub", () => {
 				close: vi.fn().mockResolvedValue(undefined),
 				getInstructions: vi.fn().mockReturnValue("test instructions"),
 				request: vi.fn().mockResolvedValue({ tools: [], resources: [], resourceTemplates: [] }),
-				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kilocode_change
+				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kade_change
 			}
 
 			Client.mockImplementation(() => mockClient)
@@ -1678,7 +1678,7 @@ describe("McpHub", () => {
 				close: vi.fn().mockResolvedValue(undefined),
 				getInstructions: vi.fn().mockReturnValue("test instructions"),
 				request: vi.fn().mockResolvedValue({ tools: [], resources: [], resourceTemplates: [] }),
-				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kilocode_change
+				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kade_change
 			}))
 
 			// Mock provider with mcpEnabled: true
@@ -1866,7 +1866,7 @@ describe("McpHub", () => {
 				close: vi.fn().mockResolvedValue(undefined),
 				getInstructions: vi.fn().mockReturnValue("test instructions"),
 				request: vi.fn().mockResolvedValue({ tools: [], resources: [], resourceTemplates: [] }),
-				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kilocode_change
+				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kade_change
 			}))
 
 			// Create a new McpHub instance
@@ -1929,7 +1929,7 @@ describe("McpHub", () => {
 				close: vi.fn().mockResolvedValue(undefined),
 				getInstructions: vi.fn().mockReturnValue("test instructions"),
 				request: vi.fn().mockResolvedValue({ tools: [], resources: [], resourceTemplates: [] }),
-				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kilocode_change
+				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kade_change
 			}))
 
 			// Create a new McpHub instance
@@ -1992,7 +1992,7 @@ describe("McpHub", () => {
 				close: vi.fn().mockResolvedValue(undefined),
 				getInstructions: vi.fn().mockReturnValue("test instructions"),
 				request: vi.fn().mockResolvedValue({ tools: [], resources: [], resourceTemplates: [] }),
-				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kilocode_change
+				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kade_change
 			}))
 
 			// Create a new McpHub instance
@@ -2062,7 +2062,7 @@ describe("McpHub", () => {
 				close: vi.fn().mockResolvedValue(undefined),
 				getInstructions: vi.fn().mockReturnValue("test instructions"),
 				request: vi.fn().mockResolvedValue({ tools: [], resources: [], resourceTemplates: [] }),
-				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kilocode_change
+				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kade_change
 			}))
 
 			// Create a new McpHub instance
@@ -2136,7 +2136,7 @@ describe("McpHub", () => {
 				close: vi.fn().mockResolvedValue(undefined),
 				getInstructions: vi.fn().mockReturnValue("test instructions"),
 				request: vi.fn().mockResolvedValue({ tools: [], resources: [], resourceTemplates: [] }),
-				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kilocode_change
+				getServerCapabilities: vi.fn().mockResolvedValue({ tools: {} }), // kade_change
 			}))
 
 			// Create a new McpHub instance

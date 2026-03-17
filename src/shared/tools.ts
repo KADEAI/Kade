@@ -71,14 +71,14 @@ export const toolParamNames = [
 	"new_string",
 	"use_regex",
 	"ignore_case",
-	// kilocode_change start
+	// kade_change start
 	"title",
 	"description",
 	"target_file",
 	"instructions",
 	"code_edit",
 
-	// kilocode_change end
+	// kade_change end
 	"query",
 	"args",
 	"start_line",
@@ -87,16 +87,16 @@ export const toolParamNames = [
 	"prompt",
 	"image",
 	"files", // Native protocol parameter for read_file
-	// kilocode_change start
+	// kade_change start
 	"file_path",
 	"edits",
 	"diffs",
-	// kilocode_change end
-	// kilocode_change start
+	// kade_change end
+	// kade_change start
 	"run_sub_agent",
 	"api_provider",
 	"model_id",
-	// kilocode_change end
+	// kade_change end
 	"web_search",
 	"web_fetch",
 	"allowed_domains",
@@ -165,7 +165,7 @@ export type NativeToolArgs = {
 	update_todo_list: { todos: string }
 	use_mcp_tool: { server_name: string; tool_name: string; arguments?: Record<string, unknown> }
 	write_to_file: { path: string; content: string }
-	// kilocode_change start
+	// kade_change start
 	run_sub_agent: {
 		prompt: string
 		mode?: string
@@ -173,7 +173,7 @@ export type NativeToolArgs = {
 		model_id?: string
 	}
 	fast_context: { query: string; path?: string }
-	// kilocode_change end
+	// kade_change end
 	web_search: { query: string; max_results?: number; allowed_domains?: string[]; blocked_domains?: string[] }
 	web_fetch: { url: string; include_links?: boolean }
 	research_web: { query: string; depth?: number }
@@ -202,7 +202,7 @@ export interface ToolUse<TName extends ToolName = ToolName> {
 	// params is a partial record, allowing only some or none of the possible parameters to be used
 	params: Partial<Record<ToolParamName, string>>
 	partial: boolean
-	toolUseId?: string // kilocode_change
+	toolUseId?: string // kade_change
 	// nativeArgs is properly typed based on TName if it's in NativeToolArgs, otherwise never
 	nativeArgs?: TName extends keyof NativeToolArgs ? NativeToolArgs[TName] : never
 }
@@ -253,12 +253,12 @@ export interface WriteToFileToolUse extends ToolUse<"write_to_file"> {
 	params: Partial<Pick<Record<ToolParamName, string>, "path" | "content">>
 }
 
-// kilocode_change start
+// kade_change start
 export interface DeleteFileToolUse extends ToolUse {
 	name: "delete_file"
 	params: Partial<Pick<Record<ToolParamName, string>, "path">>
 }
-// kilocode_change end
+// kade_change end
 
 export interface CodebaseSearchToolUse extends ToolUse<"codebase_search"> {
 	name: "codebase_search"
@@ -322,29 +322,29 @@ export interface RunSlashCommandToolUse extends ToolUse<"run_slash_command"> {
 	params: Partial<Pick<Record<ToolParamName, string>, "command" | "args">>
 }
 
-// kilocode_change start: New Edit Tool
+// kade_change start: New Edit Tool
 export interface EditToolUse extends ToolUse<"edit"> {
 	name: "edit"
 	params: Required<Pick<Record<ToolParamName, string>, "path">> & { edit: string }
 }
-// kilocode_change end
+// kade_change end
 export interface EditFileToolUse extends ToolUse {
 	name: "edit_file"
 	params: Required<Pick<Record<ToolParamName, string>, "target_file" | "instructions" | "code_edit">>
 }
-// kilocode_change end
+// kade_change end
 
 export interface GenerateImageToolUse extends ToolUse<"generate_image"> {
 	name: "generate_image"
 	params: Partial<Pick<Record<ToolParamName, string>, "prompt" | "path" | "image">>
 }
 
-// kilocode_change start
+// kade_change start
 export interface RunSubAgentToolUse extends ToolUse<"run_sub_agent"> {
 	name: "run_sub_agent"
 	params: Partial<Pick<Record<ToolParamName, string>, "prompt" | "mode">>
 }
-// kilocode_change end
+// kade_change end
 
 export interface WebSearchToolUse extends ToolUse<"web_search"> {
 	name: "web_search"
@@ -370,14 +370,14 @@ export const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
 	fetch_instructions: "fetch instructions",
 	write_to_file: "write files",
 	edit: "edit file",
-	// kilocode_change start
+	// kade_change start
 	edit_file: "edit file",
 	delete_file: "delete files",
 	report_bug: "report bug",
 	"condense": "condense the current context window",
 	"mkdir": "create directories",
 	"move_file": "move files",
-	// kilocode_change end
+	// kade_change end
 	grep: "search files",
 	glob: "find files by pattern",
 	list_dir: "list files",
@@ -392,7 +392,7 @@ export const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
 	update_todo_list: "update todo list",
 	run_slash_command: "run slash command",
 	generate_image: "generate images",
-	// kilocode_change
+	// kade_change
 	run_sub_agent: "run sub-agent",
 	fast_context: "search codebase context",
 	web_search: "search the web",
@@ -409,12 +409,12 @@ export const TOOL_GROUPS: Record<ToolGroup, ToolGroupConfig> = {
 	edit: {
 		tools: [
 			"edit",
-			"edit_file", // kilocode_change: Morph fast apply
+			"edit_file", // kade_change: Morph fast apply
 			"write_to_file",
 			"mkdir",
 			"move_file",
-			// "delete_file", // kilocode_change: hidden
-			"new_rule", // kilocode_change
+			// "delete_file", // kade_change: hidden
+			"new_rule", // kade_change
 			"generate_image",
 		],
 	},
@@ -443,7 +443,7 @@ export const ALWAYS_AVAILABLE_TOOLS: ToolName[] = [
 	// "switch_mode", // Hidden - not needed for conversational flow
 	// "new_task", // Hidden - not needed for conversational flow
 	"report_bug",
-	"condense", // kilocode_Change
+	"condense", // kade_change
 	"update_todo_list",
 	"run_slash_command",
 	"web_search",

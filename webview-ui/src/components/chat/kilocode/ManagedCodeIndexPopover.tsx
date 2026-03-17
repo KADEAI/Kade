@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import React, { useState, useRef, useEffect } from "react"
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 

@@ -24,7 +24,7 @@ describe("checkExistKey", () => {
 	it("should return true when multiple keys are defined", () => {
 		const config: ProviderSettings = {
 			apiKey: "test-key",
-			glamaApiKey: "glama-key", // kilocode_change
+			glamaApiKey: "glama-key", // kade_change
 			openRouterApiKey: "openrouter-key",
 		}
 		expect(checkExistKey(config)).toBe(true)
@@ -44,7 +44,7 @@ describe("checkExistKey", () => {
 		const config: ProviderSettings = {
 			apiKey: undefined,
 			openRouterApiKey: undefined,
-			glamaApiKey: undefined, // kilocode_change
+			glamaApiKey: undefined, // kade_change
 			awsRegion: undefined,
 			vertexProjectId: undefined,
 			openAiApiKey: undefined,
@@ -58,7 +58,7 @@ describe("checkExistKey", () => {
 			vsCodeLmModelSelector: undefined,
 			requestyApiKey: undefined,
 			unboundApiKey: undefined,
-			minimaxApiKey: undefined, // kilocode_change
+			minimaxApiKey: undefined, // kade_change
 		}
 		expect(checkExistKey(config)).toBe(false)
 	})

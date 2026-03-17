@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 
 export function escapeHtml(text: string) {
 	return text

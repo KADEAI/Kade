@@ -13,7 +13,7 @@ import { ApiStream } from "../transform/stream"
 
 import { BaseProvider } from "./base-provider"
 import type {
-	ApiHandlerCreateMessageMetadata, // kilocode_change
+	ApiHandlerCreateMessageMetadata, // kade_change
 	SingleCompletionHandler,
 } from "../index"
 import { addNativeToolCallsToParams, ToolCallAccumulator } from "./kilocode/nativeToolCallHelpers"
@@ -208,7 +208,7 @@ export class QwenCodeHandler extends BaseProvider implements SingleCompletionHan
 	override async *createMessage(
 		systemPrompt: string,
 		messages: Anthropic.Messages.MessageParam[],
-		metadata?: ApiHandlerCreateMessageMetadata, // kilocode_change
+		metadata?: ApiHandlerCreateMessageMetadata, // kade_change
 	): ApiStream {
 		await this.ensureAuthenticated()
 		const client = this.ensureClient()
@@ -230,12 +230,12 @@ export class QwenCodeHandler extends BaseProvider implements SingleCompletionHan
 			max_completion_tokens: model.info.maxTokens,
 		}
 
-		addNativeToolCallsToParams(requestOptions, this.options, metadata) // kilocode_change
+		addNativeToolCallsToParams(requestOptions, this.options, metadata) // kade_change
 
 		const stream = await this.callApiWithRetry(() => client.chat.completions.create(requestOptions))
 
 		let fullContent = ""
-		const toolCallAccumulator = new ToolCallAccumulator() // kilocode_change
+		const toolCallAccumulator = new ToolCallAccumulator() // kade_change
 
 		for await (const apiChunk of stream) {
 			const delta = apiChunk.choices[0]?.delta ?? {}
@@ -285,7 +285,7 @@ export class QwenCodeHandler extends BaseProvider implements SingleCompletionHan
 				}
 			}
 
-			yield* toolCallAccumulator.processChunk(apiChunk) // kilocode_change
+			yield* toolCallAccumulator.processChunk(apiChunk) // kade_change
 
 			if (apiChunk.usage) {
 				yield {

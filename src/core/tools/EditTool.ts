@@ -23,7 +23,7 @@ interface EditBlock {
 	newText: string
 	start_line?: number
 	end_line?: number
-	range?: [number, number] // kilocode_change: Support [start, end]
+	range?: [number, number] // kade_change: Support [start, end]
 	replaceAll?: boolean
 	type?: "line_deletion" | "search_replace"
 }

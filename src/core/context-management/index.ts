@@ -80,7 +80,7 @@ export function truncateConversation(messages: ApiMessage[], fracToRemove: numbe
 
 	// Calculate how many visible messages to truncate
 	const visibleCount = visibleIndices.length
-	const rawMessagesToRemove = Math.floor(visibleCount * fracToRemove) // kilocode_change: don't subtract 1
+	const rawMessagesToRemove = Math.floor(visibleCount * fracToRemove) // kade_change: don't subtract 1
 	const messagesToRemove = rawMessagesToRemove - (rawMessagesToRemove % 2)
 
 	if (messagesToRemove <= 0) {
@@ -93,7 +93,7 @@ export function truncateConversation(messages: ApiMessage[], fracToRemove: numbe
 	}
 
 	// Get the indices of visible messages to truncate (take first N)
-	const indicesToTruncate = new Set(visibleIndices.slice(0, messagesToRemove)) // kilocode_change: start from index 0
+	const indicesToTruncate = new Set(visibleIndices.slice(0, messagesToRemove)) // kade_change: start from index 0
 
 
 	// Tag messages that are being "truncated" (hidden from API calls)
@@ -298,7 +298,7 @@ export async function manageContext({
 		const contextPercent = (100 * prevContextTokens) / contextWindow
 		if (contextPercent >= effectiveThreshold || prevContextTokens > allowedTokens) {
 			// Attempt to intelligently condense the context
-			// kilocode_change: Use Smart Context instead of LLM summarization
+			// kade_change: Use Smart Context instead of LLM summarization
 			const smartContextMessages = generateSmartContext(messages, slidingWindowSize)
 
 			// We need to calculate the "cost" of this operation (0) and new token counts

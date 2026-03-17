@@ -401,7 +401,7 @@ describe("FileRestrictionError", () => {
 			expect(debugMode).toBeDefined()
 			expect(debugMode).toMatchObject({
 				slug: "debug",
-				name: "Debug", // kilocode_change
+				name: "Debug", // kade_change
 				roleDefinition:
 					"You are Kilo Code, an expert software debugger specializing in systematic problem diagnosis and resolution.",
 				groups: ["read", "edit", "browser", "command", "mcp"],
@@ -422,7 +422,7 @@ describe("FileRestrictionError", () => {
 			const result = await getFullModeDetails("debug")
 			expect(result).toMatchObject({
 				slug: "debug",
-				name: "Debug", // kilocode_change
+				name: "Debug", // kade_change
 				roleDefinition:
 					"You are Kilo Code, an expert software debugger specializing in systematic problem diagnosis and resolution.",
 			})

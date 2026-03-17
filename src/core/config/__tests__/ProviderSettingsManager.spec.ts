@@ -37,7 +37,7 @@ describe("ProviderSettingsManager", () => {
 
 		providerSettingsManager = new ProviderSettingsManager(mockContext)
 
-		//kilocode_change start: this is a REAL ugly hack to keep tests running
+		//kade_change start: this is a REAL ugly hack to keep tests running
 		// The roo tests here rely on instantiating ProviderSettingsManager in the beforeEach,
 		// then in some tests alter the mocks in ways that would have influenced initialization
 		// then reinitializing, and spying on internals of said initialization.
@@ -47,7 +47,7 @@ describe("ProviderSettingsManager", () => {
 			providerSettingsManager = new ProviderSettingsManager(mockContext)
 			await providerSettingsManager.initialize()
 		}
-		//kilocode_change end
+		//kade_change end
 	})
 
 	describe("initialize", () => {
@@ -119,7 +119,7 @@ describe("ProviderSettingsManager", () => {
 			expect(storedConfig.apiConfigs.test.id).toBeTruthy()
 		})
 
-		// kilocode_change start
+		// kade_change start
 		it("should not change anything when no duplicated ids exist", async () => {
 			mockSecrets.get.mockResolvedValue(
 				JSON.stringify({
@@ -168,7 +168,7 @@ describe("ProviderSettingsManager", () => {
 					},
 				}),
 			)
-			// kilocode_change end
+			// kade_change end
 
 			await providerSettingsManager.initialize()
 

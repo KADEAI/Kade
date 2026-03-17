@@ -21,11 +21,11 @@ interface ImageGenerationSettingsProps {
 	setImageGenerationProvider: (provider: ImageGenerationProvider) => void
 	setOpenRouterImageApiKey: (apiKey: string) => void
 	setImageGenerationSelectedModel: (model: string) => void
-	// kilocode_change start
+	// kade_change start
 	kiloCodeImageApiKey?: string
 	setKiloCodeImageApiKey: (apiKey: string) => void
 	currentProfileKilocodeToken?: string
-	// kilocode_change end
+	// kade_change end
 }
 
 export const ImageGenerationSettings = ({
@@ -37,11 +37,11 @@ export const ImageGenerationSettings = ({
 	setImageGenerationProvider,
 	setOpenRouterImageApiKey,
 	setImageGenerationSelectedModel,
-	// kilocode_change start
+	// kade_change start
 	kiloCodeImageApiKey,
 	setKiloCodeImageApiKey,
 	currentProfileKilocodeToken,
-	// kilocode_change end
+	// kade_change end
 }: ImageGenerationSettingsProps) => {
 	const { t } = useAppTranslation()
 
@@ -56,7 +56,7 @@ export const ImageGenerationSettings = ({
 		!!openRouterImageGenerationSelectedModel,
 	)
 
-	// kilocode_change start
+	// kade_change start
 	useEffect(() => {
 		if (!enabled) {
 			return
@@ -65,7 +65,7 @@ export const ImageGenerationSettings = ({
 			setOpenRouterImageApiKey("")
 		}
 	}, [enabled, currentProvider, openRouterImageApiKey, setOpenRouterImageApiKey])
-	// kilocode_change end
+	// kade_change end
 
 	const availableModels = useMemo(() => {
 		return IMAGE_GENERATION_MODELS.filter((model) => model.provider === currentProvider)
@@ -89,7 +89,7 @@ export const ImageGenerationSettings = ({
 	}, [openRouterImageGenerationSelectedModel, availableModels, currentProvider])
 
 	// Handle provider changes
-	// kilocode_change: unused for now
+	// kade_change: unused for now
 	const handleProviderChange = (value: string) => {
 		const newProvider = value as ImageGenerationProvider
 		setImageGenerationProvider(newProvider)
@@ -127,7 +127,7 @@ export const ImageGenerationSettings = ({
 		setImageGenerationSelectedModel(value)
 	}
 
-	const isConfigured = currentProvider === "openrouter" ? openRouterImageApiKey : kiloCodeImageApiKey // kilocode_change
+	const isConfigured = currentProvider === "openrouter" ? openRouterImageApiKey : kiloCodeImageApiKey // kade_change
 
 	return (
 		<div className="space-y-4">

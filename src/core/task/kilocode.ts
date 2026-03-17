@@ -21,7 +21,7 @@ export function addOrMergeUserContent(
 	newUserContent: (Anthropic.TextBlockParam | Anthropic.ImageBlockParam)[],
 ) {
 	const result = [...messages]
-	// kilocode_change: We no longer merge user content into tool results. 
+	// kade_change: We no longer merge user content into tool results. 
 	// Environment details and user messages should always be at the top level of the content array
 	// to ensure they are correctly filtered and managed by the history pruning systems.
 	result.push(...newUserContent)

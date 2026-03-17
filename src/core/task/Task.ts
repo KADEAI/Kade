@@ -66,7 +66,7 @@ import {
 } from "../../api";
 import { ApiStream, GroundingSource } from "../../api/transform/stream";
 import { maybeRemoveImageBlocks } from "../../api/transform/image-cleaning";
-import { VirtualQuotaFallbackHandler } from "../../api/providers/virtual-quota-fallback"; // kilocode_change: Import VirtualQuotaFallbackHandler for model change notifications
+import { VirtualQuotaFallbackHandler } from "../../api/providers/virtual-quota-fallback"; // kade_change: Import VirtualQuotaFallbackHandler for model change notifications
 
 // shared
 import { findLastIndex } from "../../shared/array";
@@ -162,12 +162,12 @@ import {
   checkpointRestore,
   checkpointDiff,
 } from "../checkpoints";
-import { processKiloUserContentMentions } from "../mentions/processKiloUserContentMentions"; // kilocode_change
-import { refreshWorkflowToggles } from "../context/instructions/workflows"; // kilocode_change
-import { parseMentions } from "../mentions"; // kilocode_change
-import { parseKiloSlashCommands } from "../slash-commands/kilo"; // kilocode_change
-import { GlobalFileNames } from "../../shared/globalFileNames"; // kilocode_change
-import { ensureLocalKilorulesDirExists } from "../context/instructions/kilo-rules"; // kilocode_change
+import { processKiloUserContentMentions } from "../mentions/processKiloUserContentMentions"; // kade_change
+import { refreshWorkflowToggles } from "../context/instructions/workflows"; // kade_change
+import { parseMentions } from "../mentions"; // kade_change
+import { parseKiloSlashCommands } from "../slash-commands/kilo"; // kade_change
+import { GlobalFileNames } from "../../shared/globalFileNames"; // kade_change
+import { ensureLocalKilorulesDirExists } from "../context/instructions/kilo-rules"; // kade_change
 import { processUserContentMentions } from "../mentions/processUserContentMentions";
 import {
   getMessagesSinceLastSummary,
@@ -195,7 +195,7 @@ const FORCED_CONTEXT_REDUCTION_PERCENT = 75; // Keep 75% of context (remove 25%)
 const MAX_CONTEXT_WINDOW_RETRIES = 3; // Maximum retries for context window errors
 
 export interface TaskOptions extends CreateTaskOptions {
-  context: vscode.ExtensionContext; // kilocode_change
+  context: vscode.ExtensionContext; // kade_change
   provider: ClineProvider;
   apiConfiguration: ProviderSettings;
   enableDiff?: boolean;
@@ -218,20 +218,20 @@ export interface TaskOptions extends CreateTaskOptions {
   /** Initial status for the task's history item (e.g., "active" for child tasks) */
   initialStatus?: "active" | "delegated" | "completed";
   enableSubAgents?: boolean;
-  previousApiConversationHistory?: ApiMessage[]; // kilocode_change
-  slidingWindowSize?: number; // kilocode_change
+  previousApiConversationHistory?: ApiMessage[]; // kade_change
+  slidingWindowSize?: number; // kade_change
 }
 
-type UserContent = Array<Anthropic.ContentBlockParam>; // kilocode_change
+type UserContent = Array<Anthropic.ContentBlockParam>; // kade_change
 
 export class Task
   extends EventEmitter<TaskEvents>
   implements TaskLike, LuxurySpaDelegate
 {
-  private context: vscode.ExtensionContext; // kilocode_change
+  private context: vscode.ExtensionContext; // kade_change
 
   readonly taskId: string;
-  private taskIsFavorited?: boolean; // kilocode_change
+  private taskIsFavorited?: boolean; // kade_change
   readonly rootTaskId?: string;
   readonly parentTaskId?: string;
   childTaskId?: string;
@@ -364,7 +364,7 @@ export class Task
   consecutiveMistakeLimit: number;
   consecutiveMistakeCountForApplyDiff: Map<string, number> = new Map();
   toolUsage: ToolUsage = {};
-  public slidingWindowSize?: number; // kilocode_change
+  public slidingWindowSize?: number; // kade_change
 
   // Checkpoints
   enableCheckpoints: boolean;
@@ -392,7 +392,7 @@ export class Task
   public userMessageContent: (
     | Anthropic.TextBlockParam
     | Anthropic.ImageBlockParam
-    | Anthropic.ToolResultBlockParam // kilocode_change
+    | Anthropic.ToolResultBlockParam // kade_change
   )[] = [];
   public userMessageContentReady = false;
   public didRejectTool = false;
@@ -426,7 +426,7 @@ export class Task
   private readonly TOKEN_USAGE_EMIT_INTERVAL_MS = 500;
   private debouncedEmitTokenUsage: ReturnType<typeof debounce>;
 
-  // kilocode_change: Cached task directory path to avoid repeated async lookups on every save
+  // kade_change: Cached task directory path to avoid repeated async lookups on every save
   private _cachedTaskDirPath?: string;
 
   // Cloud Sync Tracking
@@ -440,10 +440,10 @@ export class Task
 
   private didGenerateTitle = false;
 
-  public latestEnvironmentDetails?: string; // kilocode_change
-  public latestFileList?: string; // kilocode_change
+  public latestEnvironmentDetails?: string; // kade_change
+  public latestFileList?: string; // kade_change
 
-  // kilocode_change: Debounced live titling to avoid updating task history on every single message
+  // kade_change: Debounced live titling to avoid updating task history on every single message
   private pendingLiveTitle?: string;
   private readonly debouncedLiveTitleUpdate = debounce(
     () => {
@@ -488,7 +488,7 @@ export class Task
 
   private async computeAndSaveTaskMetadata() {
     try {
-      // kilocode_change: Cache system prompt to avoid UI jank from repeated heavy disk I/O
+      // kade_change: Cache system prompt to avoid UI jank from repeated heavy disk I/O
       const now = Date.now();
       if (
         !this._cachedSystemPrompt ||
@@ -517,7 +517,7 @@ export class Task
           ]),
         ),
         systemPrompt,
-        apiConfiguration: this.apiConfiguration, // kilocode_change: Snapshot API config into history
+        apiConfiguration: this.apiConfiguration, // kade_change: Snapshot API config into history
       });
 
       this.debouncedEmitTokenUsage(tokenUsage, this.toolUsage);
@@ -553,7 +553,7 @@ export class Task
       workspacePath,
       initialStatus,
     } = options;
-    this.context = context; // kilocode_change
+    this.context = context; // kade_change
 
     if (startTask && !task && !images && !historyItem) {
       throw new Error("Either historyItem or task/images must be provided");
@@ -574,7 +574,7 @@ export class Task
     }
 
     this.taskId = historyItem ? historyItem.id : crypto.randomUUID();
-    this.taskIsFavorited = historyItem?.isFavorited; // kilocode_change
+    this.taskIsFavorited = historyItem?.isFavorited; // kade_change
     this.rootTaskId = historyItem ? historyItem.rootTaskId : rootTask?.taskId;
     this.parentTaskId = historyItem
       ? historyItem.parentTaskId
@@ -590,7 +590,7 @@ export class Task
     this.workspacePath = parentTask
       ? parentTask.workspacePath
       : (workspacePath ??
-        getWorkspacePath(path.join(os.homedir(), "Documents"))); // kilocode_change: use Documents instead of Desktop as default
+        getWorkspacePath(path.join(os.homedir(), "Documents"))); // kade_change: use Documents instead of Desktop as default
 
     this.instanceId = crypto.randomUUID().slice(0, 8);
     this.taskNumber = -1;
@@ -606,7 +606,7 @@ export class Task
     });
 
     this.apiConfiguration = apiConfiguration;
-    this.slidingWindowSize = options.slidingWindowSize ?? 50; // kilocode_change: Init slidingWindowSize
+    this.slidingWindowSize = options.slidingWindowSize ?? 50; // kade_change: Init slidingWindowSize
 
     // Optimize: Use cached API handler when possible
     const configKey = JSON.stringify(apiConfiguration);
@@ -627,13 +627,13 @@ export class Task
       }
       Task.apiHandlerCache.set(configKey, this.api);
     }
-    // kilocode_change start: Listen for model changes in virtual quota fallback
+    // kade_change start: Listen for model changes in virtual quota fallback
     if (this.api instanceof VirtualQuotaFallbackHandler) {
       this.api.on("handlerChanged", () => {
         this.emit("modelChanged");
       });
     }
-    // kilocode_change end
+    // kade_change end
     this.autoApprovalHandler = new AutoApprovalHandler();
 
     this.urlContentFetcher = new UrlContentFetcher(provider.context);
@@ -678,16 +678,16 @@ export class Task
     this.consecutiveMistakeLimit =
       consecutiveMistakeLimit ?? DEFAULT_CONSECUTIVE_MISTAKE_LIMIT;
     this.providerRef = new WeakRef(provider);
-    // kilocode_change start: Handle CLI mode where globalStorageUri might not be properly set
+    // kade_change start: Handle CLI mode where globalStorageUri might not be properly set
     this.globalStoragePath =
       provider.context?.globalStorageUri?.fsPath ??
       this.getCliGlobalStoragePath();
-    // kilocode_change end
+    // kade_change end
     this.diffViewProvider = new DiffViewProvider(this.cwd, this);
     this.enableCheckpoints = enableCheckpoints;
     this.checkpointTimeout = checkpointTimeout;
     this.enableBridge = enableBridge;
-    this.enableSubAgents = experimentsConfig?.enableSubAgents ?? false; // kilocode_change: check experiment first
+    this.enableSubAgents = experimentsConfig?.enableSubAgents ?? false; // kade_change: check experiment first
     if (options.enableSubAgents !== undefined) {
       this.enableSubAgents = options.enableSubAgents;
     }
@@ -697,11 +697,11 @@ export class Task
     this.taskNumber = taskNumber;
     this.initialStatus = initialStatus;
 
-    // kilocode_change start: Initialize with previous conversation history if provided
+    // kade_change start: Initialize with previous conversation history if provided
     if (options.previousApiConversationHistory) {
       this.apiConversationHistory = [...options.previousApiConversationHistory];
     }
-    // kilocode_change end
+    // kade_change end
 
     // Store the task's mode when it's created.
     // For history items, use the stored mode; for new tasks, we'll set it
@@ -771,7 +771,7 @@ export class Task
     this.messageQueueStateChangedHandler = () => {
       this.emit(RooCodeEventName.TaskUserMessage, this.taskId);
       this.providerRef.deref()?.debouncedPostStateToWebview();
-      this.emit("modelChanged"); // kilocode_change: Emit modelChanged for virtual quota fallback UI updates
+      this.emit("modelChanged"); // kade_change: Emit modelChanged for virtual quota fallback UI updates
     };
 
     this.messageQueueService.on(
@@ -838,7 +838,7 @@ export class Task
           );
           this.tokenUsageSnapshot = tokenUsage;
           this.tokenUsageSnapshotAt = this.clineMessages.at(-1)?.ts;
-          // kilocode_change: Shallow clone instead of JSON.parse(JSON.stringify()) for better perf
+          // kade_change: Shallow clone instead of JSON.parse(JSON.stringify()) for better perf
           // ToolUsage is Record<ToolName, {attempts, ...}> — one level deep
           this.toolUsageSnapshot = Object.fromEntries(
             Object.entries(toolUsage).map(([k, v]) => [k, { ...v }]),
@@ -866,7 +866,7 @@ export class Task
     }
   }
 
-  // kilocode_change start
+  // kade_change start
   private getContext(): vscode.ExtensionContext {
     const context = this.context;
     if (!context) {
@@ -898,7 +898,7 @@ export class Task
 
     return cliStoragePath;
   }
-  // kilocode_change end
+  // kade_change end
   /**
    * Initialize the task mode from the provider state.
    * This method handles async initialization with proper error handling.
@@ -1145,7 +1145,7 @@ export class Task
       const reasoningSummary = handler.getSummary?.();
       const reasoningDetails = handler.getReasoningDetails?.();
 
-      // kilocode_change start: prevent consecutive same-role messages, this happens when returning from subtask
+      // kade_change start: prevent consecutive same-role messages, this happens when returning from subtask
       const lastMessage = this.apiConversationHistory.at(-1);
       if (lastMessage && lastMessage.role === message.role) {
         this.apiConversationHistory[this.apiConversationHistory.length - 1] =
@@ -1153,7 +1153,7 @@ export class Task
         await this.saveApiConversationHistory();
         return;
       }
-      // kilocode_change end
+      // kade_change end
 
       // Start from the original assistant message
       const messageWithTs: any = {
@@ -1241,7 +1241,7 @@ export class Task
 
       this.apiConversationHistory.push(messageWithTs);
     } else {
-      // kilocode_change: Luxury Spa Treatment - Prune bulky history to keep context clean
+      // kade_change: Luxury Spa Treatment - Prune bulky history to keep context clean
       this.pruneEnvironmentDetailsFromHistory();
       this.pruneTerminalOutputFromHistory();
 
@@ -1340,7 +1340,7 @@ export class Task
         globalStoragePath: this.globalStoragePath,
       });
 
-      // kilocode_change start
+      // kade_change start
       // Post directly to webview for CLI to react to file save.
       // This must not prevent saving history or emitting usage events if
       // storage is unavailable (e.g., during unit tests).
@@ -1368,7 +1368,7 @@ export class Task
           error,
         );
       }
-      // kilocode_change end
+      // kade_change end
     } catch (error) {
       // In the off chance this fails, we don't want to stop the task.
       console.error("Failed to save API conversation history:", error);
@@ -1388,7 +1388,7 @@ export class Task
     this.clineMessages.push(message);
     const provider = this.providerRef.deref();
 
-    // kilocode_change: Live Assistant Heartbeat Titling (debounced to avoid per-message overhead)
+    // kade_change: Live Assistant Heartbeat Titling (debounced to avoid per-message overhead)
     // PERF: Only process title for user-visible text messages, skip tool JSON, reasoning, api_req, etc.
     if (message.type === "say" && message.text && message.say === "text") {
       const text = message.text;
@@ -1428,7 +1428,7 @@ export class Task
       this.debouncedSaveClineMessages();
     }
 
-    // kilocode_change start: no cloud service
+    // kade_change start: no cloud service
     // const shouldCaptureMessage = message.partial !== true && CloudService.isEnabled()
 
     // if (shouldCaptureMessage) {
@@ -1437,7 +1437,7 @@ export class Task
     // 		properties: { taskId: this.taskId, message },
     // 	})
     // }
-    // kilocode_change end
+    // kade_change end
   }
 
   public async overwriteClineMessages(newMessages: ClineMessage[]) {
@@ -1475,7 +1475,7 @@ export class Task
       message.partial !== true && CloudService.isEnabled();
     const hasNotBeenSynced = !this.cloudSyncedMessageTimestamps.has(message.ts);
 
-    // kilocode_change start: no cloud service
+    // kade_change start: no cloud service
     // if (shouldCaptureMessage && hasNotBeenSynced) {
     // 	CloudService.instance.captureEvent({
     // 		event: TelemetryEventName.TASK_MESSAGE,
@@ -1484,7 +1484,7 @@ export class Task
     // 	// Track that this message has been synced to cloud
     // 	this.cloudSyncedMessageTimestamps.add(message.ts)
     // }
-    // kilocode_change end
+    // kade_change end
   }
 
   public async saveClineMessages() {
@@ -1495,7 +1495,7 @@ export class Task
         globalStoragePath: this.globalStoragePath,
       });
 
-      // kilocode_change start
+      // kade_change start
       // Post directly to webview for CLI to react to file save.
       // Keep this isolated so filesystem issues don't prevent token usage
       // updates (important for unit tests and degraded environments).
@@ -1523,7 +1523,7 @@ export class Task
           error,
         );
       }
-      // kilocode_change end
+      // kade_change end
 
       // PERF: During active streaming (or before task init completes), defer
       // the expensive taskMetadata computation.
@@ -1654,7 +1654,7 @@ export class Task
           await this.saveClineMessages();
           this.updateClineMessage(lastMessage);
         } else {
-          // kilocode_change: Check if there's an existing say("tool") message for the SAME tool
+          // kade_change: Check if there's an existing say("tool") message for the SAME tool
           // Match by tool name + path (not ID, since parser IDs get reset between turns)
           // If found, CONVERT it to ask("tool") instead of creating a new message
           let convertedExistingSay = false;
@@ -1722,7 +1722,7 @@ export class Task
             this.askResponse = undefined;
             this.askResponseText = undefined;
             this.askResponseImages = undefined;
-            askTs = await this.nextClineMessageTimestamp_kilocode(); // kilocode_change
+            askTs = await this.nextClineMessageTimestamp_kilocode(); // kade_change
             console.log(`Task#ask: new complete ask -> ${type} @${askTs} `);
             this.lastMessageTs = askTs;
             await this.addToClineMessages({
@@ -1740,7 +1740,7 @@ export class Task
       this.askResponse = undefined;
       this.askResponseText = undefined;
       this.askResponseImages = undefined;
-      askTs = await this.nextClineMessageTimestamp_kilocode(); // kilocode_change
+      askTs = await this.nextClineMessageTimestamp_kilocode(); // kade_change
       this.lastMessageTs = askTs;
       await this.addToClineMessages({
         ts: askTs,
@@ -1751,7 +1751,7 @@ export class Task
       });
     }
 
-    // kilocode_change start: YOLO mode auto-answer for follow-up questions
+    // kade_change start: YOLO mode auto-answer for follow-up questions
     // Check if this is a follow-up question with suggestions in YOLO mode
     if (type === "followup" && text && !partial) {
       try {
@@ -1795,10 +1795,10 @@ export class Task
         );
       }
     }
-    // kilocode_change end
+    // kade_change end
     let timeouts: NodeJS.Timeout[] = [];
 
-    // kilocode_change start: YOLO mode auto-answer for tools
+    // kade_change start: YOLO mode auto-answer for tools
     if (this.yoloMode && !partial) {
       if (
         type === "tool" ||
@@ -1809,7 +1809,7 @@ export class Task
         this.approveAsk();
       }
     }
-    // kilocode_change end
+    // kade_change end
 
     // Automatically approve if the ask according to the user's settings.
     const provider = this.providerRef.deref();
@@ -1963,7 +1963,7 @@ export class Task
     text?: string,
     images?: string[],
   ) {
-    // kilocode_change: Prevent "Ghost Message" race condition where rapid clicks trigger duplicate tools
+    // kade_change: Prevent "Ghost Message" race condition where rapid clicks trigger duplicate tools
     if (this._processingAskTs === this.lastMessageTs) {
       console.warn(
         `[Task#${this.taskId}] Ignoring duplicate response for timestamp ${this.lastMessageTs}`,
@@ -1978,11 +1978,11 @@ export class Task
     this.askResponseText = text;
     this.askResponseImages = images;
 
-    // kilocode_change start
+    // kade_change start
     // the askResponse assignment needs to happen last to avoid the async
     // callbacks triggering before we assign the data above
     this.askResponse = askResponse; // this triggers async callbacks
-    // kilocode_change end
+    // kade_change end
 
     // Create a checkpoint whenever the user sends a message.
     // Use allowEmpty=true to ensure a checkpoint is recorded even if there are no file changes.
@@ -2054,7 +2054,7 @@ export class Task
     // Update the configuration and rebuild the API handler
     this.apiConfiguration = newApiConfiguration;
 
-    // kilocode_change: Ensure the updated configuration is persisted to history immediately
+    // kade_change: Ensure the updated configuration is persisted to history immediately
     this.computeAndSaveTaskMetadata().catch((error) => {
       console.warn("Failed to save task metadata after config update:", error);
     });
@@ -2339,8 +2339,8 @@ export class Task
     progressStatus?: ToolProgressStatus,
     options: {
       isNonInteractive?: boolean;
-      skipSave?: boolean; // kilocode_change: allow skipping save for high-freq updates
-      metadata?: Record<string, unknown>; // kilocode_change
+      skipSave?: boolean; // kade_change: allow skipping save for high-freq updates
+      metadata?: Record<string, unknown>; // kade_change
     } = {},
     contextCondense?: ContextCondense,
     contextTruncation?: ContextTruncation,
@@ -2360,7 +2360,7 @@ export class Task
         lastMessage.type === "say" &&
         lastMessage.say === type;
 
-      // kilocode_change: For tool messages, we must also check that the tool ID matches
+      // kade_change: For tool messages, we must also check that the tool ID matches
       // Otherwise, multiple tool operations (e.g., 4 edits) would overwrite each other's messages
       if (
         isUpdatingPreviousPartial &&
@@ -2434,14 +2434,14 @@ export class Task
           lastMessage.images = images;
           lastMessage.partial = false;
           lastMessage.progressStatus = progressStatus;
-          // kilocode_change start
+          // kade_change start
           if (options.metadata) {
             lastMessage.metadata = Object.assign(
               lastMessage.metadata ?? {},
               options.metadata,
             );
           }
-          // kilocode_change end
+          // kade_change end
 
           // Instead of streaming partialMessage events, we do a save
           // and post like normal to persist to disk.
@@ -2495,7 +2495,7 @@ export class Task
         images,
         checkpoint,
         contextCondense,
-        metadata: options.metadata, // kilocode_change
+        metadata: options.metadata, // kade_change
         contextTruncation,
       });
     }
@@ -2576,7 +2576,7 @@ export class Task
       formatResponse.imageBlocks(images);
 
     // Task starting
-    // kilocode_change start: Use <initial_request> instead of <task>
+    // kade_change start: Use <initial_request> instead of <task>
     // The old <task> wrapper implied this was THE GOAL to pursue forever.
     // The new framing treats it as the user's first message in a conversation.
     // PERF: Start the first loop immediately instead of yielding to setTimeout(0).
@@ -2596,8 +2596,8 @@ export class Task
       }
       throw error;
     });
-    // kilocode_change end
-    // kilocode_change end
+    // kade_change end
+    // kade_change end
   }
 
   private async resumeTaskFromHistory() {
@@ -2710,7 +2710,7 @@ export class Task
     // Only convert tool blocks to text for XML protocol
     // For native protocol, the API expects proper tool_use/tool_result structure
     if (!useNative) {
-      // kilocode_change start
+      // kade_change start
       // const conversationWithoutToolBlocks = existingApiConversationHistory.map((message) => {
       // 	if (Array.isArray(message.content)) {
       // 		const newContent = message.content.map((block) => {
@@ -2741,7 +2741,7 @@ export class Task
       // 	return message
       // })
       // existingApiConversationHistory = conversationWithoutToolBlocks
-      // kilocode_change end
+      // kade_change end
     }
 
     // FIXME: remove tool use blocks altogether
@@ -2857,7 +2857,7 @@ export class Task
       modifiedOldUserContent = [];
     }
 
-    // kilocode_change start: Safety Net for "Amnesia"
+    // kade_change start: Safety Net for "Amnesia"
     // Check if the last UI message is a user feedback that is MISSING from the API history.
     // This happens if the user sends a message, and the window reloads/crashes before it is saved to apiConversationHistory.
     const lastClineMsg =
@@ -2906,7 +2906,7 @@ export class Task
         }
       }
     }
-    // kilocode_change end
+    // kade_change end
 
     let newUserContent: Anthropic.Messages.ContentBlockParam[] = [
       ...modifiedOldUserContent,
@@ -2933,21 +2933,21 @@ export class Task
     })();
 
     if (responseText) {
-      // kilocode_change start
+      // kade_change start
       newUserContent = addOrMergeUserContent(newUserContent, [
         {
           type: "text",
           text: `${responseText}`,
         },
       ]);
-      // kilocode_change end
+      // kade_change end
     }
 
     if (responseImages && responseImages.length > 0) {
       newUserContent = addOrMergeUserContent(
         newUserContent,
         formatResponse.imageBlocks(responseImages),
-      ); // kilocode_change
+      ); // kade_change
     }
 
     // Ensure we have at least some content to send to the API.
@@ -3053,7 +3053,7 @@ export class Task
       );
       // Don't rethrow - we want abort to always succeed
     }
-    // kilocode_change: Do not await message saving during abort to keep it snappy.
+    // kade_change: Do not await message saving during abort to keep it snappy.
     // The disposal and abort flags are already set.
     this.saveClineMessages().catch((error) => {
       console.error(
@@ -3314,12 +3314,12 @@ export class Task
     this.emit(RooCodeEventName.TaskStarted);
 
     while (!this.abort) {
-      this.emit(RooCodeEventName.TaskActive, this.taskId); // kilocode_change: signal active processing
+      this.emit(RooCodeEventName.TaskActive, this.taskId); // kade_change: signal active processing
       const didEndLoop = await this.recursivelyMakeClineRequests(
         nextUserContent,
         includeFileDetails,
       );
-      this.emit(RooCodeEventName.TaskIdle, this.taskId); // kilocode_change: signal idle/waiting
+      this.emit(RooCodeEventName.TaskIdle, this.taskId); // kade_change: signal idle/waiting
       includeFileDetails = false; // We only need file details the first time.
 
       // After each assistant turn, either end the loop or wait for the next real user message.
@@ -3377,7 +3377,7 @@ export class Task
     return new AgentLoop(this).run(userContent, includeFileDetails);
   }
 
-  // kilocode_change start
+  // kade_change start
   public async loadContext(
     userContent: UserContent,
     includeFileDetails: boolean = false,
@@ -3401,7 +3401,7 @@ export class Task
               block.text.includes("<feedback>") ||
               block.text.includes("<answer>") ||
               block.text.includes("<task>") ||
-              block.text.includes("<initial_request>") || // kilocode_change: new wrapper for user requests
+              block.text.includes("<initial_request>") || // kade_change: new wrapper for user requests
               block.text.includes("<user_message>")
             ) {
               const parsedText = await parseMentions(
@@ -3423,7 +3423,7 @@ export class Task
                 needsClinerulesFileCheck = true;
               }
 
-              // kilocode_change: Track mentions in activeFileReads so they get the "Luxury Spa Treatment" (turn-by-turn refresh)
+              // kade_change: Track mentions in activeFileReads so they get the "Luxury Spa Treatment" (turn-by-turn refresh)
               const mentionRegex =
                 /\[read_file\s+for\s+'(.*?)'\]\s+Result\s+\(id:\s+\[mention\]\):/g;
               let mentionMatch;
@@ -3465,10 +3465,10 @@ export class Task
     }
 
     // Return all results
-    this.latestEnvironmentDetails = environmentDetails; // kilocode_change
+    this.latestEnvironmentDetails = environmentDetails; // kade_change
     return [processedUserContent, environmentDetails, clinerulesError];
   }
-  // kilocode_change end
+  // kade_change end
 
   /**
    * Invalidate the cached system prompt to force regeneration on next use.
@@ -3479,7 +3479,7 @@ export class Task
     this._lastSystemPromptRefresh = 0;
   }
 
-  /*private kilocode_change*/ async getSystemPrompt(): Promise<string> {
+  /*private kade_change*/ async getSystemPrompt(): Promise<string> {
     const { mcpEnabled } = (await this.providerRef.deref()?.getState()) ?? {};
     let mcpHub: McpHub | undefined;
     if (mcpEnabled ?? true) {
@@ -3605,14 +3605,14 @@ export class Task
         },
         undefined, // todoList
         this.api.getModel().id,
-        // kilocode_change start
+        // kade_change start
         state,
         enabledSkills,
         installedSkills,
-        // kilocode_change end
+        // kade_change end
       );
 
-      // kilocode_change: Dynamic Context Injection
+      // kade_change: Dynamic Context Injection
       const dynamicReminders = [];
 
       if (this.luxurySpa.systemReminders.length > 0) {
@@ -3641,7 +3641,7 @@ export class Task
         prompt += "\n" + dynamicReminders.join("\n");
       }
 
-      // kilocode_change: Inject latest environment details into system prompt
+      // kade_change: Inject latest environment details into system prompt
       if (this.latestEnvironmentDetails) {
         prompt += "\n" + this.latestEnvironmentDetails;
       }
@@ -3663,11 +3663,11 @@ export class Task
     const { profileThresholds = {} } = state ?? {};
 
     const { contextTokens } = this.getTokenUsage();
-    // kilocode_change start: Initialize virtual quota fallback handler
+    // kade_change start: Initialize virtual quota fallback handler
     if (this.api instanceof VirtualQuotaFallbackHandler) {
       await this.api.initialize();
     }
-    // kilocode_change end
+    // kade_change end
     const modelInfo = this.api.getModel().info;
 
     const maxTokens = getModelMaxOutputTokens({
@@ -3676,7 +3676,7 @@ export class Task
       settings: this.apiConfiguration,
     });
 
-    const contextWindow = this.api.contextWindow ?? modelInfo.contextWindow; // kilocode_change: Use contextWindow from API handler if available
+    const contextWindow = this.api.contextWindow ?? modelInfo.contextWindow; // kade_change: Use contextWindow from API handler if available
 
     // Get the current profile ID using the helper method
     const currentProfileId = this.getCurrentProfileId(state);
@@ -3853,12 +3853,12 @@ export class Task
     const { contextTokens } = this.getTokenUsage();
 
     if (contextTokens) {
-      // kilocode_change start: Initialize and adjust virtual quota fallback handler
+      // kade_change start: Initialize and adjust virtual quota fallback handler
       if (this.api instanceof VirtualQuotaFallbackHandler) {
         await this.api.initialize();
         await this.api.adjustActiveHandler("Pre-Request Adjustment");
       }
-      // kilocode_change end
+      // kade_change end
       const modelInfo = this.api.getModel().info;
 
       const maxTokens = getModelMaxOutputTokens({
@@ -3867,7 +3867,7 @@ export class Task
         settings: this.apiConfiguration,
       });
 
-      const contextWindow = this.api.contextWindow ?? modelInfo.contextWindow; // kilocode_change
+      const contextWindow = this.api.contextWindow ?? modelInfo.contextWindow; // kade_change
 
       // Get the current profile ID using the helper method
       const currentProfileId = this.getCurrentProfileId(state);
@@ -4008,7 +4008,7 @@ export class Task
       this.apiConversationHistory,
     );
 
-    // kilocode_change: Find the last user message before the summary to use as context anchor
+    // kade_change: Find the last user message before the summary to use as context anchor
     // This ensures we use the most recent user message instead of the very first one
     let lastUserMessageAnchor: ApiMessage | undefined;
     const lastSummaryIndex = this.apiConversationHistory
@@ -4036,10 +4036,10 @@ export class Task
       messagesWithoutImages as ApiMessage[],
     );
 
-    // kilocode_change start
+    // kade_change start
     // Fetch project properties for KiloCode provider tracking
     const kiloConfig = this.providerRef.deref()?.getKiloConfig();
-    // kilocode_change end
+    // kade_change end
 
     // Check auto-approval limits
     const approvalResult = this.yoloMode
@@ -4081,9 +4081,9 @@ export class Task
         apiConfiguration,
         maxReadFileLine: state?.maxReadFileLine ?? -1,
         browserToolEnabled: state?.browserToolEnabled ?? true,
-        // kilocode_change start
+        // kade_change start
         state,
-        // kilocode_change end
+        // kade_change end
         modelInfo,
         diffEnabled: this.diffEnabled,
         enableSubAgents: this.enableSubAgents,
@@ -4117,7 +4117,7 @@ export class Task
             toolProtocol !== TOOL_PROTOCOL.MARKDOWN
           ? { tool_manifest: allTools }
           : {}), // In XML/Unified/Markdown mode, tool manifest is handled via system prompt
-      projectId: (await kiloConfig)?.project?.id, // kilocode_change: pass projectId for backend tracking (ignored by other providers)
+      projectId: (await kiloConfig)?.project?.id, // kade_change: pass projectId for backend tracking (ignored by other providers)
     };
 
     // Create an AbortController to allow cancelling the request mid-stream
@@ -4228,7 +4228,7 @@ export class Task
         throw new Error("Connection timeout - please check your network");
       }
 
-      // kilocode_change start
+      // kade_change start
       if (
         apiConfiguration?.apiProvider === "kilocode" &&
         isAnyRecognizedKiloCodeError(error)
@@ -4270,7 +4270,7 @@ export class Task
         }
         return;
       }
-      // kilocode_change end
+      // kade_change end
       // note that this api_req_failed ask is unique in that we only present this option if the api hasn't streamed any content yet (ie it fails on the first chunk due), as it would allow them to hit a retry button. However if the api failed mid-stream, it could be in any arbitrary state where some tools may have executed, so that error is handled differently and requires cancelling the task entirely.
       if (autoApprovalEnabled && alwaysApproveResubmit) {
         let errorMsg;
@@ -4330,11 +4330,11 @@ export class Task
     // stream.
     yield* iterator;
 
-    // kilocode_change start
+    // kade_change start
     if (apiConfiguration?.rateLimitAfter) {
       Task.lastGlobalApiRequestTime = performance.now();
     }
-    // kilocode_change end
+    // kade_change end
 
     await cleanupRequestResources();
   }
@@ -4624,7 +4624,7 @@ export class Task
     TelemetryService.instance.captureEvent(TelemetryEventName.TOOL_ERROR, {
       toolName,
       error,
-    }); // kilocode_change
+    }); // kade_change
   }
 
   // Getters
@@ -4782,7 +4782,7 @@ export class Task
     }
   }
 
-  // kilocode_change start: Dynamic Context Helpers
+  // kade_change start: Dynamic Context Helpers
   public addSystemReminder(reminder: string, filePath?: string) {
     this.luxurySpa.addSystemReminder(reminder, filePath);
   }

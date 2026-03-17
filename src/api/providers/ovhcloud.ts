@@ -1,4 +1,4 @@
-// kilocode_change - file added
+// kade_change - file added
 import { ovhCloudAiEndpointsDefaultModelId, ovhCloudAiEndpointsDefaultModelInfo } from "@roo-code/types"
 import type { ApiHandlerOptions } from "../../shared/api"
 

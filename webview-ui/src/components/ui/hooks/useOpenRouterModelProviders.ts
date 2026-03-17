@@ -23,9 +23,9 @@ const openRouterEndpointsSchema = z.object({
 		endpoints: z.array(
 			z.object({
 				name: z.string(),
-				// kilocode_change start
+				// kade_change start
 				provider_name: z.string(),
-				// kilocode_change end
+				// kade_change end
 				tag: z.string().optional(),
 				context_length: z.number(),
 				max_completion_tokens: z.number().nullish(),
@@ -46,7 +46,7 @@ type OpenRouterModelProvider = ModelInfo & {
 	label: string
 }
 
-// kilocode_change: baseUrl, apiKey
+// kade_change: baseUrl, apiKey
 async function getOpenRouterProvidersForModel(modelId: string, baseUrl?: string, apiKey?: string) {
 	const models: Record<string, OpenRouterModelProvider> = {}
 
@@ -54,12 +54,12 @@ async function getOpenRouterProvidersForModel(modelId: string, baseUrl?: string,
 		// Extract base model ID by removing any suffix after ':' (e.g., ':thinking')
 		const baseModelId = modelId.split(':')[0]
 		
-		// kilocode_change start: baseUrl, apiKey
+		// kade_change start: baseUrl, apiKey
 		const response = await axios.get(
 			`${baseUrl?.trim() || "https://openrouter.ai/api/v1"}/models/${baseModelId}/endpoints`,
 			apiKey ? { headers: { Authorization: `Bearer ${apiKey}` } } : undefined,
 		)
-		// kilocode_change end
+		// kade_change end
 		const result = openRouterEndpointsSchema.safeParse(response.data)
 
 		if (!result.success) {
@@ -75,7 +75,7 @@ async function getOpenRouterProvidersForModel(modelId: string, baseUrl?: string,
 		}
 
 		for (const endpoint of endpoints) {
-			const providerName = endpoint.tag ?? endpoint.provider_name // kilocode_change
+			const providerName = endpoint.tag ?? endpoint.provider_name // kade_change
 			const inputPrice = parseApiPrice(endpoint.pricing?.prompt)
 			const outputPrice = parseApiPrice(endpoint.pricing?.completion)
 			const cacheReadsPrice = parseApiPrice(endpoint.pricing?.input_cache_read)
@@ -112,7 +112,7 @@ type UseOpenRouterModelProvidersOptions = Omit<
 	"queryKey" | "queryFn"
 >
 
-// kilocode_change start: baseUrl, apiKey, organizationId
+// kade_change start: baseUrl, apiKey, organizationId
 export const useOpenRouterModelProviders = (
 	modelId?: string,
 	baseUrl?: string,
@@ -125,4 +125,4 @@ export const useOpenRouterModelProviders = (
 		queryFn: () => (modelId ? getOpenRouterProvidersForModel(modelId, baseUrl, apiKey) : {}),
 		...options,
 	})
-// kilocode_change end
+// kade_change end

@@ -6,8 +6,8 @@ import {
 	type CustomModePrompts,
 	type ModeConfig,
 	type ExperimentId,
-	GhostServiceSettings, // kilocode_change
-	openRouterDefaultModelId, // kilocode_change
+	GhostServiceSettings, // kade_change
+	openRouterDefaultModelId, // kade_change
 	type TodoItem,
 	type TelemetrySetting,
 	type OrganizationAllowList,
@@ -24,31 +24,31 @@ import { Mode, defaultModeSlug, defaultPrompts } from "@roo/modes"
 import { CustomSupportPrompts } from "@roo/support-prompt"
 import { experimentDefault } from "@roo/experiments"
 import { RouterModels } from "@roo/api"
-import { McpMarketplaceCatalog } from "../../../src/shared/kilocode/mcp" // kilocode_change
+import { McpMarketplaceCatalog } from "../../../src/shared/kilocode/mcp" // kade_change
 
 import { vscode } from "@src/utils/vscode"
 import { convertTextMateToHljs } from "@src/utils/textMateToHljs"
-import { ClineRulesToggles } from "@roo/cline-rules" // kilocode_change
+import { ClineRulesToggles } from "@roo/cline-rules" // kade_change
 
 export interface ExtensionStateContextType extends ExtensionState {
 	subAgentApiConfiguration?: ProviderSettings
 	historyPreviewCollapsed?: boolean
-	showTaskTimeline?: boolean // kilocode_change
-	sendMessageOnEnter?: boolean // kilocode_change New state property for Enter key behavior
-	setShowTaskTimeline: (value: boolean) => void // kilocode_change
-	setSendMessageOnEnter: (value: boolean) => void // kilocode_change
-	showTimestamps?: boolean // kilocode_change
-	setShowTimestamps: (value: boolean) => void // kilocode_change
-	hideCostBelowThreshold?: number // kilocode_change
-	setHideCostBelowThreshold: (value: number) => void // kilocode_change
+	showTaskTimeline?: boolean // kade_change
+	sendMessageOnEnter?: boolean // kade_change New state property for Enter key behavior
+	setShowTaskTimeline: (value: boolean) => void // kade_change
+	setSendMessageOnEnter: (value: boolean) => void // kade_change
+	showTimestamps?: boolean // kade_change
+	setShowTimestamps: (value: boolean) => void // kade_change
+	hideCostBelowThreshold?: number // kade_change
+	setHideCostBelowThreshold: (value: number) => void // kade_change
 	collapseCodeToolsByDefault?: boolean
 	setCollapseCodeToolsByDefault: (value: boolean) => void
-	hoveringTaskTimeline?: boolean // kilocode_change
-	setHoveringTaskTimeline: (value: boolean) => void // kilocode_change
-	systemNotificationsEnabled?: boolean // kilocode_change
-	setSystemNotificationsEnabled: (value: boolean) => void // kilocode_change
-	dismissedNotificationIds: string[] // kilocode_change
-	// kilocode_change start - Auto-purge settings
+	hoveringTaskTimeline?: boolean // kade_change
+	setHoveringTaskTimeline: (value: boolean) => void // kade_change
+	systemNotificationsEnabled?: boolean // kade_change
+	setSystemNotificationsEnabled: (value: boolean) => void // kade_change
+	dismissedNotificationIds: string[] // kade_change
+	// kade_change start - Auto-purge settings
 	autoPurgeEnabled?: boolean
 	setAutoPurgeEnabled: (value: boolean) => void
 	autoPurgeDefaultRetentionDays?: number
@@ -61,23 +61,23 @@ export interface ExtensionStateContextType extends ExtensionState {
 	setAutoPurgeIncompleteTaskRetentionDays: (value: number) => void
 	autoPurgeLastRunTimestamp?: number
 	setAutoPurgeLastRunTimestamp: (value: number) => void
-	// kilocode_change end
+	// kade_change end
 	didHydrateState: boolean
 	showWelcome: boolean
 	theme: any
 	mcpServers: McpServer[]
-	mcpMarketplaceCatalog: McpMarketplaceCatalog // kilocode_change
+	mcpMarketplaceCatalog: McpMarketplaceCatalog // kade_change
 	hasSystemPromptOverride?: boolean
 	currentCheckpoint?: string
 	currentTaskTodos?: TodoItem[] // Initial todos for the current task
 	filePaths: string[]
 	openedTabs: Array<{ label: string; isActive: boolean; path?: string }>
-	// kilocode_change start
+	// kade_change start
 	globalRules: ClineRulesToggles
 	localRules: ClineRulesToggles
 	globalWorkflows: ClineRulesToggles
 	localWorkflows: ClineRulesToggles
-	// kilocode_change start
+	// kade_change start
 	commands: Command[]
 	organizationAllowList: OrganizationAllowList
 	organizationSettingsVersion: number
@@ -85,7 +85,7 @@ export interface ExtensionStateContextType extends ExtensionState {
 	cloudOrganizations?: CloudOrganizationMembership[]
 	sharingEnabled: boolean
 	maxConcurrentFileReads?: number
-	allowVeryLargeReads?: boolean // kilocode_change
+	allowVeryLargeReads?: boolean // kade_change
 	mdmCompliant?: boolean
 	openAiCodexAuthenticated?: boolean
 	openAiCodexAccountId?: string
@@ -127,7 +127,7 @@ export interface ExtensionStateContextType extends ExtensionState {
 	setCustomCondensingPrompt: (value: string) => void
 	sttModelId?: string // For local model selection (e.g., "Xenova/whisper-tiny")
 	sttProvider?: "openai" | "gemini" | "local"
-	speechToTextStatus?: { available: boolean; reason?: "apiKeyMissing" | "ffmpegNotInstalled" } // kilocode_change: Speech-to-text availability status with failure reason
+	speechToTextStatus?: { available: boolean; reason?: "apiKeyMissing" | "ffmpegNotInstalled" } // kade_change: Speech-to-text availability status with failure reason
 	marketplaceItems?: any[]
 	marketplaceInstalledMetadata?: MarketplaceInstalledMetadata
 	profileThresholds: Record<string, number>
@@ -140,16 +140,16 @@ export interface ExtensionStateContextType extends ExtensionState {
 	setAlwaysAllowReadOnlyOutsideWorkspace: (value: boolean) => void
 	setAlwaysAllowWrite: (value: boolean) => void
 	setAlwaysAllowWriteOutsideWorkspace: (value: boolean) => void
-	setAlwaysAllowDelete: (value: boolean) => void // kilocode_change
+	setAlwaysAllowDelete: (value: boolean) => void // kade_change
 	setAlwaysAllowExecute: (value: boolean) => void
 	setAlwaysAllowBrowser: (value: boolean) => void
 	setAlwaysAllowMcp: (value: boolean) => void
 	setAlwaysAllowModeSwitch: (value: boolean) => void
 	setAlwaysAllowSubtasks: (value: boolean) => void
 	setBrowserToolEnabled: (value: boolean) => void
-	setDisableBrowserHeadless: (value: boolean) => void // kilocode_change
+	setDisableBrowserHeadless: (value: boolean) => void // kade_change
 	setShowRooIgnoredFiles: (value: boolean) => void
-	setShowAutoApproveMenu: (value: boolean) => void // kilocode_change
+	setShowAutoApproveMenu: (value: boolean) => void // kade_change
 	setShowAnnouncement: (value: boolean) => void
 	setAllowedCommands: (value: string[]) => void
 	setDeniedCommands: (value: string[]) => void
@@ -200,11 +200,11 @@ export interface ExtensionStateContextType extends ExtensionState {
 	setCustomSupportPrompts: (value: CustomSupportPrompts) => void
 	enhancementApiConfigId?: string
 	setEnhancementApiConfigId: (value: string) => void
-	commitMessageApiConfigId?: string // kilocode_change
-	setCommitMessageApiConfigId: (value: string) => void // kilocode_change
-	markNotificationAsDismissed: (notificationId: string) => void // kilocode_change
-	ghostServiceSettings?: GhostServiceSettings // kilocode_change
-	setGhostServiceSettings: (value: GhostServiceSettings) => void // kilocode_change
+	commitMessageApiConfigId?: string // kade_change
+	setCommitMessageApiConfigId: (value: string) => void // kade_change
+	markNotificationAsDismissed: (notificationId: string) => void // kade_change
+	ghostServiceSettings?: GhostServiceSettings // kade_change
+	setGhostServiceSettings: (value: GhostServiceSettings) => void // kade_change
 	setExperimentEnabled: (id: ExperimentId, enabled: boolean) => void
 	setAutoApprovalEnabled: (value: boolean) => void
 	customModes: ModeConfig[]
@@ -250,10 +250,10 @@ export interface ExtensionStateContextType extends ExtensionState {
 	setIncludeCurrentTime: (value: boolean) => void
 	includeCurrentCost?: boolean
 	setIncludeCurrentCost: (value: boolean) => void
-	activeTaskIds?: string[] // kilocode_change
+	activeTaskIds?: string[] // kade_change
 	slidingWindowSize?: number
 	setSlidingWindowSize: (value: number) => void
-	resourceMonitorData?: any // kilocode_change
+	resourceMonitorData?: any // kade_change
 }
 
 export const ExtensionStateContext = createContext<ExtensionStateContextType | undefined>(undefined)
@@ -307,9 +307,9 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		apiConfiguration: {},
 		version: "",
 		clineMessages: [],
-		taskHistoryFullLength: 0, // kilocode_change
-		taskHistoryVersion: 0, // kilocode_change
-		activeTaskIds: [], // kilocode_change
+		taskHistoryFullLength: 0, // kade_change
+		taskHistoryVersion: 0, // kade_change
+		activeTaskIds: [], // kade_change
 		shouldShowAnnouncement: false,
 		allowedCommands: [],
 		deniedCommands: [],
@@ -335,9 +335,9 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		taskSyncEnabled: false,
 		featureRoomoteControlEnabled: false,
 		alwaysApproveResubmit: false,
-		alwaysAllowWrite: true, // kilocode_change
-		alwaysAllowReadOnly: true, // kilocode_change
-		slidingWindowSize: 50, // kilocode_change: Initialize slidingWindowSize
+		alwaysAllowWrite: true, // kade_change
+		alwaysAllowReadOnly: true, // kade_change
+		slidingWindowSize: 50, // kade_change: Initialize slidingWindowSize
 		requestDelaySeconds: 5,
 		currentApiConfigName: "default",
 		listApiConfigMeta: [],
@@ -346,12 +346,12 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		customSupportPrompts: {},
 		experiments: experimentDefault,
 		enhancementApiConfigId: "",
-		dismissedNotificationIds: [], // kilocode_change
-		commitMessageApiConfigId: "", // kilocode_change
-		ghostServiceSettings: {}, // kilocode_change
+		dismissedNotificationIds: [], // kade_change
+		commitMessageApiConfigId: "", // kade_change
+		ghostServiceSettings: {}, // kade_change
 		condensingApiConfigId: "", // Default empty string for condensing API config ID
 		customCondensingPrompt: "", // Default empty string for custom condensing prompt
-		yoloGatekeeperApiConfigId: "", // kilocode_change: Default empty string for gatekeeper API config ID
+		yoloGatekeeperApiConfigId: "", // kade_change: Default empty string for gatekeeper API config ID
 		hasOpenedModeSelector: false, // Default to false (not opened yet)
 		autoApprovalEnabled: true,
 		customModes: [],
@@ -361,7 +361,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		browserToolEnabled: true,
 		telemetrySetting: "unset",
 		showRooIgnoredFiles: true, // Default to showing .rooignore'd files with lock symbol (current behavior).
-		showAutoApproveMenu: false, // kilocode_change
+		showAutoApproveMenu: false, // kade_change
 		renderContext: "sidebar",
 		maxReadFileLine: -1, // Default max read file line limit
 		maxImageFileSize: 5, // Default max image file size in MB
@@ -369,15 +369,15 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		pinnedApiConfigs: {}, // Empty object for pinned API configs
 		terminalZshOhMy: false, // Default Oh My Zsh integration setting
 		maxConcurrentFileReads: 5, // Default concurrent file reads
-		allowVeryLargeReads: false, // kilocode_change
+		allowVeryLargeReads: false, // kade_change
 		terminalZshP10k: false, // Default Powerlevel10k integration setting
 		terminalZdotdir: false, // Default ZDOTDIR handling setting
 		terminalCompressProgressBar: true, // Default to compress progress bar output
 		historyPreviewCollapsed: false, // Initialize the new state (default to expanded)
 		dismissedUpsells: [],
-		showTaskTimeline: true, // kilocode_change
-		sendMessageOnEnter: true, // kilocode_change
-		showTimestamps: true, // kilocode_change
+		showTaskTimeline: true, // kade_change
+		sendMessageOnEnter: true, // kade_change
+		showTimestamps: true, // kade_change
 		collapseCodeToolsByDefault: false,
 		infinityEnabled: false,
 		infinityPrompt: "",
@@ -405,10 +405,10 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 			codebaseIndexEnabled: true,
 			codebaseIndexQdrantUrl: "http://localhost:6333",
 			codebaseIndexEmbedderProvider: "openai",
-			// kilocode_change start
+			// kade_change start
 			codebaseIndexVectorStoreProvider: "qdrant",
 			codebaseIndexLancedbVectorStoreDirectory: undefined,
-			// kilocode_change end
+			// kade_change end
 			codebaseIndexEmbedderBaseUrl: "",
 			codebaseIndexEmbedderModelId: "",
 			codebaseIndexSearchMaxResults: undefined,
@@ -420,14 +420,14 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		maxDiagnosticMessages: 50,
 		openRouterImageApiKey: "",
 		kiloCodeImageApiKey: "",
-		// kilocode_change start - Auto Purge
+		// kade_change start - Auto Purge
 		autoPurgeEnabled: false,
 		autoPurgeDefaultRetentionDays: 30,
 		autoPurgeFavoritedTaskRetentionDays: null,
 		autoPurgeCompletedTaskRetentionDays: 30,
 		autoPurgeIncompleteTaskRetentionDays: 7,
 		autoPurgeLastRunTimestamp: undefined,
-		// kilocode_change end
+		// kade_change end
 		openRouterImageGenerationSelectedModel: "",
 		includeCurrentTime: true,
 		includeCurrentCost: true,
@@ -452,15 +452,15 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 	const [openedTabs, setOpenedTabs] = useState<Array<{ label: string; isActive: boolean; path?: string }>>([])
 	const [commands, setCommands] = useState<Command[]>([])
 	const [mcpServers, setMcpServers] = useState<McpServer[]>([])
-	const [mcpMarketplaceCatalog, setMcpMarketplaceCatalog] = useState<McpMarketplaceCatalog>({ items: [] }) // kilocode_change
+	const [mcpMarketplaceCatalog, setMcpMarketplaceCatalog] = useState<McpMarketplaceCatalog>({ items: [] }) // kade_change
 	const [currentCheckpoint, setCurrentCheckpoint] = useState<string>()
 	const [extensionRouterModels, setExtensionRouterModels] = useState<RouterModels | undefined>(undefined)
-	// kilocode_change start
+	// kade_change start
 	const [globalRules, setGlobalRules] = useState<ClineRulesToggles>({})
 	const [localRules, setLocalRules] = useState<ClineRulesToggles>({})
 	const [globalWorkflows, setGlobalWorkflows] = useState<ClineRulesToggles>({})
 	const [localWorkflows, setLocalWorkflows] = useState<ClineRulesToggles>({})
-	// kilocode_change end
+	// kade_change end
 	const [marketplaceItems, setMarketplaceItems] = useState<any[]>([])
 	const [alwaysAllowFollowupQuestions, setAlwaysAllowFollowupQuestions] = useState(false) // Add state for follow-up questions auto-approve
 	const [followupAutoApproveTimeoutMs, setFollowupAutoApproveTimeoutMs] = useState<number | undefined>(undefined) // Will be set from global settings
@@ -607,7 +607,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 					setMcpServers(message.mcpServers ?? [])
 					break
 				}
-				// kilocode_change
+				// kade_change
 				case "mcpMarketplaceCatalog": {
 					if (message.mcpMarketplaceCatalog) {
 						setMcpMarketplaceCatalog(message.mcpMarketplaceCatalog)
@@ -621,7 +621,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 					if (message.localWorkflows) setLocalWorkflows(message.localWorkflows)
 					break
 				}
-				// end kilocode_change
+				// end kade_change
 				case "currentCheckpointUpdated": {
 					setCurrentCheckpoint(message.text)
 					break
@@ -696,16 +696,16 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		showWelcome,
 		theme,
 		mcpServers,
-		mcpMarketplaceCatalog, // kilocode_change
+		mcpMarketplaceCatalog, // kade_change
 		currentCheckpoint,
 		filePaths,
 		openedTabs,
-		// kilocode_change start
+		// kade_change start
 		globalRules,
 		localRules,
 		globalWorkflows,
 		localWorkflows,
-		// kilocode_change end
+		// kade_change end
 		commands,
 		soundVolume: state.soundVolume,
 		ttsSpeed: state.ttsSpeed,
@@ -744,7 +744,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		setAlwaysAllowWrite: (value) => setState((prevState) => ({ ...prevState, alwaysAllowWrite: value })),
 		setAlwaysAllowWriteOutsideWorkspace: (value) =>
 			setState((prevState) => ({ ...prevState, alwaysAllowWriteOutsideWorkspace: value })),
-		setAlwaysAllowDelete: (value) => setState((prevState) => ({ ...prevState, alwaysAllowDelete: value })), // kilocode_change
+		setAlwaysAllowDelete: (value) => setState((prevState) => ({ ...prevState, alwaysAllowDelete: value })), // kade_change
 		setAlwaysAllowExecute: (value) => setState((prevState) => ({ ...prevState, alwaysAllowExecute: value })),
 		setAlwaysAllowBrowser: (value) => setState((prevState) => ({ ...prevState, alwaysAllowBrowser: value })),
 		setAlwaysAllowMcp: (value) => setState((prevState) => ({ ...prevState, alwaysAllowMcp: value })),
@@ -795,7 +795,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		setCustomSupportPrompts: (value) => setState((prevState) => ({ ...prevState, customSupportPrompts: value })),
 		setEnhancementApiConfigId: (value) =>
 			setState((prevState) => ({ ...prevState, enhancementApiConfigId: value })),
-		// kilocode_change start
+		// kade_change start
 		markNotificationAsDismissed: (notificationId) => {
 			setState((prevState) => {
 				return {
@@ -809,7 +809,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 			setState((prevState) => ({ ...prevState, commitMessageApiConfigId: value })),
 		setShowAutoApproveMenu: (value) => setState((prevState) => ({ ...prevState, showAutoApproveMenu: value })),
 		setShowTaskTimeline: (value) => setState((prevState) => ({ ...prevState, showTaskTimeline: value })),
-		setSendMessageOnEnter: (value) => setState((prevState) => ({ ...prevState, sendMessageOnEnter: value })), // kilocode_change
+		setSendMessageOnEnter: (value) => setState((prevState) => ({ ...prevState, sendMessageOnEnter: value })), // kade_change
 		setHideCostBelowThreshold: (value) =>
 			setState((prevState) => ({ ...prevState, hideCostBelowThreshold: value })),
 		setCollapseCodeToolsByDefault: (value) =>
@@ -826,13 +826,13 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		setInfinityNextRunAt: (value) => setState((prevState) => ({ ...prevState, infinityNextRunAt: value })),
 		setInfinitySavedPrompts: (value) => setState((prevState) => ({ ...prevState, infinitySavedPrompts: value })),
 		setActiveInfinityPromptId: (value) => setState((prevState) => ({ ...prevState, activeInfinityPromptId: value })),
-		// kilocode_change end
+		// kade_change end
 		setAutoApprovalEnabled: (value) => setState((prevState) => ({ ...prevState, autoApprovalEnabled: value })),
 		setCustomModes: (value) => setState((prevState) => ({ ...prevState, customModes: value })),
 		setMaxOpenTabsContext: (value) => setState((prevState) => ({ ...prevState, maxOpenTabsContext: value })),
 		setMaxWorkspaceFiles: (value) => setState((prevState) => ({ ...prevState, maxWorkspaceFiles: value })),
 		setBrowserToolEnabled: (value) => setState((prevState) => ({ ...prevState, browserToolEnabled: value })),
-		setDisableBrowserHeadless: (value) => setState((prevState) => ({ ...prevState, disableBrowserHeadless: value })), // kilocode_change
+		setDisableBrowserHeadless: (value) => setState((prevState) => ({ ...prevState, disableBrowserHeadless: value })), // kade_change
 		setTelemetrySetting: (value) => setState((prevState) => ({ ...prevState, telemetrySetting: value })),
 		setShowRooIgnoredFiles: (value) => setState((prevState) => ({ ...prevState, showRooIgnoredFiles: value })),
 		setRemoteBrowserEnabled: (value) => setState((prevState) => ({ ...prevState, remoteBrowserEnabled: value })),
@@ -872,11 +872,11 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		setCustomCondensingPrompt: (value) =>
 			setState((prevState) => ({ ...prevState, customCondensingPrompt: value })),
 		setProfileThresholds: (value) => setState((prevState) => ({ ...prevState, profileThresholds: value })),
-		// kilocode_change start
+		// kade_change start
 		setSystemNotificationsEnabled: (value) =>
 			setState((prevState) => ({ ...prevState, systemNotificationsEnabled: value })),
-		dismissedNotificationIds: state.dismissedNotificationIds || [], // kilocode_change
-		// kilocode_change end
+		dismissedNotificationIds: state.dismissedNotificationIds || [], // kade_change
+		// kade_change end
 		alwaysAllowUpdateTodoList: state.alwaysAllowUpdateTodoList,
 		setAlwaysAllowUpdateTodoList: (value) => {
 			setState((prevState) => ({ ...prevState, alwaysAllowUpdateTodoList: value }))
@@ -889,7 +889,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		setMaxDiagnosticMessages: (value) => {
 			setState((prevState) => ({ ...prevState, maxDiagnosticMessages: value }))
 		},
-		// kilocode_change start - Auto-purge setters
+		// kade_change start - Auto-purge setters
 		setAutoPurgeEnabled: (value) => setState((prevState) => ({ ...prevState, autoPurgeEnabled: value })),
 		setAutoPurgeDefaultRetentionDays: (value) =>
 			setState((prevState) => ({ ...prevState, autoPurgeDefaultRetentionDays: value })),
@@ -901,7 +901,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 			setState((prevState) => ({ ...prevState, autoPurgeIncompleteTaskRetentionDays: value })),
 		setAutoPurgeLastRunTimestamp: (value) =>
 			setState((prevState) => ({ ...prevState, autoPurgeLastRunTimestamp: value })),
-		// kilocode_change end
+		// kade_change end
 		includeTaskHistoryInEnhance,
 		setIncludeTaskHistoryInEnhance,
 		includeCurrentTime,

@@ -1,10 +1,10 @@
 export type ApiStream = AsyncGenerator<ApiStreamChunk>
 
 export type ApiStreamChunk =
-	// kilocode_change start
+	// kade_change start
 	| ApiStreamAnthropicThinkingChunk
 	| ApiStreamAnthropicRedactedThinkingChunk
-	// kilocode_change end
+	// kade_change end
 	| ApiStreamTextChunk
 	| ApiStreamUsageChunk
 	| ApiStreamReasoningChunk
@@ -30,11 +30,11 @@ export interface ApiStreamTextChunk {
 export interface ApiStreamReasoningChunk {
 	type: "reasoning"
 	text: string
-	title?: string // kilocode_change: Optional title for reasoning status updates
-	signature?: string // kilocode_change: Optional signature for interleaved thinking (Anthropic/Claude Code)
+	title?: string // kade_change: Optional title for reasoning status updates
+	signature?: string // kade_change: Optional signature for interleaved thinking (Anthropic/Claude Code)
 }
 
-// kilocode_change start
+// kade_change start
 export interface ApiStreamAnthropicThinkingChunk {
 	type: "ant_thinking"
 	thinking: string
@@ -45,7 +45,7 @@ export interface ApiStreamAnthropicRedactedThinkingChunk {
 	type: "ant_redacted_thinking"
 	data: string
 }
-// kilocode_change end
+// kade_change end
 
 export interface ApiStreamUsageChunk {
 	type: "usage"
@@ -55,7 +55,7 @@ export interface ApiStreamUsageChunk {
 	cacheReadTokens?: number
 	reasoningTokens?: number
 	totalCost?: number
-	inferenceProvider?: string // kilocode_change
+	inferenceProvider?: string // kade_change
 }
 
 export interface ApiStreamGroundingChunk {

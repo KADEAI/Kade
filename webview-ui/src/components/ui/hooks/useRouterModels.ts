@@ -52,7 +52,7 @@ const getRouterModels = async (provider?: string) =>
 		}
 	})
 
-// kilocode_change start
+// kade_change start
 type RouterModelsQueryKey = {
 	openRouterBaseUrl?: string
 	openRouterApiKey?: string
@@ -69,7 +69,7 @@ type RouterModelsQueryKey = {
 	syntheticApiKey?: string
 	// Requesty, Unbound, etc should perhaps also be here, but they already have their own hacks for reloading
 }
-// kilocode_change end
+// kade_change end
 
 export const useRouterModels = (queryKey: RouterModelsQueryKey, opts: UseRouterModelsOptions = {}) => {
 	const provider = opts.provider || undefined

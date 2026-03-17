@@ -1,6 +1,6 @@
 import {
 	HTMLAttributes,
-	useState, // kilocode_change
+	useState, // kade_change
 } from "react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { Trans } from "react-i18next"

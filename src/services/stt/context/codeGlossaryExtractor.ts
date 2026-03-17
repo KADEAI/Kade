@@ -1,4 +1,4 @@
-// kilocode_change - new file: Extract code identifiers from visible code for STT context
+// kade_change - new file: Extract code identifiers from visible code for STT context
 import type { VisibleCodeContext } from "../../ghost/types"
 
 export interface CodeGlossary {

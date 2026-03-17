@@ -18,13 +18,13 @@ interface GrepParams {
   query: string | string[]; // Support both single query and multiple queries
   recursive_resolution?: boolean; // Internal flag to indicate if paths have been resolved
   file_pattern?: string | null;
-  include?: string | null; // kilocode_change: Support 'include'
-  exclude?: string | null; // kilocode_change: Support 'exclude'
+  include?: string | null; // kade_change: Support 'include'
+  exclude?: string | null; // kade_change: Support 'exclude'
   include_all?: boolean; // Whether to include docs, locales, generated files, assets, etc.
   context_lines?: number; // Configurable context lines
   literal?: boolean; // Whether to treat query as literal string
   whole_word?: boolean; // Whether to match whole words only
-  case_insensitive?: boolean; // kilocode_change: Support 'case_insensitive'
+  case_insensitive?: boolean; // kade_change: Support 'case_insensitive'
   tests?: boolean; // Whether to include test files while still filtering non-code noise
   multiline?: boolean; // Whether to enable multiline regex matching (-U flag)
 }
@@ -186,12 +186,12 @@ export class GrepTool extends BaseTool<"grep"> {
 
     const relDirPath = params.path;
     const query = params.query;
-    const filePattern = params.file_pattern || params.include || undefined; // kilocode_change: Support 'include' alias
-    const excludePattern = params.exclude; // kilocode_change: Support 'exclude'
+    const filePattern = params.file_pattern || params.include || undefined; // kade_change: Support 'include' alias
+    const excludePattern = params.exclude; // kade_change: Support 'exclude'
     const contextLines = params.context_lines || 1;
     const isLiteral = params.literal !== false; // Default to literal search to prevent regex crashes on special chars
     const isWholeWord = params.whole_word || false;
-    const isCaseInsensitive = params.case_insensitive !== false; // kilocode_change: Default to case-insensitive (true)
+    const isCaseInsensitive = params.case_insensitive !== false; // kade_change: Default to case-insensitive (true)
     const includeAll = params.include_all || false;
     const includeTests = params.tests || false;
     const isMultiline = params.multiline || false;

@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import { GitChange } from "../GitExtensionService"
 import { CommitMessageResult } from "../types/core"
 

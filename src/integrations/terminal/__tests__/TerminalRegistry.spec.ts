@@ -10,7 +10,7 @@ vi.mock("execa", () => ({
 	execa: vi.fn(),
 }))
 
-vi.mock("../../../utils/path", () => ({ getWorkspacePath: vi.fn(() => "/test/workspace") })) // kilocode_change
+vi.mock("../../../utils/path", () => ({ getWorkspacePath: vi.fn(() => "/test/workspace") })) // kade_change
 
 describe("TerminalRegistry", () => {
 	let mockCreateTerminal: any
@@ -49,7 +49,7 @@ describe("TerminalRegistry", () => {
 				env: {
 					PAGER,
 					VTE_VERSION: "0",
-					WORKSPACE_ROOT: "/test/workspace", // kilocode_change
+					WORKSPACE_ROOT: "/test/workspace", // kade_change
 					PROMPT_EOL_MARK: "",
 				},
 			})
@@ -71,7 +71,7 @@ describe("TerminalRegistry", () => {
 						PAGER,
 						PROMPT_COMMAND: "sleep 0.05",
 						VTE_VERSION: "0",
-						WORKSPACE_ROOT: "/test/workspace", // kilocode_change
+						WORKSPACE_ROOT: "/test/workspace", // kade_change
 						PROMPT_EOL_MARK: "",
 					},
 				})
@@ -93,7 +93,7 @@ describe("TerminalRegistry", () => {
 					env: {
 						PAGER,
 						VTE_VERSION: "0",
-						WORKSPACE_ROOT: "/test/workspace", // kilocode_change
+						WORKSPACE_ROOT: "/test/workspace", // kade_change
 						PROMPT_EOL_MARK: "",
 						ITERM_SHELL_INTEGRATION_INSTALLED: "Yes",
 					},
@@ -115,7 +115,7 @@ describe("TerminalRegistry", () => {
 					env: {
 						PAGER,
 						VTE_VERSION: "0",
-						WORKSPACE_ROOT: "/test/workspace", // kilocode_change
+						WORKSPACE_ROOT: "/test/workspace", // kade_change
 						PROMPT_EOL_MARK: "",
 						POWERLEVEL9K_TERM_SHELL_INTEGRATION: "true",
 					},

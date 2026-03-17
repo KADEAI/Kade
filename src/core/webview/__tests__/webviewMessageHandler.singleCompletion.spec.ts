@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 // npx vitest src/core/webview/__tests__/webviewMessageHandler.singleCompletion.spec.ts
 
 import type { Mock } from "vitest"

@@ -6,12 +6,12 @@ import { ZaiApiLine } from "../provider-settings.js"
 // https://docs.z.ai/guides/llm/glm-4.5
 // https://docs.z.ai/guides/llm/glm-4.6
 // https://docs.z.ai/guides/llm/glm-4.7
-// https://docs.z.ai/guides/llm/glm-5 // kilocode_change
+// https://docs.z.ai/guides/llm/glm-5 // kade_change
 // https://docs.z.ai/guides/overview/pricing
 // https://bigmodel.cn/pricing
 
 export type InternationalZAiModelId = keyof typeof internationalZAiModels
-export const internationalZAiDefaultModelId: InternationalZAiModelId = "glm-5" // kilocode_change
+export const internationalZAiDefaultModelId: InternationalZAiModelId = "glm-5" // kade_change
 export const internationalZAiModels = {
 	"glm-4.5": {
 		maxTokens: 16_384,
@@ -109,7 +109,7 @@ export const internationalZAiModels = {
 		description:
 			"GLM-4.6 is Zhipu's newest model with an extended context window of up to 200k tokens, providing enhanced capabilities for processing longer documents and conversations.",
 	},
-	// kilocode_change start
+	// kade_change start
 	"glm-4.6v": {
 		maxTokens: 98_304,
 		contextWindow: 131_072,
@@ -138,7 +138,7 @@ export const internationalZAiModels = {
 		description:
 			"GLM-4.6V-Flash is a free, high-speed multimodal model with visual reasoning capabilities, excellent for reasoning, coding, and agentic tasks.",
 	},
-	// kilocode_change end
+	// kade_change end
 	"glm-4.7": {
 		maxTokens: 16_384,
 		contextWindow: 200_000,
@@ -157,7 +157,7 @@ export const internationalZAiModels = {
 			"GLM-4.7 is Zhipu's latest model with built-in thinking capabilities enabled by default. It provides enhanced reasoning for complex tasks while maintaining fast response times.",
 		preferredIndex: 1,
 	},
-	// kilocode_change start
+	// kade_change start
 	"glm-5": {
 		maxTokens: 131_072,
 		contextWindow: 200_000,
@@ -191,7 +191,7 @@ export const internationalZAiModels = {
 			"GLM-4.7-Flash is a free, high-speed model with built-in thinking capabilities, excellent for reasoning, coding, and agentic tasks.",
 		preferredIndex: 2,
 	},
-	// kilocode_change end
+	// kade_change end
 	"glm-4-32b-0414-128k": {
 		maxTokens: 16_384,
 		contextWindow: 131_072,
@@ -208,7 +208,7 @@ export const internationalZAiModels = {
 } as const satisfies Record<string, ModelInfo>
 
 export type MainlandZAiModelId = keyof typeof mainlandZAiModels
-export const mainlandZAiDefaultModelId: MainlandZAiModelId = "glm-5" // kilocode_change
+export const mainlandZAiDefaultModelId: MainlandZAiModelId = "glm-5" // kade_change
 export const mainlandZAiModels = {
 	"glm-4.5": {
 		maxTokens: 16_384,
@@ -324,7 +324,7 @@ export const mainlandZAiModels = {
 			"GLM-4.7 is Zhipu's latest model with built-in thinking capabilities enabled by default. It provides enhanced reasoning for complex tasks while maintaining fast response times.",
 		preferredIndex: 1,
 	},
-	// kilocode_change start
+	// kade_change start
 	"glm-5": {
 		maxTokens: 131_072,
 		contextWindow: 200_000,
@@ -358,7 +358,7 @@ export const mainlandZAiModels = {
 			"GLM-4.7-Flash is a free, high-speed model with built-in thinking capabilities, excellent for reasoning, coding, and agentic tasks.",
 		preferredIndex: 2,
 	},
-	// kilocode_change end
+	// kade_change end
 } as const satisfies Record<string, ModelInfo>
 
 export const ZAI_DEFAULT_TEMPERATURE = 0.6

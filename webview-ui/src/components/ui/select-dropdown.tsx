@@ -1,14 +1,14 @@
 import * as React from "react"
 import { CaretUpIcon } from "@radix-ui/react-icons"
 import { Check, X } from "lucide-react"
-import { Fzf } from "@/lib/word-boundary-fzf" // kilocode_change: drop in fzf compatible lib, which respects word boundaries
+import { Fzf } from "@/lib/word-boundary-fzf" // kade_change: drop in fzf compatible lib, which respects word boundaries
 import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
 import { useRooPortal } from "./hooks/useRooPortal"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui"
 import { StandardTooltip } from "@/components/ui"
-import { IconProps } from "@radix-ui/react-icons/dist/types" // kilocode_change
+import { IconProps } from "@radix-ui/react-icons/dist/types" // kade_change
 
 export enum DropdownOptionType {
 	ITEM = "item",
@@ -20,9 +20,9 @@ export enum DropdownOptionType {
 export interface DropdownOption {
 	value: string
 	label: string
-	icon?: React.ReactNode // kilocode_change
-	codicon?: string // kilocode_change
-	description?: string // kilocode_change
+	icon?: React.ReactNode // kade_change
+	codicon?: string // kade_change
+	description?: string // kade_change
 	disabled?: boolean
 	type?: DropdownOptionType
 	pinned?: boolean
@@ -33,7 +33,7 @@ export interface SelectDropdownProps {
 	options: DropdownOption[]
 	onChange: (value: string) => void
 	disabled?: boolean
-	initiallyOpen?: boolean // kilocode_change
+	initiallyOpen?: boolean // kade_change
 	title?: string
 	triggerClassName?: string
 	contentClassName?: string
@@ -44,9 +44,9 @@ export interface SelectDropdownProps {
 	shortcutText?: string
 	renderItem?: (option: DropdownOption) => React.ReactNode
 	disableSearch?: boolean
-	triggerIcon?: React.ComponentType<any> | boolean | undefined // kilocode_change
-	shouldHideScrollbar?: boolean // kilocode_change
-	hideLabel?: boolean // kilocode_change
+	triggerIcon?: React.ComponentType<any> | boolean | undefined // kade_change
+	shouldHideScrollbar?: boolean // kade_change
+	hideLabel?: boolean // kade_change
 }
 
 export const SelectDropdown = React.memo(
@@ -57,7 +57,7 @@ export const SelectDropdown = React.memo(
 				options,
 				onChange,
 				disabled = false,
-				initiallyOpen = false, // kilocode_change
+				initiallyOpen = false, // kade_change
 				title = "",
 				triggerClassName = "",
 				contentClassName = "",
@@ -68,21 +68,21 @@ export const SelectDropdown = React.memo(
 				shortcutText = "",
 				renderItem,
 				disableSearch = false,
-				triggerIcon = CaretUpIcon, // kilocode_change
-				shouldHideScrollbar = false, // kilocode_change
-				hideLabel = false, // kilocode_change
+				triggerIcon = CaretUpIcon, // kade_change
+				shouldHideScrollbar = false, // kade_change
+				hideLabel = false, // kade_change
 			},
 			ref,
 		) => {
 			const { t } = useTranslation()
-			const [open, setOpen] = React.useState(initiallyOpen) // kilocode_change
+			const [open, setOpen] = React.useState(initiallyOpen) // kade_change
 			const [searchValue, setSearchValue] = React.useState("")
 			const searchInputRef = React.useRef<HTMLInputElement>(null)
 			const portalContainer = useRooPortal("roo-portal")
 
-			// kilocode_change start
+			// kade_change start
 			const TriggerIcon = triggerIcon === false ? null : triggerIcon === true ? CaretUpIcon : triggerIcon
-			// kilocode_change end
+			// kade_change end
 
 			// Memoize the selected option to prevent unnecessary calculations
 			const selectedOption = React.useMemo(
@@ -216,11 +216,11 @@ export const SelectDropdown = React.memo(
 							: "opacity-90 hover:opacity-100 hover:bg-[rgba(255,255,255,0.03)] cursor-pointer",
 						triggerClassName,
 					)}>
-					{/* kilocode_change start */}
+					{/* kade_change start */}
 					{TriggerIcon && <TriggerIcon className="pointer-events-none opacity-80 flex-shrink-0 size-3" />}
-					{/* kilocode_change end */}
+					{/* kade_change end */}
 
-					{/* kilocode_change start */}
+					{/* kade_change start */}
 					{selectedOption?.icon && (
 						<div className="flex-shrink-0 flex items-center justify-center mr-0.5 opacity-80 scale-90">
 							{selectedOption.icon}
@@ -233,7 +233,7 @@ export const SelectDropdown = React.memo(
 							className={cn("codicon opacity-80 mr", selectedOption?.codicon)}
 						/>
 					)}
-					{/* kilocode_change end */}
+					{/* kade_change end */}
 					{!hideLabel && <span className="truncate">{displayText}</span>}
 				</PopoverTrigger>
 			)
@@ -317,7 +317,7 @@ export const SelectDropdown = React.memo(
 													key={itemKey}
 													onClick={() => !option.disabled && handleSelect(option.value)}
 													className={cn(
-														"text-sm cursor-pointer flex items-center", // kilocode_change
+														"text-sm cursor-pointer flex items-center", // kade_change
 														option.disabled
 															? "opacity-50 cursor-not-allowed"
 															: "hover:bg-vscode-list-hoverBackground",
@@ -331,7 +331,7 @@ export const SelectDropdown = React.memo(
 														renderItem(option)
 													) : (
 														<>
-															{/* kilocode_change start */}
+															{/* kade_change start */}
 															<div className="flex items-center flex-1 py-1.5 px-3 hover:bg-vscode-list-hoverBackground">
 																{option.icon ? (
 																	<div className="flex-shrink-0 flex items-center justify-center mr-2 opacity-80 scale-90">
@@ -357,7 +357,7 @@ export const SelectDropdown = React.memo(
 																		</div>
 																	)}
 																</div>
-																{/* kilocode_change end */}
+																{/* kade_change end */}
 																{option.value === value && (
 																	<Check className="ml-auto size-4 p-0.5" />
 																)}

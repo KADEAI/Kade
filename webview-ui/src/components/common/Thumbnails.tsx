@@ -8,7 +8,7 @@ interface ThumbnailsProps {
 	style?: React.CSSProperties
 	setImages?: React.Dispatch<React.SetStateAction<string[]>>
 	onHeightChange?: (height: number) => void
-	onOpenImage?: (image: string) => void // kilocode_change: allows custom image preview handling
+	onOpenImage?: (image: string) => void // kade_change: allows custom image preview handling
 }
 
 const Thumbnails = ({ images, style, setImages, onHeightChange, onOpenImage }: ThumbnailsProps) => {

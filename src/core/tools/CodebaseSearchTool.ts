@@ -51,12 +51,12 @@ export class CodebaseSearchTool extends BaseTool<"codebase_search"> {
 			return
 		}
 
-		// kilocode_change start
+		// kade_change start
 		// we don't always get relative path here
 		if (directoryPrefix && path.isAbsolute(directoryPrefix)) {
 			directoryPrefix = path.relative(workspacePath, directoryPrefix)
 		}
-		// kilocode_change end
+		// kade_change end
 
 		const sharedMessageProps = {
 			tool: "codebaseSearch",
@@ -94,7 +94,7 @@ export class CodebaseSearchTool extends BaseTool<"codebase_search"> {
 				throw new Error("Code Indexing is not configured (Missing OpenAI Key or Qdrant URL).")
 			}
 
-			// kilocode_change start
+			// kade_change start
 			const status = manager.getCurrentStatus() as any
 			let warningMessage = ""
 
@@ -126,7 +126,7 @@ export class CodebaseSearchTool extends BaseTool<"codebase_search"> {
 				const percent = status.totalItems > 0 ? Math.round((status.processedItems / status.totalItems) * 100) : 0
 				warningMessage = `Index encountered an error at ${percent}% completion. Results shown are partial (from previous successful indexing). Error: ${status.message}`
 			}
-			// kilocode_change end
+			// kade_change end
 
 			const allQueryResults = await Promise.all(
 				queries.map(async (query) => {

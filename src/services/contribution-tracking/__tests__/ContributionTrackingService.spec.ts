@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { ContributionTrackingService } from "../ContributionTrackingService"
 import type { TrackContributionParams } from "../contribution-tracking-types"

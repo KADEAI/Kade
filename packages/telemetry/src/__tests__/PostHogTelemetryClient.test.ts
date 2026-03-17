@@ -67,7 +67,7 @@ describe("PostHogTelemetryClient", () => {
 				"isEventCapturable",
 			).bind(client)
 
-			expect(isEventCapturable(TelemetryEventName.TASK_MESSAGE /*kilocode_change*/)).toBe(false)
+			expect(isEventCapturable(TelemetryEventName.TASK_MESSAGE /*kade_change*/)).toBe(false)
 		})
 	})
 
@@ -388,7 +388,7 @@ describe("PostHogTelemetryClient", () => {
 			client.updateTelemetryState(true)
 
 			await client.capture({
-				event: TelemetryEventName.TASK_MESSAGE, // This is in the exclude list. // kilocode_change
+				event: TelemetryEventName.TASK_MESSAGE, // This is in the exclude list. // kade_change
 				properties: { test: "value" },
 			})
 
@@ -581,7 +581,7 @@ describe("PostHogTelemetryClient", () => {
 		})
 	})
 
-	// kilocode_change: we have our own version of this
+	// kade_change: we have our own version of this
 	describe.skip("captureException", () => {
 		it("should not capture exceptions when telemetry is disabled", async () => {
 			const client = new PostHogTelemetryClient()
@@ -644,7 +644,7 @@ describe("PostHogTelemetryClient", () => {
 		})
 	})
 
-	// kilocode_change: we have a different method
+	// kade_change: we have a different method
 	describe.skip("captureException error filtering", () => {
 		it("should filter out 429 rate limit errors (via status property)", () => {
 			const client = new PostHogTelemetryClient()
@@ -692,7 +692,7 @@ describe("PostHogTelemetryClient", () => {
 			expect(mockPostHogClient.captureException).not.toHaveBeenCalled()
 		})
 
-		// kilocode_change: we have a different captureException method
+		// kade_change: we have a different captureException method
 		it.skip("should capture non-rate-limit errors", () => {
 			const client = new PostHogTelemetryClient()
 			client.updateTelemetryState(true)

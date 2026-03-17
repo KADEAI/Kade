@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import axios from "axios"
 import { ModelInfo } from "@roo-code/types"
 import type { ModelRecord } from "../../../shared/api"

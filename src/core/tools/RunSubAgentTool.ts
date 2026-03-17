@@ -94,13 +94,13 @@ export class RunSubAgentTool extends BaseTool<"run_sub_agent"> {
             // The mode switch must happen before createTask() because the Task constructor
             // initializes its mode from provider.getState() during initializeTaskMode().
             // 
-            // kilocode_change: If no specific provider/model was requested by the tool,
+            // kade_change: If no specific provider/model was requested by the tool,
             // fall back to the user's configured sub-agent model from settings, or their current active profile.
             const subAgentConfig = state.subAgentApiConfiguration || {}
             provider.log(`[RunSubAgentTool] Sub-agent configuration from state: ${JSON.stringify(subAgentConfig)}`)
             provider.log(`[RunSubAgentTool] Main API configuration: ${state.apiConfiguration.apiProvider} / ${state.apiConfiguration.apiModelId}`)
 
-            // kilocode_change: Properly merge configurations.
+            // kade_change: Properly merge configurations.
             // We want to use sub-agent settings as overrides on top of the main configuration
             // to ensure credentials (API keys) are inherited.
             const baseConfig = {

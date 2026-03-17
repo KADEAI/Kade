@@ -1,4 +1,4 @@
-// kilocode_change - new file: Microphone button component for speech-to-text recording
+// kade_change - new file: Microphone button component for speech-to-text recording
 import React from "react"
 import { Mic, Square, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"

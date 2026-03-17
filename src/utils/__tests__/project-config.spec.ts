@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 // npx vitest run src/utils/__tests__/project-config.spec.ts
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest"

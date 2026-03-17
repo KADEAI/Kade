@@ -16,7 +16,7 @@ interface MarketplaceViewProps {
 	onDone?: () => void
 	stateManager: MarketplaceViewStateManager
 	targetTab?: "mcp" | "mode" | "installed" | "skills"
-	hideHeader?: boolean // kilocode_change
+	hideHeader?: boolean // kade_change
 }
 export function MarketplaceView({ stateManager, onDone, targetTab, hideHeader = false }: MarketplaceViewProps) {
 	const { t } = useAppTranslation()
@@ -98,7 +98,7 @@ export function MarketplaceView({ stateManager, onDone, targetTab, hideHeader = 
 	// Memoize filtered tags
 	const filteredTags = useMemo(() => allTags, [allTags])
 
-	// kilocode_change start - Header messages for each tab
+	// kade_change start - Header messages for each tab
 	const modesHeaderMessage = useMemo(
 		() => ({
 			translationKey: "kilocode:marketplace.modes.description",
@@ -117,13 +117,13 @@ export function MarketplaceView({ stateManager, onDone, targetTab, hideHeader = 
 		}),
 		[manager],
 	)
-	// kilocode_change end - Header messages for each tab
+	// kade_change end - Header messages for each tab
 
 	return (
 		<TooltipProvider delayDuration={300}>
-			{/* kilocode_change: header conditionally className relative or fixed */}
+			{/* kade_change: header conditionally className relative or fixed */}
 			<Tab className={cn(hideHeader ? "relative" : "fixed")}>
-				{/*  kilocode_change: display header conditionally */}
+				{/*  kade_change: display header conditionally */}
 				<TabHeader
 					style={{ display: hideHeader ? "none" : "flex" }}
 					className="flex flex-col sticky top-0 z-10 px-3 py-2 bg-vscode-sideBar-background">
@@ -199,7 +199,7 @@ export function MarketplaceView({ stateManager, onDone, targetTab, hideHeader = 
 							allTags={allTags}
 							filteredTags={filteredTags}
 							filterByType="mcp"
-							headerMessage={mcpHeaderMessage} // kilocode_change
+							headerMessage={mcpHeaderMessage} // kade_change
 						/>
 					)}
 					{state.activeTab === "mode" && (
@@ -208,7 +208,7 @@ export function MarketplaceView({ stateManager, onDone, targetTab, hideHeader = 
 							allTags={allTags}
 							filteredTags={filteredTags}
 							filterByType="mode"
-							headerMessage={modesHeaderMessage} // kilocode_change
+							headerMessage={modesHeaderMessage} // kade_change
 						/>
 					)}
 					{state.activeTab === "installed" && <McpView onDone={onDone || (() => { })} hideHeader={true} />}

@@ -27,7 +27,7 @@ vi.mock("vscode", () => ({
 		showWarningMessage: vi.fn(),
 		showErrorMessage: vi.fn(),
 		onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
-		createTextEditorDecorationType: vi.fn(() => ({ dispose: vi.fn() })), // kilocode_change
+		createTextEditorDecorationType: vi.fn(() => ({ dispose: vi.fn() })), // kade_change
 	},
 	workspace: {
 		getConfiguration: vi.fn().mockReturnValue({
@@ -199,7 +199,7 @@ vi.mock("@roo-code/telemetry", () => ({
 				setProvider: vi.fn(),
 				captureModeSwitch: vi.fn(),
 				updateIdentity: vi.fn().mockResolvedValue(undefined),
-				captureException: vi.fn(), // kilocode_change
+				captureException: vi.fn(), // kade_change
 			}
 		},
 	},

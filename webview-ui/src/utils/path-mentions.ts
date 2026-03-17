@@ -67,7 +67,7 @@ export function convertToMentionPath(path: string, cwd?: string): string {
 
 	if (lowerPath.startsWith(lowerCwd)) {
 		let relativePath = normalizedPath.substring(normalizedCwd.length)
-		// kilocode_change: Remove leading slash to ensure paths are workspace-relative and work on Mac
+		// kade_change: Remove leading slash to ensure paths are workspace-relative and work on Mac
 		if (relativePath.startsWith("/")) {
 			relativePath = relativePath.substring(1)
 		}

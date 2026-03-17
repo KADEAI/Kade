@@ -5,21 +5,21 @@ import {
 	type GenerateContentParameters,
 	type GenerateContentConfig,
 	type GroundingMetadata,
-	FinishReason, // kilocode_change
+	FinishReason, // kade_change
 	FunctionCallingConfigMode,
 } from "@google/genai"
 import type { JWTInput } from "google-auth-library"
 
 import {
 	type ModelInfo,
-	// type GeminiModelId, // kilocode_change
+	// type GeminiModelId, // kade_change
 	geminiDefaultModelId,
 	geminiModels,
 } from "@roo-code/types"
 
 import type {
 	ApiHandlerOptions,
-	ModelRecord, // kilocode_change
+	ModelRecord, // kade_change
 } from "../../shared/api"
 import { safeJsonParse } from "../../shared/safeJsonParse"
 
@@ -31,7 +31,7 @@ import { getModelParams } from "../transform/model-params"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
 import { BaseProvider } from "./base-provider"
 import { throwMaxCompletionTokensReachedError } from "./kilocode/verifyFinishReason"
-import { getGeminiModels } from "./fetchers/gemini" // kilocode_change
+import { getGeminiModels } from "./fetchers/gemini" // kade_change
 
 type GeminiHandlerOptions = ApiHandlerOptions & {
 	isVertex?: boolean
@@ -44,18 +44,18 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 	private lastThoughtSignature?: string
 	private lastResponseId?: string
 
-	// kilocode_change start
+	// kade_change start
 	private models: ModelRecord = { ...geminiModels }
 	private modelsLoaded = false
 	private modelsLoading?: Promise<void>
 	private readonly isVertex: boolean
-	// kilocode_change end
+	// kade_change end
 
 	constructor({ isVertex, ...options }: GeminiHandlerOptions) {
 		super()
 
 		this.options = options
-		this.isVertex = !!isVertex // kilocode_change
+		this.isVertex = !!isVertex // kade_change
 
 		const project = this.options.vertexProjectId ?? "not-provided"
 		const location = this.options.vertexRegion ?? "not-provided"
@@ -90,7 +90,7 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 					})
 	}
 
-	// kilocode_change start
+	// kade_change start
 	private async ensureModelsLoaded() {
 		if (this.isVertex) {
 			return
@@ -121,14 +121,14 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 			this.models = { ...geminiModels }
 		}
 	}
-	// kilocode_change end
+	// kade_change end
 
 	async *createMessage(
 		systemInstruction: string,
 		messages: Anthropic.Messages.MessageParam[],
 		metadata?: ApiHandlerCreateMessageMetadata,
 	): ApiStream {
-		await this.ensureModelsLoaded() // kilocode_change
+		await this.ensureModelsLoaded() // kade_change
 		const { id: model, info, reasoning: thinkingConfig, maxTokens } = this.getModel()
 		// Reset per-request metadata that we persist into apiConversationHistory.
 		this.lastThoughtSignature = undefined
@@ -290,11 +290,11 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 				if (chunk.candidates && chunk.candidates.length > 0) {
 					const candidate = chunk.candidates[0]
 
-					// kilocode_change start
+					// kade_change start
 					if (candidate.finishReason === FinishReason.MAX_TOKENS) {
 						throwMaxCompletionTokensReachedError()
 					}
-					// kilocode_change end
+					// kade_change end
 
 					if (candidate.groundingMetadata) {
 						pendingGroundingMetadata = candidate.groundingMetadata
@@ -437,7 +437,7 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 	}
 
 	override getModel() {
-		// kilocode_change start: dynamic loading
+		// kade_change start: dynamic loading
 		const requestedId = this.options.apiModelId
 		const availableModels = this.models
 		const staticModels = geminiModels as Record<string, ModelInfo>
@@ -461,7 +461,7 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 		const apiModelId = id.endsWith(":thinking") ? id.replace(":thinking", "") : id
 
 		return { id: apiModelId, info, ...params }
-		// kilocode_change end
+		// kade_change end
 	}
 
 	private extractGroundingSources(groundingMetadata?: GroundingMetadata): GroundingSource[] {
@@ -500,7 +500,7 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 
 	async completePrompt(prompt: string): Promise<string> {
 		try {
-			await this.ensureModelsLoaded() // kilocode_change
+			await this.ensureModelsLoaded() // kade_change
 			const { id: model, info } = this.getModel()
 
 			const tools: GenerateContentConfig["tools"] = []

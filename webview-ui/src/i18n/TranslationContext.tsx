@@ -46,7 +46,7 @@ export const TranslationProvider: React.FC<{ children: ReactNode }> = ({ childre
 				t: translate,
 				i18n,
 			}}>
-			{/* kilocode_change: add lang, dir */}
+			{/* kade_change: add lang, dir */}
 			<div lang={i18n.language} dir={i18n.dir()}>
 				{children}
 			</div>

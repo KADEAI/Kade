@@ -1,4 +1,4 @@
-// kilocode_change: this file was pulled in from Cline and adjusted with our changes
+// kade_change: this file was pulled in from Cline and adjusted with our changes
 
 export const newTaskToolResponse = (userInput: string) =>
 	`<explicit_instructions type="new_task">

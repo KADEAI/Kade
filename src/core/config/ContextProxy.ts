@@ -22,19 +22,19 @@ import { TelemetryService } from "@roo-code/telemetry"
 
 import { logger } from "../../utils/logging"
 
-// kilocode_change start: Configuration change event types
+// kade_change start: Configuration change event types
 export interface ManagedIndexerConfig {
 	kilocodeToken: string | null
 	kilocodeOrganizationId: string | null
 	kilocodeTesterWarningsDisabledUntil: number | null
 }
-// kilocode_change end
+// kade_change end
 
 type GlobalStateKey = keyof GlobalState
 type SecretStateKey = keyof SecretState
 type RooCodeSettingsKey = keyof RooCodeSettings
 
-// kilocode_change: Removed "taskHistory" - now stored on disk via TaskHistoryStorage
+// kade_change: Removed "taskHistory" - now stored on disk via TaskHistoryStorage
 const PASS_THROUGH_STATE_KEYS = ["subAgentApiConfiguration", "dismissedUpsells"]
 
 export const isPassThroughStateKey = (key: string) => PASS_THROUGH_STATE_KEYS.includes(key)
@@ -51,12 +51,12 @@ export class ContextProxy {
 	private stateCache: GlobalState
 	private secretCache: SecretState
 	private _isInitialized = false
-	// kilocode_change start: Cached merged values to avoid rebuilding on every getValues() call
+	// kade_change start: Cached merged values to avoid rebuilding on every getValues() call
 	private _mergedValuesCache: RooCodeSettings | null = null
-	// kilocode_change end
-	// kilocode_change start: Event emitter for configuration changes
+	// kade_change end
+	// kade_change start: Event emitter for configuration changes
 	private readonly configEmitter = new EventEmitter()
-	// kilocode_change end
+	// kade_change end
 
 	constructor(context: vscode.ExtensionContext) {
 		this.originalContext = context
@@ -221,12 +221,12 @@ export class ContextProxy {
 
 	updateGlobalState<K extends GlobalStateKey>(key: K, value: GlobalState[K]) {
 		if (isPassThroughStateKey(key)) {
-			this._mergedValuesCache = null // kilocode_change: invalidate cache on write
+			this._mergedValuesCache = null // kade_change: invalidate cache on write
 			return this.originalContext.globalState.update(key, value)
 		}
 
 		this.stateCache[key] = value
-		this._mergedValuesCache = null // kilocode_change: invalidate cache on write
+		this._mergedValuesCache = null // kade_change: invalidate cache on write
 		return this.originalContext.globalState.update(key, value)
 	}
 
@@ -247,7 +247,7 @@ export class ContextProxy {
 	storeSecret(key: SecretStateKey, value?: string) {
 		// Update cache.
 		this.secretCache[key] = value
-		this._mergedValuesCache = null // kilocode_change: invalidate cache on write
+		this._mergedValuesCache = null // kade_change: invalidate cache on write
 
 		// Write directly to context.
 		return value === undefined
@@ -260,7 +260,7 @@ export class ContextProxy {
 	 * This is useful when you need to ensure the cache has the latest values
 	 */
 	async refreshSecrets(): Promise<void> {
-		this._mergedValuesCache = null // kilocode_change: invalidate cache on refresh
+		this._mergedValuesCache = null // kade_change: invalidate cache on refresh
 		const promises = [
 			...SECRET_STATE_KEYS.map(async (key) => {
 				try {
@@ -291,7 +291,7 @@ export class ContextProxy {
 		])
 	}
 
-	// kilocode_change start
+	// kade_change start
 	/**
 	 * WorkspaceState
 	 */
@@ -302,7 +302,7 @@ export class ContextProxy {
 	async getWorkspaceState(context: vscode.ExtensionContext, key: string) {
 		return await context.workspaceState.get(key)
 	}
-	// kilocode_change end
+	// kade_change end
 
 	/**
 	 * GlobalSettings
@@ -364,11 +364,11 @@ export class ContextProxy {
 	}
 
 	public async setProviderSettings(values: ProviderSettings) {
-		// kilocode_change start: Capture old values for change detection
+		// kade_change start: Capture old values for change detection
 		const oldToken = this.secretCache.kilocodeToken
 		const oldOrgId = this.stateCache.kilocodeOrganizationId
 		const oldTesterWarnings = this.stateCache.kilocodeTesterWarningsDisabledUntil
-		// kilocode_change end
+		// kade_change end
 
 		// Explicitly clear out any old API configuration values before that
 		// might not be present in the new configuration.
@@ -392,7 +392,7 @@ export class ContextProxy {
 			...values,
 		})
 
-		// kilocode_change start: Emit event if managed indexer config changed
+		// kade_change start: Emit event if managed indexer config changed
 		const newToken = this.secretCache.kilocodeToken
 		const newOrgId = this.stateCache.kilocodeOrganizationId
 		const newTesterWarnings = this.stateCache.kilocodeTesterWarningsDisabledUntil
@@ -404,7 +404,7 @@ export class ContextProxy {
 				kilocodeTesterWarningsDisabledUntil: newTesterWarnings ?? null,
 			} as ManagedIndexerConfig)
 		}
-		// kilocode_change end
+		// kade_change end
 	}
 
 	/**
@@ -424,7 +424,7 @@ export class ContextProxy {
 	}
 
 	public getValues(): RooCodeSettings {
-		// kilocode_change: Return cached merged values if available (invalidated on any write)
+		// kade_change: Return cached merged values if available (invalidated on any write)
 		if (this._mergedValuesCache) {
 			return this._mergedValuesCache
 		}
@@ -473,7 +473,7 @@ export class ContextProxy {
 		// Clear in-memory caches
 		this.stateCache = {}
 		this.secretCache = {}
-		this._mergedValuesCache = null // kilocode_change: invalidate cache on reset
+		this._mergedValuesCache = null // kade_change: invalidate cache on reset
 
 		await Promise.all([
 			...GLOBAL_STATE_KEYS.map((key) => this.originalContext.globalState.update(key, undefined)),
@@ -484,7 +484,7 @@ export class ContextProxy {
 		await this.initialize()
 	}
 
-	// kilocode_change start: Public API for managed indexer configuration changes
+	// kade_change start: Public API for managed indexer configuration changes
 	/**
 	 * Subscribe to managed indexer configuration changes
 	 * @param listener Callback function that receives the new configuration
@@ -496,7 +496,7 @@ export class ContextProxy {
 			dispose: () => this.configEmitter.off("managed-indexer-config-changed", listener),
 		}
 	}
-	// kilocode_change end
+	// kade_change end
 
 	private static _instance: ContextProxy | null = null
 

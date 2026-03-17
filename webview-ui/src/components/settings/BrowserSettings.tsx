@@ -28,14 +28,14 @@ type BrowserSettingsProps = HTMLAttributes<HTMLDivElement> & {
 	screenshotQuality?: number
 	remoteBrowserHost?: string
 	remoteBrowserEnabled?: boolean
-	disableBrowserHeadless?: boolean // kilocode_change
+	disableBrowserHeadless?: boolean // kade_change
 	setCachedStateField: SetCachedStateField<
 		| "browserToolEnabled"
 		| "browserViewportSize"
 		| "screenshotQuality"
 		| "remoteBrowserHost"
 		| "remoteBrowserEnabled"
-		| "disableBrowserHeadless" // kilocode_change
+		| "disableBrowserHeadless" // kade_change
 	>
 }
 
@@ -45,7 +45,7 @@ export const BrowserSettings = ({
 	screenshotQuality,
 	remoteBrowserHost,
 	remoteBrowserEnabled,
-	disableBrowserHeadless, // kilocode_change
+	disableBrowserHeadless, // kade_change
 	setCachedStateField,
 	...props
 }: BrowserSettingsProps) => {
@@ -57,7 +57,7 @@ export const BrowserSettings = ({
 	useRegisterSetting({ settingId: "browser-quality", section: "browser", label: t("settings:browser.screenshotQuality.label") })
 	useRegisterSetting({ settingId: "browser-remote", section: "browser", label: t("settings:browser.remote.label") })
 	useRegisterSetting({ settingId: "browser-remote-url", section: "browser", label: t("settings:browser.remote.urlPlaceholder") })
-	useRegisterSetting({ settingId: "browser-headless", section: "browser", label: t("settings:browser.headless.label") }) // kilocode_change
+	useRegisterSetting({ settingId: "browser-headless", section: "browser", label: t("settings:browser.headless.label") }) // kade_change
 
 	const [testingConnection, setTestingConnection] = useState(false)
 	const [testResult, setTestResult] = useState<{ success: boolean; text: string } | null>(null)
@@ -150,7 +150,7 @@ export const BrowserSettings = ({
 							</div>
 						</div>
 
-						{/* kilocode_change start */}
+						{/* kade_change start */}
 						<div data-setting-id="browser-headless">
 							<VSCodeCheckbox
 								checked={disableBrowserHeadless ?? false}
@@ -161,7 +161,7 @@ export const BrowserSettings = ({
 								{t("settings:browser.headless.description")}
 							</div>
 						</div>
-						{/* kilocode_change end */}
+						{/* kade_change end */}
 
 						{browserToolEnabled && (
 							<div className="flex flex-col gap-5 pl-4 border-l-2 border-vscode-focusBorder/50 ml-1">

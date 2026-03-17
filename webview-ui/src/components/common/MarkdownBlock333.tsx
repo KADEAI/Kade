@@ -9,7 +9,7 @@ import { Globe } from "lucide-react"
 
 import { vscode } from "@src/utils/vscode"
 
-import CodeBlock from "../kilocode/common/CodeBlock" // kilocode_change
+import CodeBlock from "../kilocode/common/CodeBlock" // kade_change
 import MermaidBlock from "./MermaidBlock"
 import { FileIcon } from "../chat/tools/FileIcon"
 

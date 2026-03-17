@@ -98,8 +98,8 @@ export interface CreateTaskOptions {
 	/** Initial status for the task's history item (e.g., "active" for child tasks) */
 	initialStatus?: "active" | "delegated" | "completed"
 	background?: boolean
-	enableSubAgents?: boolean // kilocode_change
-	yoloMode?: boolean // kilocode_change
+	enableSubAgents?: boolean // kade_change
+	yoloMode?: boolean // kade_change
 }
 
 export enum TaskStatus {
@@ -158,7 +158,7 @@ export type TaskEvents = {
 	[RooCodeEventName.Message]: [{ action: "created" | "updated"; message: ClineMessage }]
 	[RooCodeEventName.TaskModeSwitched]: [taskId: string, mode: string]
 
-	modelChanged: [] // kilocode_change: Add modelChanged event for virtual quota fallback
+	modelChanged: [] // kade_change: Add modelChanged event for virtual quota fallback
 
 	[RooCodeEventName.TaskAskResponded]: []
 	[RooCodeEventName.TaskUserMessage]: [taskId: string]

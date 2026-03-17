@@ -100,7 +100,7 @@ export const xaiModels = {
 		includedTools: ["search_replace"],
 		excludedTools: ["apply_diff"],
 	},
-	// kilocode_change start
+	// kade_change start
 	"grok-4-fast": {
 		maxTokens: 30_000,
 		contextWindow: 2_000_000,
@@ -128,7 +128,7 @@ export const xaiModels = {
 		includedTools: ["search_replace"],
 		excludedTools: ["apply_diff"],
 	},
-	// kilocode_change end
+	// kade_change end
 	"grok-3-mini": {
 		maxTokens: 8192,
 		contextWindow: 131072,

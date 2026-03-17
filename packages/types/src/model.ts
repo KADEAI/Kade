@@ -73,7 +73,7 @@ export const modelInfoSchema = z.object({
 	maxThinkingTokens: z.number().nullish(),
 	contextWindow: z.number(),
 	supportsImages: z.boolean().optional(),
-	supportsComputerUse: z.boolean().optional(), // kilocode_change
+	supportsComputerUse: z.boolean().optional(), // kade_change
 	supportsPromptCache: z.boolean(),
 	// Optional default prompt cache retention policy for providers that support it.
 	// When set to "24h", extended prompt caching will be requested; when omitted
@@ -105,10 +105,10 @@ export const modelInfoSchema = z.object({
 	minTokensPerCachePoint: z.number().optional(),
 	maxCachePoints: z.number().optional(),
 	cachableFields: z.array(z.string()).optional(),
-	// kilocode_change start
+	// kade_change start
 	displayName: z.string().nullish(),
 	preferredIndex: z.number().nullish(),
-	// kilocode_change end
+	// kade_change end
 	// Flag to indicate if the model is deprecated and should not be used
 	deprecated: z.boolean().optional(),
 	// Flag to indicate if the model should hide vendor/company identity in responses

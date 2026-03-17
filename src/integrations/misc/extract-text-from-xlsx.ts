@@ -1,4 +1,4 @@
-// kilocode_change start - use SheetJS to extract text from XLSX files with improved cell handling
+// kade_change start - use SheetJS to extract text from XLSX files with improved cell handling
 import * as XLSX from "xlsx"
 
 const ROW_LIMIT = 50000
@@ -135,4 +135,4 @@ export async function extractTextFromXLSX(filePathOrWorkbook: string | XLSX.Work
 
 	return excelText.trim()
 }
-// kilocode_change end - use SheetJS to extract text from XLSX files with improved cell handling
+// kade_change end - use SheetJS to extract text from XLSX files with improved cell handling

@@ -232,7 +232,7 @@ describe("App", () => {
 		expect(chatView.getAttribute("data-hidden")).toBe("true")
 	})
 
-	// kilocode_change start: Test changed to expect settings-view instead of prompts-view
+	// kade_change start: Test changed to expect settings-view instead of prompts-view
 	it("switches to settings view with modes section when receiving promptsButtonClicked action", async () => {
 		render(<AppWithProviders />)
 
@@ -246,7 +246,7 @@ describe("App", () => {
 		const chatView = screen.getByTestId("chat-view")
 		expect(chatView.getAttribute("data-hidden")).toBe("true")
 	})
-	// kilocode_change end
+	// kade_change end
 
 	it("returns to chat view when clicking done in settings view", async () => {
 		render(<AppWithProviders />)
@@ -266,7 +266,7 @@ describe("App", () => {
 		expect(screen.queryByTestId("settings-view")).not.toBeInTheDocument()
 	})
 
-	// kilocode_change start: Split tests for history view and settings view (via promptsButtonClicked)
+	// kade_change start: Split tests for history view and settings view (via promptsButtonClicked)
 	it("returns to chat view when clicking done in history view", async () => {
 		render(<AppWithProviders />)
 
@@ -302,7 +302,7 @@ describe("App", () => {
 		expect(chatView.getAttribute("data-hidden")).toBe("false")
 		expect(screen.queryByTestId("settings-view")).not.toBeInTheDocument()
 	})
-	// kilocode_change end
+	// kade_change end
 
 	it.skip("switches to marketplace view when receiving marketplaceButtonClicked action", async () => {
 		render(<AppWithProviders />)

@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import crypto from "crypto"
 import { getKiloUrlFromToken } from "@roo-code/types"
 import { TelemetryService } from "@roo-code/telemetry"

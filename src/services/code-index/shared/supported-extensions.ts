@@ -1,6 +1,6 @@
 import { extensions as allExtensions } from "../../tree-sitter"
 
-// kilocode_change: Strict code-only extensions for indexing and search.
+// kade_change: Strict code-only extensions for indexing and search.
 // This prevents "pointless" indexing of documentation, data, and boilerplate.
 export const MAIN_CODE_EXTENSIONS = [
 	".ts", ".tsx", ".js", ".jsx", ".py", ".rs", ".go", ".c", ".cpp", 

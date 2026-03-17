@@ -133,7 +133,7 @@ export const AgentManagerExtensionStateAdapter = ({ children, sessionId }: Agent
             setMaxOpenTabsContext: noop,
             setMaxWorkspaceFiles: noop,
             setBrowserToolEnabled: noop,
-            setDisableBrowserHeadless: noop, // kilocode_change
+            setDisableBrowserHeadless: noop, // kade_change
             setTelemetrySetting: noop,
             setShowRooIgnoredFiles: noop,
             setRemoteBrowserEnabled: noop,

@@ -19,12 +19,12 @@ export class AssistantMessageParser {
 	private readonly MAX_PARAM_LENGTH = 1024 * 100 // 100KB per parameter limit
 
 	private accumulator = ""
-	// kilocode_change: Add synthetic ID generation for EditHistoryService compatibility
+	// kade_change: Add synthetic ID generation for EditHistoryService compatibility
 	private currentTurnId = Date.now().toString()
 	private toolCallCounter = 0
 	private hasFinalizedTool = false
 
-	// kilocode_change: Kilo-XML Shorthand State delegated to KiloXmlHandler
+	// kade_change: Kilo-XML Shorthand State delegated to KiloXmlHandler
 	private kiloHandler = new KiloXmlHandler()
 
 	/**
@@ -47,7 +47,7 @@ export class AssistantMessageParser {
 		this.currentParamName = undefined
 		this.currentParamValueStartIndex = 0
 		this.accumulator = ""
-		// kilocode_change: Reset turn ID and counter for EditHistoryService
+		// kade_change: Reset turn ID and counter for EditHistoryService
 		this.currentTurnId = Date.now().toString()
 		this.toolCallCounter = 0
 		this.kiloHandler.reset()
@@ -172,7 +172,7 @@ export class AssistantMessageParser {
 					this.finalizeCurrentToolUse()
 					continue
 				} else {
-					// kilocode_change: Check for Kilo-XML Positional Delimiter Tags
+					// kade_change: Check for Kilo-XML Positional Delimiter Tags
 					if (char === ">") {
 						const lastOpenBracket = this.accumulator.lastIndexOf("<")
 						if (lastOpenBracket !== -1) {
@@ -255,7 +255,7 @@ export class AssistantMessageParser {
 					// Start of a new tool use.
 					this.kiloHandler.openedWithTag = extractedToolName
 					this.kiloHandler.positionalParamIndex = 0
-					// kilocode_change: Add synthetic xml_ prefixed ID for EditHistoryService
+					// kade_change: Add synthetic xml_ prefixed ID for EditHistoryService
 					// This allows edit tracking without polluting API history with JSON tool_use blocks
 					const toolCallId = `xml_${this.currentTurnId}_${extractedToolName}_${this.toolCallCounter++}`
 					this.currentToolUse = {

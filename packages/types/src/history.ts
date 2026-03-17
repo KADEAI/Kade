@@ -19,8 +19,8 @@ export const historyItemSchema = z.object({
 	totalCost: z.number(),
 	size: z.number().optional(),
 	workspace: z.string().optional(),
-	isFavorited: z.boolean().optional(), // kilocode_change
-	fileNotfound: z.boolean().optional(), // kilocode_change
+	isFavorited: z.boolean().optional(), // kade_change
+	fileNotfound: z.boolean().optional(), // kade_change
 	mode: z.string().optional(),
 	status: z.enum(["active", "completed", "delegated"]).optional(),
 	delegatedToId: z.string().optional(), // Last child this parent delegated to

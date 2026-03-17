@@ -105,7 +105,7 @@ export enum ContextMenuOptionType {
 	ResourceMonitor = "resourceMonitor",
 	NoResults = "noResults",
 	Mode = "mode", // Add mode type
-	Image = "image", // kilocode_change
+	Image = "image", // kade_change
 	Command = "command", // Add command type
 	SectionHeader = "sectionHeader", // Add section header type
 }
@@ -254,7 +254,7 @@ export function getContextMenuOptions(
 			{ type: ContextMenuOptionType.URL },
 			{ type: ContextMenuOptionType.Folder },
 			{ type: ContextMenuOptionType.File },
-			{ type: ContextMenuOptionType.Image }, // kilocode_change
+			{ type: ContextMenuOptionType.Image }, // kade_change
 			{ type: ContextMenuOptionType.ResourceMonitor, label: "Resource Monitor" },
 			{ type: ContextMenuOptionType.Git },
 		]
@@ -323,7 +323,7 @@ export function getContextMenuOptions(
 
 	// Convert search results to queryItems format
 	const searchResultItems = dynamicSearchResults.map((result) => {
-		// kilocode_change: Remove leading slash to ensure paths are workspace-relative and work on Mac
+		// kade_change: Remove leading slash to ensure paths are workspace-relative and work on Mac
 		const formattedPath = result.path.startsWith("/") ? result.path.substring(1) : result.path
 
 		// For display purposes, we don't escape spaces in the label or description

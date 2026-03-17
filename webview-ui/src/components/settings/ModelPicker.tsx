@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, Fragment } from "react" // kilocode_change Fragment
+import { useState, useCallback, useEffect, useRef, Fragment } from "react" // kade_change Fragment
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { Trans } from "react-i18next"
 import { ChevronsUpDown, Check, X, Info } from "lucide-react"
@@ -7,8 +7,8 @@ import type { ProviderSettings, ModelInfo, OrganizationAllowList } from "@roo-co
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useSelectedModel } from "@/components/ui/hooks/useSelectedModel"
-import { usePreferredModels } from "@/components/ui/hooks/kilocode/usePreferredModels" // kilocode_change
-// import { filterModels } from "./utils/organizationFilters" // kilocode_change: not doing this
+import { usePreferredModels } from "@/components/ui/hooks/kilocode/usePreferredModels" // kade_change
+// import { filterModels } from "./utils/organizationFilters" // kade_change: not doing this
 import { cn } from "@src/lib/utils"
 import {
 	Command,
@@ -21,7 +21,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 	Button,
-	SelectSeparator, // kilocode_change
+	SelectSeparator, // kade_change
 } from "@src/components/ui"
 import { getModelAlias } from "@src/utils/model-utils"
 import { getProviderIcon } from "./providerIcons"
@@ -33,20 +33,20 @@ import { KiloModelInfoView } from "../kilocode/settings/KiloModelInfoView"
 
 type ModelIdKey = keyof Pick<
 	ProviderSettings,
-	| "glamaModelId" // kilocode_change
+	| "glamaModelId" // kade_change
 	| "openRouterModelId"
 	| "unboundModelId"
 	| "requestyModelId"
 	| "openAiModelId"
 	| "litellmModelId"
-	// kilocode_change start
+	// kade_change start
 	| "apiModelId"
 	| "kilocodeModel"
 	| "nanoGptModelId"
 	| "ovhCloudAiEndpointsModelId"
 	| "inceptionLabsModelId"
 	| "opencodeModelId"
-	// kilocode_change end
+	// kade_change end
 	| "deepInfraModelId"
 	| "ioIntelligenceModelId"
 	| "vercelAiGatewayModelId"
@@ -80,7 +80,7 @@ export const ModelPicker = ({
 	serviceUrl,
 	apiConfiguration,
 	setApiConfigurationField,
-	// organizationAllowList, // kilocode_change: unused
+	// organizationAllowList, // kade_change: unused
 	errorMessage,
 	simplifySettings,
 	hidePricing,
@@ -95,10 +95,10 @@ export const ModelPicker = ({
 	const selectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 	const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-	// kilocode_change start
+	// kade_change start
 	const modelIds = usePreferredModels(models)
 	const [isPricingExpanded, setIsPricingExpanded] = useState(false)
-	// kilocode_change end
+	// kade_change end
 
 	const { id: selectedModelId, info: selectedModelInfo } = useSelectedModel(apiConfiguration)
 
@@ -224,7 +224,7 @@ export const ModelPicker = ({
 									)}
 								</CommandEmpty>
 								<CommandGroup>
-									{/* kilocode_change start */}
+									{/* kade_change start */}
 									{modelIds.map((model, i) => {
 										const info = models?.[model]
 										const isPreferred = Number.isInteger(info?.preferredIndex)
@@ -256,7 +256,7 @@ export const ModelPicker = ({
 											</Fragment>
 										)
 									})}
-									{/* kilocode_change end */}
+									{/* kade_change end */}
 								</CommandGroup>
 							</CommandList>
 							{searchValue && !modelIds.includes(searchValue) && (
@@ -284,7 +284,7 @@ export const ModelPicker = ({
 				<div>
 					<div className="mt-2 rounded-md border border-vscode-textBlockQuote-border/15 bg-vscode-textBlockQuote-background/30 p-3 overflow-hidden space-y-3">
 						{
-							// kilocode_change start
+							// kade_change start
 							selectedModelId &&
 							selectedModelInfo &&
 							(apiConfiguration.apiProvider === "kilocode" ||
@@ -309,7 +309,7 @@ export const ModelPicker = ({
 									hidePricing={hidePricing}
 								/>
 							))
-							// kilocode_change end
+							// kade_change end
 						}
 						{children}
 					</div>

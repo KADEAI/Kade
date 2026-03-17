@@ -10,7 +10,7 @@ export * from "./doubao.js"
 export * from "./featherless.js"
 export * from "./fireworks.js"
 export * from "./gemini.js"
-// kilocode_change start
+// kade_change start
 export * from "./gemini-cli.js"
 export * from "./ovhcloud.js"
 export * from "./synthetic.js"
@@ -23,7 +23,7 @@ export * from "./poe.js"
 export * from "./zenmux.js"
 export * from "./aihubmix.js"
 export * from "./corethink.js"
-// kilocode_change end
+// kade_change end
 export * from "./groq.js"
 export * from "./huggingface.js"
 export * from "./io-intelligence.js"
@@ -31,7 +31,7 @@ export * from "./lite-llm.js"
 export * from "./lm-studio.js"
 export * from "./mistral.js"
 export * from "./moonshot.js"
-export * from "./nano-gpt.js" // kilocode_change
+export * from "./nano-gpt.js" // kade_change
 export * from "./ollama.js"
 export * from "./openai.js"
 export * from "./openrouter.js"
@@ -63,8 +63,8 @@ import { doubaoDefaultModelId } from "./doubao.js"
 import { featherlessDefaultModelId } from "./featherless.js"
 import { fireworksDefaultModelId } from "./fireworks.js"
 import { geminiDefaultModelId } from "./gemini.js"
-import { glamaDefaultModelId } from "./glama.js" // kilocode_change
-import { opencodeDefaultModelId } from "./opencode.js" // kilocode_change
+import { glamaDefaultModelId } from "./glama.js" // kade_change
+import { opencodeDefaultModelId } from "./opencode.js" // kade_change
 import { cliProxyDefaultModelId } from "./cli-proxy.js"
 import { poeDefaultModelId } from "./poe.js"
 import { zenmuxDefaultModelId } from "./zenmux.js"
@@ -107,7 +107,7 @@ export function getProviderDefaultModelId(
 			return openRouterDefaultModelId
 		case "requesty":
 			return requestyDefaultModelId
-		// kilocode_change start
+		// kade_change start
 		case "glama":
 			return glamaDefaultModelId
 		case "opencode":

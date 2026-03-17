@@ -10,11 +10,11 @@ import {
 	type ShareVisibility,
 	type QueuedMessage,
 	marketplaceItemSchema,
-	// kilocode_change start
+	// kade_change start
 	CommitRange,
 	HistoryItem,
 	GlobalState,
-	// kilocode_change end
+	// kade_change end
 } from "@roo-code/types"
 
 import { Mode } from "./modes"
@@ -24,7 +24,7 @@ export type ClineAskResponse =
 	| "noButtonClicked"
 	| "messageResponse"
 	| "objectResponse"
-	| "retry_clicked" // kilocode_change: Added retry_clicked for payment required dialog
+	| "retry_clicked" // kade_change: Added retry_clicked for payment required dialog
 
 export type PromptMode = Mode | "enhance"
 
@@ -36,14 +36,14 @@ export interface UpdateTodoListPayload {
 
 export type EditQueuedMessagePayload = Pick<QueuedMessage, "id" | "text" | "images">
 
-// kilocode_change start: Type-safe global state update message
+// kade_change start: Type-safe global state update message
 export type GlobalStateValue<K extends keyof GlobalState> = GlobalState[K]
 export type UpdateGlobalStateMessage<K extends keyof GlobalState = keyof GlobalState> = {
 	type: "updateGlobalState"
 	stateKey: K
 	stateValue: GlobalStateValue<K>
 }
-// kilocode_change end: Type-safe global state update message
+// kade_change end: Type-safe global state update message
 
 export interface WebviewMessage {
 	type:
@@ -61,7 +61,7 @@ export interface WebviewMessage {
 	| "deleteApiConfiguration"
 	| "loadApiConfiguration"
 	| "loadApiConfigurationById"
-	| "getProfileConfigurationForEditing" // kilocode_change: Request to get profile config without activating
+	| "getProfileConfigurationForEditing" // kade_change: Request to get profile config without activating
 	| "renameApiConfiguration"
 	| "getListApiConfiguration"
 	| "customInstructions"
@@ -94,8 +94,8 @@ export interface WebviewMessage {
 	| "requestRooCreditBalance"
 	| "requestVsCodeLmModels"
 	| "requestHuggingFaceModels"
-	| "requestSapAiCoreModels" // kilocode_change
-	| "requestSapAiCoreDeployments" // kilocode_change
+	| "requestSapAiCoreModels" // kade_change
+	| "requestSapAiCoreDeployments" // kade_change
 	| "openImage"
 	| "saveImage"
 	| "openFile"
@@ -107,7 +107,7 @@ export interface WebviewMessage {
 	| "getVSCodeSetting"
 	| "vsCodeSetting"
 	| "updateCondensingPrompt"
-	| "yoloGatekeeperApiConfigId" // kilocode_change: AI gatekeeper for YOLO mode
+	| "yoloGatekeeperApiConfigId" // kade_change: AI gatekeeper for YOLO mode
 	| "playSound"
 	| "playTts"
 	| "stopTts"
@@ -123,12 +123,12 @@ export interface WebviewMessage {
 	| "toggleToolEnabledForPrompt"
 	| "toggleMcpServer"
 	| "updateMcpTimeout"
-	| "fuzzyMatchThreshold" // kilocode_change
-	| "morphApiKey" // kilocode_change: Morph fast apply - global setting
-	| "fastApplyModel" // kilocode_change: Fast Apply model selection
-	| "fastApplyApiProvider" // kilocode_change: Fast Apply model api base url
-	| "writeDelayMs" // kilocode_change
-	| "diagnosticsEnabled" // kilocode_change
+	| "fuzzyMatchThreshold" // kade_change
+	| "morphApiKey" // kade_change: Morph fast apply - global setting
+	| "fastApplyModel" // kade_change: Fast Apply model selection
+	| "fastApplyApiProvider" // kade_change: Fast Apply model api base url
+	| "writeDelayMs" // kade_change
+	| "diagnosticsEnabled" // kade_change
 	| "enhancePrompt"
 	| "enhancedPrompt"
 	| "draggedImages"
@@ -147,26 +147,26 @@ export interface WebviewMessage {
 	| "copySystemPrompt"
 	| "systemPrompt"
 	| "enhancementApiConfigId"
-	| "commitMessageApiConfigId" // kilocode_change
-	| "terminalCommandApiConfigId" // kilocode_change
-	| "ghostServiceSettings" // kilocode_change
-	| "stt:start" // kilocode_change: Start STT recording
-	| "stt:stop" // kilocode_change: Stop STT recording
-	| "stt:cancel" // kilocode_change: Cancel STT recording
+	| "commitMessageApiConfigId" // kade_change
+	| "terminalCommandApiConfigId" // kade_change
+	| "ghostServiceSettings" // kade_change
+	| "stt:start" // kade_change: Start STT recording
+	| "stt:stop" // kade_change: Stop STT recording
+	| "stt:cancel" // kade_change: Cancel STT recording
 	| "requestMicrophonePermission" // Request help with microphone permissions
 	| "localWhisper:modelLoading" // Local Whisper model loading progress
 	| "localWhisper:modelReady" // Local Whisper model ready
 	| "localWhisper:transcriptionUpdate" // Local Whisper streaming transcription update
 	| "localWhisper:transcriptionComplete" // Local Whisper transcription complete
 	| "localWhisper:error" // Local Whisper error
-	| "includeTaskHistoryInEnhance" // kilocode_change
-	| "snoozeAutocomplete" // kilocode_change
+	| "includeTaskHistoryInEnhance" // kade_change
+	| "snoozeAutocomplete" // kade_change
 	| "autoApprovalEnabled"
 	| "subAgentToolEnabled"
-	| "showSubAgentBanner" // kilocode_change
-	| "yoloMode" // kilocode_change
-	| "yoloMode" // kilocode_change
-	| "yoloMode" // kilocode_change
+	| "showSubAgentBanner" // kade_change
+	| "yoloMode" // kade_change
+	| "yoloMode" // kade_change
+	| "yoloMode" // kade_change
 	| "updateCustomMode"
 	| "deleteCustomMode"
 	| "setopenAiCustomModelInfo"
@@ -174,38 +174,38 @@ export interface WebviewMessage {
 	| "checkpointDiff"
 	| "checkpointRestore"
 	| "requestCheckpointRestoreApproval"
-	| "seeNewChanges" // kilocode_change
+	| "seeNewChanges" // kade_change
 	| "deleteMcpServer"
 	| "humanRelayResponse"
 	| "humanRelayCancel"
-	| "insertTextToChatArea" // kilocode_change
+	| "insertTextToChatArea" // kade_change
 	| "codebaseIndexEnabled"
 	| "telemetrySetting"
 	| "testBrowserConnection"
 	| "browserConnectionResult"
-	| "allowVeryLargeReads" // kilocode_change
-	| "showFeedbackOptions" // kilocode_change
-	| "fetchMcpMarketplace" // kilocode_change
-	| "silentlyRefreshMcpMarketplace" // kilocode_change
-	| "fetchLatestMcpServersFromHub" // kilocode_change
-	| "downloadMcp" // kilocode_change
-	| "showSystemNotification" // kilocode_change
-	| "showAutoApproveMenu" // kilocode_change
-	| "disableBrowserHeadless" // kilocode_change
-	| "reportBug" // kilocode_change
-	| "profileButtonClicked" // kilocode_change
-	| "fetchProfileDataRequest" // kilocode_change
-	| "profileDataResponse" // kilocode_change
-	| "fetchBalanceDataRequest" // kilocode_change
-	| "shopBuyCredits" // kilocode_change
-	| "balanceDataResponse" // kilocode_change
-	| "updateProfileData" // kilocode_change
-	| "condense" // kilocode_change
-	| "toggleWorkflow" // kilocode_change
-	| "refreshRules" // kilocode_change
-	| "toggleRule" // kilocode_change
-	| "createRuleFile" // kilocode_change
-	| "deleteRuleFile" // kilocode_change
+	| "allowVeryLargeReads" // kade_change
+	| "showFeedbackOptions" // kade_change
+	| "fetchMcpMarketplace" // kade_change
+	| "silentlyRefreshMcpMarketplace" // kade_change
+	| "fetchLatestMcpServersFromHub" // kade_change
+	| "downloadMcp" // kade_change
+	| "showSystemNotification" // kade_change
+	| "showAutoApproveMenu" // kade_change
+	| "disableBrowserHeadless" // kade_change
+	| "reportBug" // kade_change
+	| "profileButtonClicked" // kade_change
+	| "fetchProfileDataRequest" // kade_change
+	| "profileDataResponse" // kade_change
+	| "fetchBalanceDataRequest" // kade_change
+	| "shopBuyCredits" // kade_change
+	| "balanceDataResponse" // kade_change
+	| "updateProfileData" // kade_change
+	| "condense" // kade_change
+	| "toggleWorkflow" // kade_change
+	| "refreshRules" // kade_change
+	| "toggleRule" // kade_change
+	| "createRuleFile" // kade_change
+	| "deleteRuleFile" // kade_change
 	| "searchFiles"
 	| "toggleApiConfigPin"
 	| "hasOpenedModeSelector"
@@ -218,28 +218,28 @@ export interface WebviewMessage {
 	| "condenseTaskContextRequest"
 	| "requestIndexingStatus"
 	| "startIndexing"
-	| "cancelIndexing" // kilocode_change
+	| "cancelIndexing" // kade_change
 	| "clearIndexData"
 	| "indexingStatusUpdate"
 	| "indexCleared"
 	| "focusPanelRequest"
-	| "clearUsageData" // kilocode_change
-	| "getUsageData" // kilocode_change
-	| "usageDataResponse" // kilocode_change
-	| "showTaskTimeline" // kilocode_change
-	| "sendMessageOnEnter" // kilocode_change
-	| "showTimestamps" // kilocode_change
-	| "hideCostBelowThreshold" // kilocode_change
+	| "clearUsageData" // kade_change
+	| "getUsageData" // kade_change
+	| "usageDataResponse" // kade_change
+	| "showTaskTimeline" // kade_change
+	| "sendMessageOnEnter" // kade_change
+	| "showTimestamps" // kade_change
+	| "hideCostBelowThreshold" // kade_change
 	| "collapseCodeToolsByDefault"
-	| "slidingWindowSize" // kilocode_change
+	| "slidingWindowSize" // kade_change
 	| "toggleInfinity"
-	| "toggleTaskFavorite" // kilocode_change
-	| "fixMermaidSyntax" // kilocode_change
-	| "mermaidFixResponse" // kilocode_change
-	| "openGlobalKeybindings" // kilocode_change
-	| "getKeybindings" // kilocode_change
+	| "toggleTaskFavorite" // kade_change
+	| "fixMermaidSyntax" // kade_change
+	| "mermaidFixResponse" // kade_change
+	| "openGlobalKeybindings" // kade_change
+	| "getKeybindings" // kade_change
 	| "setReasoningBlockCollapsed"
-	| "setHistoryPreviewCollapsed" // kilocode_change
+	| "setHistoryPreviewCollapsed" // kade_change
 	| "openExternal"
 	| "filterMarketplaceItems"
 	| "checkKiroAuth"
@@ -261,21 +261,21 @@ export interface WebviewMessage {
 	| "installedSkillsData"
 	| "toggleSkill"
 	| "switchTab"
-	| "requestResourceMonitorData" // kilocode_change
-	| "profileThresholds" // kilocode_change
-	| "editMessage" // kilocode_change
-	| "systemNotificationsEnabled" // kilocode_change
-	| "dismissNotificationId" // kilocode_change
-	| "tasksByIdRequest" // kilocode_change
-	| "taskHistoryRequest" // kilocode_change
-	| "updateGlobalState" // kilocode_change
-	| "autoPurgeEnabled" // kilocode_change
-	| "autoPurgeDefaultRetentionDays" // kilocode_change
-	| "autoPurgeFavoritedTaskRetentionDays" // kilocode_change
-	| "autoPurgeCompletedTaskRetentionDays" // kilocode_change
-	| "autoPurgeIncompleteTaskRetentionDays" // kilocode_change
-	| "manualPurge" // kilocode_change
-	| "shareTaskSuccess" // kilocode_change
+	| "requestResourceMonitorData" // kade_change
+	| "profileThresholds" // kade_change
+	| "editMessage" // kade_change
+	| "systemNotificationsEnabled" // kade_change
+	| "dismissNotificationId" // kade_change
+	| "tasksByIdRequest" // kade_change
+	| "taskHistoryRequest" // kade_change
+	| "updateGlobalState" // kade_change
+	| "autoPurgeEnabled" // kade_change
+	| "autoPurgeDefaultRetentionDays" // kade_change
+	| "autoPurgeFavoritedTaskRetentionDays" // kade_change
+	| "autoPurgeCompletedTaskRetentionDays" // kade_change
+	| "autoPurgeIncompleteTaskRetentionDays" // kade_change
+	| "manualPurge" // kade_change
+	| "shareTaskSuccess" // kade_change
 	| "exportMode"
 	| "exportModeResult"
 	| "importMode"
@@ -292,7 +292,7 @@ export interface WebviewMessage {
 	| "insertTextIntoTextarea"
 	| "showMdmAuthRequiredNotification"
 	| "imageGenerationSettings"
-	| "kiloCodeImageApiKey" // kilocode_change
+	| "kiloCodeImageApiKey" // kade_change
 	| "queueMessage"
 	| "removeQueuedMessage"
 	| "editQueuedMessage"
@@ -300,7 +300,7 @@ export interface WebviewMessage {
 	| "getDismissedUpsells"
 	| "updateSettings"
 	| "resetToDefaultProtocol"
-	| "requestManagedIndexerState" // kilocode_change
+	| "requestManagedIndexerState" // kade_change
 	| "allowedCommands"
 	| "deniedCommands"
 	| "killBrowserSession"
@@ -308,46 +308,46 @@ export interface WebviewMessage {
 	| "showBrowserSessionPanelAtStep"
 	| "refreshBrowserSessionPanel"
 	| "browserPanelDidLaunch"
-	| "addTaskToHistory" // kilocode_change
-	| "sessionShare" // kilocode_change
-	| "shareTaskSession" // kilocode_change
-	| "sessionFork" // kilocode_change
-	| "sessionShow" // kilocode_change
-	| "sessionSelect" // kilocode_change
-	| "singleCompletion" // kilocode_change
+	| "addTaskToHistory" // kade_change
+	| "sessionShare" // kade_change
+	| "shareTaskSession" // kade_change
+	| "sessionFork" // kade_change
+	| "sessionShow" // kade_change
+	| "sessionSelect" // kade_change
+	| "singleCompletion" // kade_change
 	| "openDebugApiHistory"
 	| "openDebugUiHistory"
-	| "startDeviceAuth" // kilocode_change: Start device auth flow
-	| "cancelDeviceAuth" // kilocode_change: Cancel device auth flow
-	| "deviceAuthCompleteWithProfile" // kilocode_change: Device auth complete with specific profile
-	| "requestChatCompletion" // kilocode_change: Request FIM completion for chat text area
-	| "chatCompletionAccepted" // kilocode_change: User accepted a chat completion suggestion
-	| "request" // kilocode_change: generic request pattern
-	| "command" // kilocode_change: generic command execution
-	| "cliProxyLogin" // kilocode_change: CLI Proxy login
-	| "requestCliProxyModels" // kilocode_change: Request CLI Proxy models
-	| "cliProxyModels" // kilocode_change: Response with CLI Proxy models
-	| "openAiCodexSignIn" // kilocode_change
-	| "openAiCodexSignOut" // kilocode_change
-	| "requestOpenAiCodexRateLimits" // kilocode_change
-	| "claudeCodeSignIn" // kilocode_change
-	| "claudeCodeSignOut" // kilocode_change
-	| "requestClaudeCodeRateLimits" // kilocode_change
-	| "claudeCodeRateLimits" // kilocode_change
+	| "startDeviceAuth" // kade_change: Start device auth flow
+	| "cancelDeviceAuth" // kade_change: Cancel device auth flow
+	| "deviceAuthCompleteWithProfile" // kade_change: Device auth complete with specific profile
+	| "requestChatCompletion" // kade_change: Request FIM completion for chat text area
+	| "chatCompletionAccepted" // kade_change: User accepted a chat completion suggestion
+	| "request" // kade_change: generic request pattern
+	| "command" // kade_change: generic command execution
+	| "cliProxyLogin" // kade_change: CLI Proxy login
+	| "requestCliProxyModels" // kade_change: Request CLI Proxy models
+	| "cliProxyModels" // kade_change: Response with CLI Proxy models
+	| "openAiCodexSignIn" // kade_change
+	| "openAiCodexSignOut" // kade_change
+	| "requestOpenAiCodexRateLimits" // kade_change
+	| "claudeCodeSignIn" // kade_change
+	| "claudeCodeSignOut" // kade_change
+	| "requestClaudeCodeRateLimits" // kade_change
+	| "claudeCodeRateLimits" // kade_change
 	| "selectExternalFile"
 	| "selectFolder"
 	text?: string
-	provider?: string // kilocode_change: CLI Proxy provider
-	models?: any // kilocode_change: models payload
+	provider?: string // kade_change: CLI Proxy provider
+	models?: any // kade_change: models payload
 	request?: { type: string; key: string; value?: any }
 	command?: string
 	args?: any[]
-	suggestionLength?: number // kilocode_change: Length of accepted suggestion for telemetry
-	completionRequestId?: string // kilocode_change
-	shareId?: string // kilocode_change - for sessionFork
-	sessionId?: string // kilocode_change - for sessionSelect
+	suggestionLength?: number // kade_change: Length of accepted suggestion for telemetry
+	completionRequestId?: string // kade_change
+	shareId?: string // kade_change - for sessionFork
+	sessionId?: string // kade_change - for sessionSelect
 	editedMessageContent?: string
-	tab?: "settings" | "history" | "mcp" | "modes" | "chat" | "marketplace" | "cloud" | "auth" // kilocode_change
+	tab?: "settings" | "history" | "mcp" | "modes" | "chat" | "marketplace" | "cloud" | "auth" // kade_change
 	disabled?: boolean
 	context?: string
 	dataUri?: string
@@ -363,7 +363,7 @@ export interface WebviewMessage {
 	forceShow?: boolean
 	commands?: string[]
 	audioType?: AudioType
-	// kilocode_change begin
+	// kade_change begin
 	notificationOptions?: {
 		title?: string
 		subtitle?: string
@@ -372,16 +372,16 @@ export interface WebviewMessage {
 	mcpId?: string
 	toolNames?: string[]
 	autoApprove?: boolean
-	workflowPath?: string // kilocode_change
-	enableSubAgents?: boolean // kilocode_change
-	enabled?: boolean // kilocode_change
-	rulePath?: string // kilocode_change
-	isGlobal?: boolean // kilocode_change
-	filename?: string // kilocode_change
-	ruleType?: string // kilocode_change
-	notificationId?: string // kilocode_change
-	commandIds?: string[] // kilocode_change: For getKeybindings
-	// kilocode_change end
+	workflowPath?: string // kade_change
+	enableSubAgents?: boolean // kade_change
+	enabled?: boolean // kade_change
+	rulePath?: string // kade_change
+	isGlobal?: boolean // kade_change
+	filename?: string // kade_change
+	ruleType?: string // kade_change
+	notificationId?: string // kade_change
+	commandIds?: string[] // kade_change: For getKeybindings
+	// kade_change end
 	serverName?: string
 	toolName?: string
 	alwaysAllow?: boolean
@@ -394,7 +394,7 @@ export interface WebviewMessage {
 	values?: Record<string, any>
 	query?: string
 	setting?: string
-	scope?: "task" | "global" // kilocode_change: For scoping UI settings updates
+	scope?: "task" | "global" // kade_change: For scoping UI settings updates
 	slug?: string
 	language?: string // User's language for speech transcription (STT)
 	modeConfig?: ModeConfig
@@ -428,7 +428,7 @@ export interface WebviewMessage {
 	list?: string[] // For dismissedUpsells response
 	organizationId?: string | null // For organization switching
 	useProviderSignup?: boolean // For rooCloudSignIn to use provider signup flow
-	historyItem?: HistoryItem // kilocode_change For addTaskToHistory
+	historyItem?: HistoryItem // kade_change For addTaskToHistory
 	codeIndexSettings?: {
 		// Global state settings
 		codebaseIndexEnabled: boolean
@@ -442,8 +442,8 @@ export interface WebviewMessage {
 		| "vercel-ai-gateway"
 		| "bedrock"
 		| "openrouter"
-		codebaseIndexVectorStoreProvider?: "lancedb" | "qdrant" // kilocode_change
-		codebaseIndexLancedbVectorStoreDirectory?: string // kilocode_change
+		codebaseIndexVectorStoreProvider?: "lancedb" | "qdrant" // kade_change
+		codebaseIndexLancedbVectorStoreDirectory?: string // kade_change
 		codebaseIndexEmbedderBaseUrl?: string
 		codebaseIndexEmbedderModelId: string
 		codebaseIndexEmbedderModelDimension?: number // Generic dimension for all providers
@@ -452,10 +452,10 @@ export interface WebviewMessage {
 		codebaseIndexBedrockProfile?: string
 		codebaseIndexSearchMaxResults?: number
 		codebaseIndexSearchMinScore?: number
-		// kilocode_change start
+		// kade_change start
 		codebaseIndexEmbeddingBatchSize?: number
 		codebaseIndexScannerMaxBatchRetries?: number
-		// kilocode_change end
+		// kade_change end
 		codebaseIndexOpenRouterSpecificProvider?: string // OpenRouter provider routing
 		codebaseIndexIncludePaths?: string[]
 
@@ -472,10 +472,10 @@ export interface WebviewMessage {
 	subAgentApiConfiguration?: ProviderSettings
 }
 
-// kilocode_change: Create discriminated union for type-safe messages
+// kade_change: Create discriminated union for type-safe messages
 export type MaybeTypedWebviewMessage = WebviewMessage | UpdateGlobalStateMessage
 
-// kilocode_change begin
+// kade_change begin
 export type OrganizationRole = "owner" | "admin" | "member"
 
 export type UserOrganizationWithApiKey = {
@@ -540,7 +540,7 @@ export interface TaskHistoryResponsePayload {
 	pageIndex: number
 	pageCount: number
 }
-// kilocode_change end
+// kade_change end
 
 export const checkoutDiffPayloadSchema = z.object({
 	ts: z.number().optional(),
@@ -588,14 +588,14 @@ export type InstallMarketplaceItemWithParametersPayload = z.infer<
 >
 
 export type WebViewMessagePayload =
-	// kilocode_change start
+	// kade_change start
 	| ProfileDataResponsePayload
 	| BalanceDataResponsePayload
 	| SeeNewChangesPayload
 	| TasksByIdRequestPayload
 	| TaskHistoryRequestPayload
 	| RequestCheckpointRestoreApprovalPayload
-	// kilocode_change end
+	// kade_change end
 	| CheckpointDiffPayload
 	| CheckpointRestorePayload
 	| IndexingStatusPayload

@@ -10,7 +10,7 @@ export { DoubaoHandler } from "./doubao"
 export { MoonshotHandler } from "./moonshot"
 export { FakeAIHandler } from "./fake-ai"
 export { GeminiHandler } from "./gemini"
-export { GlamaHandler } from "./glama" // kilocode_change
+export { GlamaHandler } from "./glama" // kade_change
 export { GroqHandler } from "./groq"
 export { HuggingFaceHandler } from "./huggingface"
 export { HumanRelayHandler } from "./human-relay"
@@ -18,7 +18,7 @@ export { IOIntelligenceHandler } from "./io-intelligence"
 export { LiteLLMHandler } from "./lite-llm"
 export { LmStudioHandler } from "./lm-studio"
 export { MistralHandler } from "./mistral"
-export { NanoGptHandler } from "./nano-gpt" // kilocode_change
+export { NanoGptHandler } from "./nano-gpt" // kade_change
 export { OpenAiNativeHandler } from "./openai-native"
 export { OpenAiHandler } from "./openai"
 export { OpenRouterHandler } from "./openrouter"
@@ -27,7 +27,7 @@ export { RequestyHandler } from "./requesty"
 export { SambaNovaHandler } from "./sambanova"
 export { UnboundHandler } from "./unbound"
 export { VertexHandler } from "./vertex"
-// kilocode_change start
+// kade_change start
 export { OVHcloudAIEndpointsHandler } from "./ovhcloud"
 export { GeminiCliHandler } from "./gemini-cli"
 export { VirtualQuotaFallbackHandler } from "./virtual-quota-fallback"
@@ -36,7 +36,7 @@ export { InceptionLabsHandler } from "./inception"
 export { SapAiCoreHandler } from "./sap-ai-core"
 export { KiroHandler } from "./kiro"
 export { AntigravityHandler } from "./antigravity"
-// kilocode_change end
+// kade_change end
 export { VsCodeLmHandler } from "./vscode-lm"
 export { XAIHandler } from "./xai"
 export { ZAiHandler } from "./zai"

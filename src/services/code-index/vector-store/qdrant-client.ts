@@ -159,7 +159,7 @@ export class QdrantVectorStore implements IVectorStore {
 		distance: this.DISTANCE_METRIC,
 		on_disk: true,
 	},
-	// kilocode_change: Porting "insane" optimizations from claudiy for high performance
+	// kade_change: Porting "insane" optimizations from claudiy for high performance
 	quantization_config: {
 		binary: {
 			binary: {
@@ -262,7 +262,7 @@ export class QdrantVectorStore implements IVectorStore {
 		distance: this.DISTANCE_METRIC,
 		on_disk: true,
 	},
-	// kilocode_change: Porting "insane" optimizations from claudiy for high performance
+	// kade_change: Porting "insane" optimizations from claudiy for high performance
 	quantization_config: {
 		binary: {
 			binary: {

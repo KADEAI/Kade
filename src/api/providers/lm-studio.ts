@@ -17,7 +17,7 @@ import { fetchWithTimeout, HeadersTimeoutError } from "./kilocode/fetchWithTimeo
 import { addNativeToolCallsToParams, ToolCallAccumulator } from "./kilocode/nativeToolCallHelpers"
 import { getModels, getModelsFromCache } from "./fetchers/modelCache"
 import { handleOpenAIError } from "./utils/openai-error-handler"
-import { getApiRequestTimeout } from "./utils/timeout-config" // kilocode_change
+import { getApiRequestTimeout } from "./utils/timeout-config" // kade_change
 
 export class LmStudioHandler extends BaseProvider implements SingleCompletionHandler {
 	protected options: ApiHandlerOptions
@@ -27,14 +27,14 @@ export class LmStudioHandler extends BaseProvider implements SingleCompletionHan
 	constructor(options: ApiHandlerOptions) {
 		super()
 		this.options = options
-		const timeout = getApiRequestTimeout() // kilocode_change
+		const timeout = getApiRequestTimeout() // kade_change
 		this.client = new OpenAI({
 			baseURL: (this.options.lmStudioBaseUrl || "http://localhost:1234") + "/v1",
 			apiKey: "noop",
-			// kilocode_change start
+			// kade_change start
 			timeout: timeout,
 			fetch: timeout ? fetchWithTimeout(timeout) : undefined,
-			// kilocode_change end
+			// kade_change end
 		})
 	}
 
@@ -94,9 +94,9 @@ export class LmStudioHandler extends BaseProvider implements SingleCompletionHan
 			if (this.options.lmStudioSpeculativeDecodingEnabled && this.options.lmStudioDraftModelId) {
 				params.draft_model = this.options.lmStudioDraftModelId
 			}
-			// kilocode_change start: Add native tool call support when toolStyle is "json"
+			// kade_change start: Add native tool call support when toolStyle is "json"
 			addNativeToolCallsToParams(params, this.options, metadata)
-			// kilocode_change end
+			// kade_change end
 
 			let results
 			try {
@@ -114,11 +114,11 @@ export class LmStudioHandler extends BaseProvider implements SingleCompletionHan
 					}) as const,
 			)
 
-			const toolCallAccumulator = new ToolCallAccumulator() // kilocode_change
+			const toolCallAccumulator = new ToolCallAccumulator() // kade_change
 			for await (const chunk of results) {
 				const delta = chunk.choices[0]?.delta
 
-				yield* toolCallAccumulator.processChunk(chunk) // kilocode_change
+				yield* toolCallAccumulator.processChunk(chunk) // kade_change
 
 				if (delta?.content) {
 					assistantText += delta.content
@@ -146,11 +146,11 @@ export class LmStudioHandler extends BaseProvider implements SingleCompletionHan
 				outputTokens,
 			} as const
 		} catch (error) {
-			// kilocode_change start
+			// kade_change start
 			if (error.cause instanceof HeadersTimeoutError) {
 				throw new Error("Headers timeout", { cause: error })
 			}
-			// kilocode_change end
+			// kade_change end
 			throw new Error(
 				"Please check the LM Studio developer logs to debug what went wrong. You may need to load the model with a larger context length to work with Kilo Code's prompts.",
 			)

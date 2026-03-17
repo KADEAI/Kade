@@ -39,13 +39,13 @@ export const clineAsks = [
 	"browser_action_launch",
 	"use_mcp_server",
 	"auto_approval_max_req_reached",
-	// kilocode_change start
+	// kade_change start
 	"payment_required_prompt", // Added for the low credits dialog
 	"invalid_model",
 	"report_bug",
 	"condense",
 	"checkpoint_restore", // Added for checkpoint restore approval
-	// kilocode_change end
+	// kade_change end
 ] as const
 
 export const clineAskSchema = z.enum(clineAsks)
@@ -58,10 +58,10 @@ export type ClineAsk = z.infer<typeof clineAskSchema>
  */
 
 export const idleAsks = [
-	// kilocode_change start
+	// kade_change start
 	"payment_required_prompt",
 	"invalid_model",
-	// kilocode_change end
+	// kade_change end
 	"completion_result",
 	"api_req_failed",
 	"resume_completed_task",
@@ -96,11 +96,11 @@ export function isResumableAsk(ask: ClineAsk): ask is ResumableAsk {
  */
 
 export const interactiveAsks = [
-	// kilocode_change start
+	// kade_change start
 	"report_bug",
 	"condense",
 	"checkpoint_restore",
-	// kilocode_change end
+	// kade_change end
 	"followup",
 	"command",
 	"tool",
@@ -304,14 +304,14 @@ export const clineMessageSchema = z.object({
 	isProtected: z.boolean().optional(),
 	apiProtocol: z.union([z.literal("openai"), z.literal("anthropic")]).optional(),
 	isAnswered: z.boolean().optional(),
-	// kilocode_change start
+	// kade_change start
 	metadata: z
 		.object({
 			kiloCode: kiloCodeMetaDataSchema.optional(),
 			reasoningDurationMs: z.number().optional(),
 		})
 		.optional(),
-	// kilocode_change end
+	// kade_change end
 })
 
 export type ClineMessage = z.infer<typeof clineMessageSchema>

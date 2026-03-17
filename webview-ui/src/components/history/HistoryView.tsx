@@ -28,7 +28,7 @@ type SortOption = "newest" | "oldest" | "mostExpensive" | "mostTokens" | "mostRe
 
 const HistoryView = ({ onDone }: HistoryViewProps) => {
 	const {
-		data, // kilocode_change
+		data, // kade_change
 		searchQuery,
 		setSearchQuery,
 		sortOption,
@@ -36,18 +36,18 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 		setLastNonRelevantSort,
 		showAllWorkspaces,
 		setShowAllWorkspaces,
-		// kilocode_change start
+		// kade_change start
 		taskHistoryFullLength,
 		showFavoritesOnly,
 		setShowFavoritesOnly,
 		setRequestedPageIndex,
-		// kilocode_change end
+		// kade_change end
 	} = useTaskSearch()
-	// kilocode_change start
+	// kade_change start
 	const tasks = data?.historyItems ?? []
 	const pageIndex = data?.pageIndex ?? 0
 	const pageCount = data?.pageCount ?? 1
-	// kilocode_change end
+	// kade_change end
 	const { t } = useAppTranslation()
 
 	const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
@@ -236,7 +236,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 						<div className="text-vscode-foreground font-medium">
 							{t("history:selectedItems", {
 								selected: selectedTaskIds.length,
-								total: taskHistoryFullLength, // kilocode_change
+								total: taskHistoryFullLength, // kade_change
 							})}
 						</div>
 						<div className="flex gap-2">
@@ -250,7 +250,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 					</div>
 				)}
 				{
-					// kilocode_change start
+					// kade_change start
 					<div className="p-2 flex justify-between items-center h-10">
 						<span className="text-vscode-descriptionForeground opacity-80 pl-1">
 							{t("kilocode:pagination.page", {
@@ -283,7 +283,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 							</Button>
 						</div>
 					</div>
-					// kilocode_change end
+					// kade_change end
 				}
 			</div>
 

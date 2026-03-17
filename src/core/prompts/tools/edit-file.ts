@@ -1,4 +1,4 @@
-// kilocode_change: Morph fast apply - file added
+// kade_change: Morph fast apply - file added
 import { ToolArgs } from "./types"
 
 export function getFastApplyEditingInstructions(modelType: "Morph" | "Relace"): string {

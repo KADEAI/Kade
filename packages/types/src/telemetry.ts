@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import { providerNames } from "./provider-settings.js"
 import { clineMessageSchema } from "./message.js"
-import { toolProtocolSchema } from "./tool.js" // kilocode_change
+import { toolProtocolSchema } from "./tool.js" // kade_change
 
 /**
  * TelemetrySetting
@@ -19,7 +19,7 @@ export type TelemetrySetting = z.infer<typeof telemetrySettingsSchema>
  */
 
 export enum TelemetryEventName {
-	// kilocode_change start
+	// kade_change start
 	COMMIT_MSG_GENERATED = "Commit Message Generated",
 
 	INLINE_ASSIST_QUICK_TASK = "Inline Assist Quick Task",
@@ -57,7 +57,7 @@ export enum TelemetryEventName {
 	AGENT_MANAGER_SESSION_STOPPED = "Agent Manager Session Stopped",
 	AGENT_MANAGER_SESSION_ERROR = "Agent Manager Session Error",
 	AGENT_MANAGER_LOGIN_ISSUE = "Agent Manager Login Issue",
-	// kilocode_change end
+	// kade_change end
 
 	TASK_CREATED = "Task Created",
 	TASK_RESTARTED = "Task Reopened",
@@ -126,14 +126,14 @@ export const staticAppPropertiesSchema = z.object({
 	vscodeVersion: z.string(),
 	platform: z.string(),
 	editorName: z.string(),
-	// kilocode_change start
+	// kade_change start
 	wrapped: z.boolean(),
 	wrapper: z.string().nullable(),
 	wrapperTitle: z.string().nullable(),
 	wrapperCode: z.string().nullable(),
 	wrapperVersion: z.string().nullable(),
 	machineId: z.string().nullable(),
-	// kilocode_change end
+	// kade_change end
 	hostname: z.string().optional(),
 })
 
@@ -175,11 +175,11 @@ export const taskPropertiesSchema = z.object({
 			pending: z.number(),
 		})
 		.optional(),
-	// kilocode_change start
+	// kade_change start
 	currentTaskSize: z.number().optional(),
 	taskHistorySize: z.number().optional(),
 	toolStyle: toolProtocolSchema.optional(),
-	// kilocode_change end
+	// kade_change end
 })
 
 export type TaskProperties = z.infer<typeof taskPropertiesSchema>
@@ -217,30 +217,30 @@ export type TelemetryEvent = {
 export const rooCodeTelemetryEventSchema = z.discriminatedUnion("type", [
 	z.object({
 		type: z.enum([
-			// kilocode_change start
-			TelemetryEventName.COMMIT_MSG_GENERATED, // kilocode_change
-			TelemetryEventName.INLINE_ASSIST_QUICK_TASK, // kilocode_change
-			TelemetryEventName.INLINE_ASSIST_AUTO_TASK, // kilocode_change
-			TelemetryEventName.AUTOCOMPLETE_SUGGESTION_REQUESTED, // kilocode_change
-			TelemetryEventName.AUTOCOMPLETE_LLM_REQUEST_COMPLETED, // kilocode_change
-			TelemetryEventName.AUTOCOMPLETE_LLM_REQUEST_FAILED, // kilocode_change
-			TelemetryEventName.AUTOCOMPLETE_LLM_SUGGESTION_RETURNED, // kilocode_change
-			TelemetryEventName.AUTOCOMPLETE_SUGGESTION_CACHE_HIT, // kilocode_change
-			TelemetryEventName.AUTOCOMPLETE_ACCEPT_SUGGESTION, // kilocode_change
-			TelemetryEventName.AUTOCOMPLETE_SUGGESTION_FILTERED, // kilocode_change
-			TelemetryEventName.WEBVIEW_MEMORY_USAGE, // kilocode_change
-			TelemetryEventName.AUTO_PURGE_STARTED, // kilocode_change
-			TelemetryEventName.AUTO_PURGE_COMPLETED, // kilocode_change
-			TelemetryEventName.AUTO_PURGE_FAILED, // kilocode_change
-			TelemetryEventName.MANUAL_PURGE_TRIGGERED, // kilocode_change
-			TelemetryEventName.GHOST_SERVICE_DISABLED, // kilocode_change
-			TelemetryEventName.AGENT_MANAGER_OPENED, // kilocode_change
-			TelemetryEventName.AGENT_MANAGER_SESSION_STARTED, // kilocode_change
-			TelemetryEventName.AGENT_MANAGER_SESSION_COMPLETED, // kilocode_change
-			TelemetryEventName.AGENT_MANAGER_SESSION_STOPPED, // kilocode_change
-			TelemetryEventName.AGENT_MANAGER_SESSION_ERROR, // kilocode_change
-			TelemetryEventName.AGENT_MANAGER_LOGIN_ISSUE, // kilocode_change
-			// kilocode_change end
+			// kade_change start
+			TelemetryEventName.COMMIT_MSG_GENERATED, // kade_change
+			TelemetryEventName.INLINE_ASSIST_QUICK_TASK, // kade_change
+			TelemetryEventName.INLINE_ASSIST_AUTO_TASK, // kade_change
+			TelemetryEventName.AUTOCOMPLETE_SUGGESTION_REQUESTED, // kade_change
+			TelemetryEventName.AUTOCOMPLETE_LLM_REQUEST_COMPLETED, // kade_change
+			TelemetryEventName.AUTOCOMPLETE_LLM_REQUEST_FAILED, // kade_change
+			TelemetryEventName.AUTOCOMPLETE_LLM_SUGGESTION_RETURNED, // kade_change
+			TelemetryEventName.AUTOCOMPLETE_SUGGESTION_CACHE_HIT, // kade_change
+			TelemetryEventName.AUTOCOMPLETE_ACCEPT_SUGGESTION, // kade_change
+			TelemetryEventName.AUTOCOMPLETE_SUGGESTION_FILTERED, // kade_change
+			TelemetryEventName.WEBVIEW_MEMORY_USAGE, // kade_change
+			TelemetryEventName.AUTO_PURGE_STARTED, // kade_change
+			TelemetryEventName.AUTO_PURGE_COMPLETED, // kade_change
+			TelemetryEventName.AUTO_PURGE_FAILED, // kade_change
+			TelemetryEventName.MANUAL_PURGE_TRIGGERED, // kade_change
+			TelemetryEventName.GHOST_SERVICE_DISABLED, // kade_change
+			TelemetryEventName.AGENT_MANAGER_OPENED, // kade_change
+			TelemetryEventName.AGENT_MANAGER_SESSION_STARTED, // kade_change
+			TelemetryEventName.AGENT_MANAGER_SESSION_COMPLETED, // kade_change
+			TelemetryEventName.AGENT_MANAGER_SESSION_STOPPED, // kade_change
+			TelemetryEventName.AGENT_MANAGER_SESSION_ERROR, // kade_change
+			TelemetryEventName.AGENT_MANAGER_LOGIN_ISSUE, // kade_change
+			// kade_change end
 
 			TelemetryEventName.TASK_CREATED,
 			TelemetryEventName.TASK_RESTARTED,
@@ -341,10 +341,10 @@ export interface TelemetryClient {
 
 	setProvider(provider: TelemetryPropertiesProvider): void
 	capture(options: TelemetryEvent): Promise<void>
-	// kilocode_change start
+	// kade_change start
 	captureException(error: Error, properties?: Record<string | number, unknown>): void
 	updateIdentity(kilocodeToken: string): Promise<void>
-	// kilocode_change end
+	// kade_change end
 	updateTelemetryState(isOptedIn: boolean): void
 	isTelemetryEnabled(): boolean
 	shutdown(): Promise<void>

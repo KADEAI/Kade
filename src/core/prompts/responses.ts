@@ -9,7 +9,7 @@ import { Package } from "../../shared/package"
 import { formatBytes } from "../../utils/format"
 
 export const formatResponse = {
-	// kilocode_change start
+	// kade_change start
 	duplicateFileReadNotice: () =>
 		`[[NOTE] This file read has been removed to save space in the context window. Refer to the latest file read for the most up to date version of this file.]`,
 
@@ -18,7 +18,7 @@ export const formatResponse = {
 
 	condense: () =>
 		`The conversation has been condensed to save space. This summary covers the key points of our discussion so far.\n<explicit_instructions type="condense_response">Please respond by briefly asking the user what they'd like to focus on next. You can reference the summary provided, but keep your response concise and avoid making assumptions about continuing work unless the user directs you to.</explicit_instructions>`,
-	// kilocode_change end
+	// kade_change end
 	toolDenied: (protocol?: ToolProtocol) => {
 		if (isNativeProtocol(protocol ?? TOOL_PROTOCOL.MARKDOWN)) {
 			return JSON.stringify({
@@ -84,7 +84,7 @@ export const formatResponse = {
 	noToolsUsed: (protocol?: ToolProtocol) => {
 		const instructions = getToolInstructionsReminder(protocol)
 
-		// kilocode_change start: Less aggressive about forcing task completion
+		// kade_change start: Less aggressive about forcing task completion
 		return `[NOTE] You did not use a tool in your previous response.
 
 ${instructions}
@@ -97,7 +97,7 @@ ${instructions}
 - If you were just having a conversation or answering a question, that's fine - not every response needs a tool.
 
 (This is an automated message.)`
-		// kilocode_change end
+		// kade_change end
 	},
 
 

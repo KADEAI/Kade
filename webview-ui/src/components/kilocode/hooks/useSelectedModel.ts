@@ -16,9 +16,9 @@ export const getModelIdKey = ({
 	| "ollamaModelId"
 	| "lmStudioModelId"
 	| "vsCodeLmModelSelector"
-	| "ovhCloudAiEndpointsModelId" // kilocode_change
-	| "nanoGptModelId" // kilocode_change
-	| "opencodeModelId" // kilocode_change
+	| "ovhCloudAiEndpointsModelId" // kade_change
+	| "nanoGptModelId" // kade_change
+	| "opencodeModelId" // kade_change
 	| "apiModelId"
 > => {
 	switch (provider) {
@@ -52,7 +52,7 @@ export const getModelIdKey = ({
 		case "kilocode": {
 			return "kilocodeModel"
 		}
-		// kilocode_change start
+		// kade_change start
 		case "ovhcloud": {
 			return "ovhCloudAiEndpointsModelId"
 		}
@@ -62,7 +62,7 @@ export const getModelIdKey = ({
 		case "opencode": {
 			return "opencodeModelId"
 		}
-		// kilocode_change end
+		// kade_change end
 		default: {
 			return "apiModelId"
 		}

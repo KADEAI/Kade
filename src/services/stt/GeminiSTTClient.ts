@@ -1,4 +1,4 @@
-// kilocode_change - new file: Gemini STT Client
+// kade_change - new file: Gemini STT Client
 import { EventEmitter } from "events"
 import WebSocket from "ws"
 import { ProviderSettingsManager } from "../../core/config/ProviderSettingsManager"

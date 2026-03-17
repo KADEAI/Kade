@@ -1,4 +1,4 @@
-// kilocode_change - new file: STT contract types shared between extension and webview
+// kade_change - new file: STT contract types shared between extension and webview
 // Speech-to-Text (STT) event protocol
 
 /**

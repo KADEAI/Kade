@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useEffect } from "react"
 import { SlashCommand, getMatchingSlashCommands } from "@/utils/slash-commands"
-import { useExtensionState } from "@/context/ExtensionStateContext" // kilocode_change
+import { useExtensionState } from "@/context/ExtensionStateContext" // kade_change
 
 interface SlashCommandMenuProps {
 	onSelect: (command: SlashCommand) => void
@@ -19,7 +19,7 @@ const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
 	query,
 	customModes,
 }) => {
-	const { localWorkflows, globalWorkflows } = useExtensionState() // kilocode_change
+	const { localWorkflows, globalWorkflows } = useExtensionState() // kade_change
 	const menuRef = useRef<HTMLDivElement>(null)
 
 	const handleClick = useCallback(
@@ -47,7 +47,7 @@ const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
 	}, [selectedIndex])
 
 	// Filter commands based on query
-	const filteredCommands = getMatchingSlashCommands(query, customModes, localWorkflows, globalWorkflows) // kilocode_change
+	const filteredCommands = getMatchingSlashCommands(query, customModes, localWorkflows, globalWorkflows) // kade_change
 
 	return (
 		<div

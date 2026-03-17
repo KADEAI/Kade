@@ -6,11 +6,11 @@ import { defaultModeSlug } from "../../../shared/modes"
 import type { CodeIndexManager } from "../../../services/code-index/manager"
 import type { McpHub } from "../../../services/mcp/McpHub"
 
-// kilocode_change start
+// kade_change start
 import { ClineProviderState } from "../../webview/ClineProvider"
 import { isFastApplyAvailable } from "../../tools/kilocode/editFileTool"
 import { ManagedIndexer } from "../../../services/code-index/managed/ManagedIndexer"
-// kilocode_change end
+// kade_change end
 
 /**
  * Reverse lookup map - maps alias name to canonical tool name.
@@ -234,9 +234,9 @@ export function filterNativeToolsForMode(
 	experiments: Record<string, boolean> | undefined,
 	codeIndexManager?: CodeIndexManager,
 	settings?: Record<string, any>,
-	// kilocode_change start
+	// kade_change start
 	state?: ClineProviderState,
-	// kilocode_change end
+	// kade_change end
 	mcpHub?: McpHub,
 ): any[] {
 	// Get mode configuration and all tools for this mode
@@ -278,7 +278,7 @@ export function filterNativeToolsForMode(
 
 	// Conditionally exclude codebase_search if feature is disabled or not configured
 
-	// kilocode_change start
+	// kade_change start
 	const isCodebaseSearchAvailable =
 		ManagedIndexer.getInstance().isEnabled() ||
 		(codeIndexManager &&
@@ -288,7 +288,7 @@ export function filterNativeToolsForMode(
 	if (!isCodebaseSearchAvailable) {
 		allowedToolNames.delete("codebase_search")
 	}
-	// kilocode_change end
+	// kade_change end
 
 	// Conditionally exclude update_todo_list if disabled in settings
 	if (settings?.todoListEnabled === false) {
@@ -313,12 +313,12 @@ export function filterNativeToolsForMode(
 	// Conditionally exclude browser_action if disabled in settings
 	if (
 		settings?.browserToolEnabled === false ||
-		modelInfo?.supportsImages === false // kilocode_change
+		modelInfo?.supportsImages === false // kade_change
 	) {
 		allowedToolNames.delete("browser_action")
 	}
 
-	// kilocode_change start
+	// kade_change start
 	if (state && isFastApplyAvailable(state)) {
 		// When Fast Apply is enabled, disable traditional editing tools
 		const traditionalEditingTools = ["apply_diff", "write_to_file"]
@@ -326,7 +326,7 @@ export function filterNativeToolsForMode(
 	} else {
 		allowedToolNames.delete("edit_file")
 	}
-	// kilocode_change end
+	// kade_change end
 
 	// Conditionally exclude apply_diff if diffs are disabled
 	if (settings?.diffEnabled === false) {

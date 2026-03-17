@@ -43,9 +43,9 @@ type SupportPromptType =
 	| "TERMINAL_ADD_TO_CONTEXT"
 	| "TERMINAL_FIX"
 	| "TERMINAL_EXPLAIN"
-	| "TERMINAL_GENERATE" // kilocode_change
+	| "TERMINAL_GENERATE" // kade_change
 	| "NEW_TASK"
-	| "COMMIT_MESSAGE" // kilocode_change
+	| "COMMIT_MESSAGE" // kade_change
 
 const supportPromptConfigs: Record<SupportPromptType, SupportPromptConfig> = {
 	ENHANCE: {
@@ -195,7 +195,7 @@ Requirements:
 	NEW_TASK: {
 		template: `\${userInput}`,
 	},
-	// kilocode_change start
+	// kade_change start
 	COMMIT_MESSAGE: {
 		template: `# Conventional Commit Message Generator
 ## System Instructions
@@ -269,7 +269,7 @@ For significant changes, include a detailed body explaining the changes.
 
 Return ONLY the commit message in the conventional format, nothing else.`,
 	},
-	// kilocode_change end
+	// kade_change end
 } as const
 
 export const supportPrompt = {

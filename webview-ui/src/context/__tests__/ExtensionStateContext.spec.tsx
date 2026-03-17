@@ -3,7 +3,7 @@ import { render, screen, act } from "@/utils/test-utils"
 import {
 	ProviderSettings,
 	ExperimentId,
-	openRouterDefaultModelId, // kilocode_change
+	openRouterDefaultModelId, // kade_change
 	DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
 } from "@roo-code/types"
 
@@ -231,8 +231,8 @@ describe("mergeExtensionState", () => {
 			mcpEnabled: false,
 			enableMcpServerCreation: false,
 			clineMessages: [],
-			taskHistoryFullLength: 0, // kilocode_change
-			taskHistoryVersion: 0, // kilocode_change
+			taskHistoryFullLength: 0, // kade_change
+			taskHistoryVersion: 0, // kade_change
 			shouldShowAnnouncement: false,
 			enableCheckpoints: true,
 			writeDelayMs: 1000,
@@ -282,9 +282,9 @@ describe("mergeExtensionState", () => {
 				powerSteering: true,
 				multiFileApplyDiff: true,
 				preventFocusDisruption: false,
-				morphFastApply: false, // kilocode_change
-				speechToText: false, // kilocode_change
-				enableSubAgents: false, // kilocode_change
+				morphFastApply: false, // kade_change
+				speechToText: false, // kade_change
+				enableSubAgents: false, // kade_change
 				imageGeneration: false,
 				runSlashCommand: false,
 				multipleNativeToolCalls: false,
@@ -303,9 +303,9 @@ describe("mergeExtensionState", () => {
 			powerSteering: true,
 			multiFileApplyDiff: true,
 			preventFocusDisruption: false,
-			morphFastApply: false, // kilocode_change
-			speechToText: false, // kilocode_change
-			enableSubAgents: false, // kilocode_change
+			morphFastApply: false, // kade_change
+			speechToText: false, // kade_change
+			enableSubAgents: false, // kade_change
 			imageGeneration: false,
 			runSlashCommand: false,
 			multipleNativeToolCalls: false,

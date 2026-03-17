@@ -1,4 +1,4 @@
-// kilocode_change - new file: Type definitions for VS Code Git Extension API
+// kade_change - new file: Type definitions for VS Code Git Extension API
 /**
  * VS Code Git Extension API types
  * Based on: https://github.com/microsoft/vscode/blob/main/extensions/git/src/api/git.d.ts

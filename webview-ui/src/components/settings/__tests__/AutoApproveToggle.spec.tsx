@@ -19,7 +19,7 @@ describe("AutoApproveToggle", () => {
 	const initialProps = {
 		alwaysAllowReadOnly: true,
 		alwaysAllowWrite: false,
-		alwaysAllowDelete: false, // kilocode_change
+		alwaysAllowDelete: false, // kade_change
 		alwaysAllowBrowser: false,
 		alwaysApproveResubmit: true,
 		alwaysAllowMcp: false,

@@ -82,7 +82,7 @@ vi.mock("@src/components/ui", () => ({
 	Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
 }))
 
-// kilocode_change: no filtering done on providers client side
+// kade_change: no filtering done on providers client side
 describe.skip("ApiOptions Provider Filtering", () => {
 	const queryClient = new QueryClient({
 		defaultOptions: {
@@ -157,7 +157,7 @@ describe.skip("ApiOptions Provider Filtering", () => {
 		expect(providerValues).toContain("ollama")
 		expect(providerValues).toContain("lmstudio")
 		expect(providerValues).toContain("litellm")
-		expect(providerValues).toContain("glama") // kilocode_change
+		expect(providerValues).toContain("glama") // kade_change
 		expect(providerValues).toContain("unbound")
 		expect(providerValues).toContain("requesty")
 		expect(providerValues).toContain("io-intelligence")

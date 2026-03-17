@@ -9,13 +9,13 @@ export interface ReadToolProps {
     toolResult?: any;
     isLastMessage?: boolean;
     shouldAnimate?: boolean;
-    autoApprovalEnabled?: boolean; // kilocode_change: accept auto-approval setting
+    autoApprovalEnabled?: boolean; // kade_change: accept auto-approval setting
 }
 
 const ReadToolBody: React.FC<ReadToolProps> = ({ tool, toolResult: _toolResult, isLastMessage, shouldAnimate, autoApprovalEnabled }) => {
     const filePath = useMemo(() => {
         const raw = tool.path || tool.file_path || tool.notebook_path || '';
-        // kilocode_change: Strip embedded line ranges from path (e.g. "flappy.html 1-260" → "flappy.html")
+        // kade_change: Strip embedded line ranges from path (e.g. "flappy.html 1-260" → "flappy.html")
         // The backend handlePartial sometimes leaks the raw path with line ranges included
         const rangeStripped = raw.replace(/\s+\d+-\d+$/, '');
         return rangeStripped || raw;
@@ -26,7 +26,7 @@ const ReadToolBody: React.FC<ReadToolProps> = ({ tool, toolResult: _toolResult, 
         return parts.pop() || filePath;
     }, [filePath]);
 
-    // kilocode_change: Hide redundant "combined" read blocks that can occur with XML shorthand
+    // kade_change: Hide redundant "combined" read blocks that can occur with XML shorthand
     // The backend sometimes emits a summary tool call with concatenated paths in addition to individual reads.
     const isRedundantBatch = useMemo(() => {
         const raw = tool.path || '';
@@ -69,7 +69,7 @@ const ReadToolBody: React.FC<ReadToolProps> = ({ tool, toolResult: _toolResult, 
     }, [tool.reason]);
 
     const lineLabel = useMemo(() => {
-        // kilocode_change: Add visual indicators for head/tail reads
+        // kade_change: Add visual indicators for head/tail reads
         const headVal = tool.head || tool.params?.head || tool.nativeArgs?.head || 
                        (tool.nativeArgs?.files?.[0] as any)?.head || 
                        _toolResult?.head || _toolResult?.files?.[0]?.head;

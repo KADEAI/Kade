@@ -6,7 +6,7 @@ import { BaseTerminal } from "./BaseTerminal"
 import { TerminalProcess } from "./TerminalProcess"
 import { ShellIntegrationManager } from "./ShellIntegrationManager"
 import { mergePromise } from "./mergePromise"
-import { getWorkspacePath } from "../../utils/path" // kilocode_change
+import { getWorkspacePath } from "../../utils/path" // kade_change
 
 export class Terminal extends BaseTerminal {
 	public terminal: vscode.Terminal
@@ -159,7 +159,7 @@ export class Terminal extends BaseTerminal {
 			// See https://wiki.gnome.org/Apps/Terminal/VTE
 			VTE_VERSION: "0",
 
-			WORKSPACE_ROOT: getWorkspacePath(), // kilocode_change
+			WORKSPACE_ROOT: getWorkspacePath(), // kade_change
 		}
 
 		// Set Oh My Zsh shell integration if enabled

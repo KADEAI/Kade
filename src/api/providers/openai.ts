@@ -205,7 +205,7 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 					}
 				}
 
-				// kilocode_change start: reasoning
+				// kade_change start: reasoning
 				const reasoningText =
 					"reasoning_content" in delta && typeof delta.reasoning_content === "string"
 						? delta.reasoning_content
@@ -218,7 +218,7 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 						text: reasoningText,
 					}
 				}
-				// kilocode_change end
+				// kade_change end
 
 				if (delta.tool_calls) {
 					for (const toolCall of delta.tool_calls) {
@@ -272,7 +272,7 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 				throw handleOpenAIError(error, this.providerName)
 			}
 
-			// kilocode_change start: reasoning
+			// kade_change start: reasoning
 			const message = response.choices[0]?.message
 			if (message) {
 				if ("reasoning" in message && typeof message.reasoning === "string") {
@@ -288,7 +288,7 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 					}
 				}
 			}
-			// kilocode_change end
+			// kade_change end
 
 			if (message?.tool_calls) {
 				for (const toolCall of message.tool_calls) {

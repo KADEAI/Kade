@@ -12,7 +12,7 @@ import { resolveToolProtocol } from "../../utils/resolveToolProtocol"
 import { ClineProvider } from "./ClineProvider"
 
 export const generateSystemPrompt = async (provider: ClineProvider, message: WebviewMessage) => {
-	const state = await provider.getState() // kilocode_change
+	const state = await provider.getState() // kade_change
 
 	const {
 		apiConfiguration,
@@ -29,7 +29,7 @@ export const generateSystemPrompt = async (provider: ClineProvider, message: Web
 		maxReadFileLine,
 		maxConcurrentFileReads,
 		enabledSkills,
-	} = state // kilocode_change
+	} = state // kade_change
 
 	// Fetch installed skills
 	const installedSkills = await provider.fetchInstalledSkills()
@@ -108,13 +108,13 @@ export const generateSystemPrompt = async (provider: ClineProvider, message: Web
 			maxToolCalls: apiConfiguration?.maxToolCalls,
 			minimalSystemPrompt: apiConfiguration?.minimalSystemPrompt,
 		},
-		// kilocode_change start
+		// kade_change start
 		undefined,
 		undefined,
 		state,
 		enabledSkills,
 		installedSkills,
-		// kilocode_change end
+		// kade_change end
 	)
 
 	return systemPrompt

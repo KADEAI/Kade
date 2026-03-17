@@ -1,4 +1,4 @@
-// kilocode_change - file added
+// kade_change - file added
 
 import { useCallback, useState } from "react"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"

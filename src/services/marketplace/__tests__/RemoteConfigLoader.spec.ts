@@ -13,7 +13,7 @@ vi.mock("@roo-code/cloud", () => ({
 	getRooCodeApiUrl: () => "https://test.api.com",
 }))
 
-// kilocode_change start
+// kade_change start
 vi.mock("@roo-code/types", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("@roo-code/types")>()
 	return {
@@ -21,7 +21,7 @@ vi.mock("@roo-code/types", async (importOriginal) => {
 		getKiloBaseUriFromToken: () => "https://test.api.com",
 	}
 })
-// kilocode_change end
+// kade_change end
 
 describe("RemoteConfigLoader", () => {
 	let loader: RemoteConfigLoader

@@ -15,7 +15,7 @@ vi.mock("../../i18n", () => ({
 }))
 
 // Mock os module
-// kilocode_change start
+// kade_change start
 vi.mock("os", async () => {
 	const actual = await vi.importActual("os")
 	return {
@@ -66,7 +66,7 @@ vi.mock("node:path", async () => {
 		join: mockPathJoin,
 	}
 })
-// kilocode_change end
+// kade_change end
 
 // Mock vscode workspace
 vi.mock("vscode", () => ({
@@ -158,14 +158,14 @@ describe("runClaudeCode", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		mockExeca.mockReturnValue(createMockProcess())
-		// kilocode_change start
+		// kade_change start
 		// Reset mock functions
 		mockWriteFile.mockResolvedValue(undefined)
 		mockUnlink.mockResolvedValue(undefined)
 		mockReadFile.mockResolvedValue("mocked system prompt content")
 		mockRandomUUID.mockReturnValue("3af3dd36-2332-43a2-9d57-41af7e4c9453")
 		mockPathJoin.mockImplementation((dir: string, filename: string) => `${dir}/${filename}`)
-		// kilocode_change end
+		// kade_change end
 		// Mock setImmediate to run synchronously in tests
 		vi.spyOn(global, "setImmediate").mockImplementation((callback: any) => {
 			callback()
@@ -208,7 +208,7 @@ describe("runClaudeCode", () => {
 		const os = await import("os")
 		vi.mocked(os.platform).mockReturnValue("win32")
 
-		// kilocode_change start
+		// kade_change start
 		// Import the module after setting up mocks
 		const { runClaudeCode } = await import("../run")
 		const generator = runClaudeCode(options)
@@ -228,7 +228,7 @@ describe("runClaudeCode", () => {
 			systemPrompt,
 			"utf8",
 		)
-		// kilocode_change end
+		// kade_change end
 
 		// Reset mocks for non-Windows test
 		vi.clearAllMocks()
@@ -237,12 +237,12 @@ describe("runClaudeCode", () => {
 		// Test on non-Windows
 		vi.mocked(os.platform).mockReturnValue("darwin")
 
-		// kilocode_change start
+		// kade_change start
 		// Re-import to get fresh module with new platform setting
 		vi.resetModules()
 		const { runClaudeCode: runClaudeCode2 } = await import("../run")
 		const generator2 = runClaudeCode2(options)
-		// kilocode_change end
+		// kade_change end
 		const results2 = []
 		for await (const chunk of generator2) {
 			results2.push(chunk)

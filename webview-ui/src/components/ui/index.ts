@@ -19,5 +19,5 @@ export * from "./select"
 export * from "./textarea"
 export * from "./tooltip"
 export * from "./standard-tooltip"
-export * from "./tabs" // kilocode_change - add tabs
+export * from "./tabs" // kade_change - add tabs
 export * from "./toggle-switch"

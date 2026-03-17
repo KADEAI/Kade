@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import type { ModelInfo } from "../model.js"
 
 // Default model for ZenMux - using OpenAI GPT-5 as default
@@ -9,10 +9,10 @@ export const zenmuxDefaultModelInfo: ModelInfo = {
 	contextWindow: 200_000,
 	supportsImages: true,
 	supportsPromptCache: true,
-	// kilocode_change start
+	// kade_change start
 	supportsNativeTools: true,
 	defaultToolProtocol: "markdown",
-	// kilocode_change end
+	// kade_change end
 	inputPrice: 15.0,
 	outputPrice: 75.0,
 	cacheWritesPrice: 18.75,

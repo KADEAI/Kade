@@ -51,7 +51,7 @@ const CODEX_API_BASE_URL = "https://chatgpt.com/backend-api/codex"
  * - Limited model subset
  * - Custom headers for Codex backend
  */
-export class OpenAiCodexHandler extends BaseProvider /* kilocode_change: implements SingleCompletionHandler */ {
+export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements SingleCompletionHandler */ {
     protected options: ApiHandlerOptions
     private readonly providerName = "OpenAI Codex"
     private client?: OpenAI
@@ -357,9 +357,9 @@ export class OpenAiCodexHandler extends BaseProvider /* kilocode_change: impleme
 
                 // Build Codex-specific headers. Authorization is provided by the SDK apiKey.
                 const codexHeaders: Record<string, string> = {
-                    originator: "kilo-code", // kilocode_change
+                    originator: "kilo-code", // kade_change
                     session_id: taskId || this.sessionId,
-                    "User-Agent": DEFAULT_HEADERS["User-Agent"], // kilocode_change
+                    "User-Agent": DEFAULT_HEADERS["User-Agent"], // kade_change
                     ...(accountId ? { "ChatGPT-Account-Id": accountId } : {}),
                 }
 
@@ -427,7 +427,7 @@ export class OpenAiCodexHandler extends BaseProvider /* kilocode_change: impleme
                             const imageUrl =
                                 "media_type" in image.source && "data" in image.source
                                     ? `data:${image.source.media_type};base64,${image.source.data}`
-                                    : image.source.url // kilocode_change
+                                    : image.source.url // kade_change
                             content.push({ type: "input_image", image_url: imageUrl })
                         } else if (block.type === "tool_result") {
                             const result =
@@ -502,9 +502,9 @@ export class OpenAiCodexHandler extends BaseProvider /* kilocode_change: impleme
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
-            originator: "kilo-code", // kilocode_change
+            originator: "kilo-code", // kade_change
             session_id: taskId || this.sessionId,
-            "User-Agent": DEFAULT_HEADERS["User-Agent"], // kilocode_change
+            "User-Agent": DEFAULT_HEADERS["User-Agent"], // kade_change
         }
 
         // Add ChatGPT-Account-Id if available (required for organization subscriptions)
@@ -1068,9 +1068,9 @@ export class OpenAiCodexHandler extends BaseProvider /* kilocode_change: impleme
             const headers: Record<string, string> = {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${accessToken}`,
-                originator: "kilo-code", // kilocode_change
+                originator: "kilo-code", // kade_change
                 session_id: this.sessionId,
-                "User-Agent": DEFAULT_HEADERS["User-Agent"], // kilocode_change
+                "User-Agent": DEFAULT_HEADERS["User-Agent"], // kade_change
             }
 
             // Add ChatGPT-Account-Id if available

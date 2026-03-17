@@ -71,8 +71,8 @@ export function getNativeTools(
 		generateImage,
 
 		// Additional Edit Tools (kilocode)
-		editFile, // kilocode_change
-		// deleteFile, // kilocode_change: hidden
+		editFile, // kade_change
+		// deleteFile, // kade_change: hidden
 	]
 
 	if (enableSubAgents) {

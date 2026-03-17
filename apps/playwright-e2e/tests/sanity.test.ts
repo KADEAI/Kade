@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import { setupTestEnvironment } from "../helpers"
 import { test, expect, type TestFixtures } from "./playwright-base-test"
 

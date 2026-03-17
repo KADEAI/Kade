@@ -28,7 +28,7 @@ vi.mock("@roo-code/telemetry", () => ({
 			captureCheckpointCreated: vi.fn(),
 			captureCheckpointRestored: vi.fn(),
 			captureCheckpointDiffed: vi.fn(),
-			captureEvent: vi.fn(), // kilocode_change
+			captureEvent: vi.fn(), // kade_change
 		},
 	},
 }))

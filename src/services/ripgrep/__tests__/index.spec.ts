@@ -1,13 +1,13 @@
 // npx vitest run src/services/ripgrep/__tests__/index.spec.ts
 
-import * as path from "path" // kilocode_change
-import { getBinPath, truncateLine } from "../index" // kilocode_change
-import { fileExistsAtPath } from "../../../utils/fs" // kilocode_change
-// kilocode_change start
+import * as path from "path" // kade_change
+import { getBinPath, truncateLine } from "../index" // kade_change
+import { fileExistsAtPath } from "../../../utils/fs" // kade_change
+// kade_change start
 vi.mock("../../../utils/fs", () => ({
 	fileExistsAtPath: vi.fn(),
 }))
-// kilocode_change end
+// kade_change end
 describe("Ripgrep line truncation", () => {
 	// The default MAX_LINE_LENGTH is 500 in the implementation
 	const MAX_LINE_LENGTH = 500
@@ -54,7 +54,7 @@ describe("Ripgrep line truncation", () => {
 		expect(truncated).toContain("[truncated...]")
 	})
 })
-// kilocode_change start
+// kade_change start
 describe("getBinPath", () => {
 	const mockFileExists = fileExistsAtPath as ReturnType<typeof vi.fn>
 	const isWindows = process.platform.startsWith("win")
@@ -140,4 +140,4 @@ describe("getBinPath", () => {
 		expect(result).toBe(traditionalPath)
 	})
 })
-// kilocode_change end
+// kade_change end

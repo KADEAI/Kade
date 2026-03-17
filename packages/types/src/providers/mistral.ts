@@ -96,7 +96,7 @@ export const mistralModels = {
 		inputPrice: 0.2,
 		outputPrice: 0.6,
 	},
-	//kilocode_change
+	//kade_change
 	"magistral-small-latest": {
 		maxTokens: 40_960,
 		contextWindow: 40_960,
@@ -115,7 +115,7 @@ export const mistralModels = {
 		inputPrice: 0.1,
 		outputPrice: 0.3,
 	},
-	// kilocode_change end
+	// kade_change end
 	"pixtral-large-latest": {
 		maxTokens: 8192,
 		contextWindow: 131_000,

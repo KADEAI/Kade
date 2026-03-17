@@ -1,4 +1,4 @@
-// kilocode_change - new file: FFmpeg-based PCM16 audio capture for OpenAI Realtime API
+// kade_change - new file: FFmpeg-based PCM16 audio capture for OpenAI Realtime API
 import { EventEmitter } from "events"
 import { spawn, ChildProcess, execSync } from "child_process"
 import * as os from "os"

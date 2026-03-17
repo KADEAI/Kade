@@ -18,11 +18,11 @@ vi.mock("vscode", () => ({
 		workspaceFolders: undefined,
 	},
 }))
-// kilocode_change start
+// kade_change start
 vi.mock("../../../integrations/editor/DecorationController", () => ({
 	DecorationController: vi.fn(),
 }))
-// kilocode_change end
+// kade_change end
 
 describe("webviewMessageHandler - checkpoint operations", () => {
 	let mockProvider: any

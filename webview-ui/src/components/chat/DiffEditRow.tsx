@@ -38,7 +38,7 @@ interface DiffEditRowProps {
 	patch: string
 	path: string
 	isLoading?: boolean
-	className?: string // kilocode_change
+	className?: string // kade_change
 }
 
 export const DiffEditRow = memo<DiffEditRowProps>(({ patch, path, isLoading, className }) => {

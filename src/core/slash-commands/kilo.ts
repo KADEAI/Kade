@@ -1,4 +1,4 @@
-// kilocode_change whole file
+// kade_change whole file
 
 import { ClineRulesToggles } from "../../shared/cline-rules"
 import fs from "fs/promises"

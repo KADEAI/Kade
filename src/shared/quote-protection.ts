@@ -1,4 +1,4 @@
-// kilocode_change new file
+// kade_change new file
 
 /**
  * Placeholders used to protect newlines within quoted strings during command parsing.

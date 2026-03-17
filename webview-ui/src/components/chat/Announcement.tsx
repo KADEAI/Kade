@@ -124,4 +124,4 @@ const CareersLink = ({ children }: { children?: ReactNode }) => (
 )
 
 export default memo(Announcement)
-// kilocode_change: file unused, no need to touch anything
+// kade_change: file unused, no need to touch anything

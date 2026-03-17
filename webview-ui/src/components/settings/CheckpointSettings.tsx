@@ -1,7 +1,7 @@
 import { HTMLAttributes } from "react"
 import { useAppTranslation } from "@/i18n/TranslationContext"
-import { VSCodeCheckbox, VSCodeLink, VSCodeTextField, VSCodeButton } from "@vscode/webview-ui-toolkit/react" // kilocode_change
-import { GitBranch, Trash2, Clock, AlertTriangle } from "lucide-react" // kilocode_change
+import { VSCodeCheckbox, VSCodeLink, VSCodeTextField, VSCodeButton } from "@vscode/webview-ui-toolkit/react" // kade_change
+import { GitBranch, Trash2, Clock, AlertTriangle } from "lucide-react" // kade_change
 import { Trans } from "react-i18next"
 import { buildDocLink } from "@src/utils/docLinks"
 import { Slider } from "@/components/ui"
@@ -18,7 +18,7 @@ import {
 
 type CheckpointSettingsProps = HTMLAttributes<HTMLDivElement> & {
 	enableCheckpoints?: boolean
-	// kilocode_change start
+	// kade_change start
 	autoPurgeEnabled?: boolean
 	autoPurgeDefaultRetentionDays?: number
 	autoPurgeFavoritedTaskRetentionDays?: number | null
@@ -35,13 +35,13 @@ type CheckpointSettingsProps = HTMLAttributes<HTMLDivElement> & {
 		| "checkpointTimeout"
 	>
 	onManualPurge?: () => void
-	// kilocode_change end
+	// kade_change end
 	checkpointTimeout?: number
 }
 
 export const CheckpointSettings = ({
 	enableCheckpoints,
-	// kilocode_change start
+	// kade_change start
 	autoPurgeEnabled,
 	autoPurgeDefaultRetentionDays,
 	autoPurgeFavoritedTaskRetentionDays,
@@ -49,7 +49,7 @@ export const CheckpointSettings = ({
 	autoPurgeIncompleteTaskRetentionDays,
 	autoPurgeLastRunTimestamp,
 	onManualPurge,
-	// kilocode_change end
+	// kade_change end
 	checkpointTimeout,
 	setCachedStateField,
 	...props
@@ -271,7 +271,7 @@ export const CheckpointSettings = ({
 					</div>
 				</div>
 			</Section>
-			{/* kilocode_change end - Auto-Purge Settings Section */}
+			{/* kade_change end - Auto-Purge Settings Section */}
 		</div>
 	)
 }

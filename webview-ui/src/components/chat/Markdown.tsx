@@ -31,7 +31,7 @@ export const Markdown = memo(({ markdown, partial, filePaths, cwd }: { markdown?
 		return null
 	}
 
-	// kilocode_change: surgically strip "cancer blocks" (redundant protocol noise and script echoes)
+	// kade_change: surgically strip "cancer blocks" (redundant protocol noise and script echoes)
 	// We do this globally in Markdown component to catch leaks in all message types.
 	const cleanMarkdown = markdown
 		.replace(/```(?:tool|cmd)[\s\S]*?```/g, "")

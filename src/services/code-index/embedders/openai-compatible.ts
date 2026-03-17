@@ -397,7 +397,7 @@ export class OpenAICompatibleEmbedder implements IEmbedder {
 					stack: error instanceof Error ? error.stack : undefined,
 					location: "OpenAICompatibleEmbedder:validateConfiguration",
 				})
-				console.error("OpenAI Compatible embedder error in validateConfiguration:", error) // kilocode_change
+				console.error("OpenAI Compatible embedder error in validateConfiguration:", error) // kade_change
 				throw error
 			}
 		}, "openai-compatible")

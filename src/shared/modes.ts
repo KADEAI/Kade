@@ -62,7 +62,7 @@ export function getToolsForMode(groups: readonly GroupEntry[]): string[] {
 export const modes = DEFAULT_MODES
 
 // Export the default mode slug
-export const defaultModeSlug = "code" // kilocode_change: set default to code
+export const defaultModeSlug = "code" // kade_change: set default to code
 
 // Helper functions
 export function getModeBySlug(slug: string, customModes?: ModeConfig[]): ModeConfig | undefined {
@@ -139,9 +139,9 @@ export function getModeSelection(mode: string, promptComponent?: PromptComponent
 	}
 
 	// Otherwise, use built-in mode as base and merge with promptComponent
-	// kilocode_change start - ensure baseMode is never undefined with explicit assertion
+	// kade_change start - ensure baseMode is never undefined with explicit assertion
 	const baseMode = (builtInMode || modes[0])!
-	// kilocode_change end
+	// kade_change end
 
 	return {
 		roleDefinition: promptComponent?.roleDefinition || baseMode.roleDefinition || "",

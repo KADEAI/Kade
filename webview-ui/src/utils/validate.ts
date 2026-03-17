@@ -43,13 +43,13 @@ function validateModelsAndKeysProvided(apiConfiguration: ProviderSettings): stri
 				return i18next.t("settings:validation.apiKey")
 			}
 			break
-		// kilocode_change start
+		// kade_change start
 		case "glama":
 			if (!apiConfiguration.glamaApiKey) {
 				return i18next.t("settings:validation.apiKey")
 			}
 			break
-		// kilocode_change end
+		// kade_change end
 		case "unbound":
 			if (!apiConfiguration.unboundApiKey) {
 				return i18next.t("settings:validation.apiKey")
@@ -90,11 +90,11 @@ function validateModelsAndKeysProvided(apiConfiguration: ProviderSettings): stri
 				return i18next.t("settings:validation.apiKey")
 			}
 			break
-		// kilocode_change start
+		// kade_change start
 		case "gemini-cli":
 			// OAuth-based provider, no API key validation needed
 			break
-		// kilocode_change end
+		// kade_change end
 		case "openai-native":
 			if (!apiConfiguration.openAiNativeApiKey) {
 				return i18next.t("settings:validation.apiKey")
@@ -125,13 +125,13 @@ function validateModelsAndKeysProvided(apiConfiguration: ProviderSettings): stri
 				return i18next.t("settings:validation.modelSelector")
 			}
 			break
-		// kilocode_change start
+		// kade_change start
 		case "kilocode":
 			if (!apiConfiguration.kilocodeToken) {
 				return i18next.t("settings:validation.apiKey")
 			}
 			break
-		// kilocode_change end
+		// kade_change end
 		case "huggingface":
 			if (!apiConfiguration.huggingFaceApiKey) {
 				return i18next.t("settings:validation.apiKey")
@@ -150,13 +150,13 @@ function validateModelsAndKeysProvided(apiConfiguration: ProviderSettings): stri
 				return i18next.t("settings:validation.apiKey")
 			}
 			break
-		// kilocode_change start
+		// kade_change start
 		case "synthetic":
 			if (!apiConfiguration.syntheticApiKey) {
 				return i18next.t("settings:validation.apiKey")
 			}
 			break
-		// kilocode_change end
+		// kade_change end
 		case "io-intelligence":
 			if (!apiConfiguration.ioIntelligenceApiKey) {
 				return i18next.t("settings:validation.apiKey")
@@ -177,7 +177,7 @@ function validateModelsAndKeysProvided(apiConfiguration: ProviderSettings): stri
 				return i18next.t("settings:validation.apiKey")
 			}
 			break
-		// kilocode_change start
+		// kade_change start
 		case "ovhcloud":
 			if (!apiConfiguration.ovhCloudAiEndpointsApiKey) {
 				return i18next.t("settings:validation.apiKey")
@@ -196,7 +196,7 @@ function validateModelsAndKeysProvided(apiConfiguration: ProviderSettings): stri
 				})
 			}
 			break
-		// kilocode_change end
+		// kade_change end
 		case "baseten":
 			if (!apiConfiguration.basetenApiKey) {
 				return i18next.t("settings:validation.apiKey")

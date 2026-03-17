@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import React from "react"
 import { render, screen, fireEvent, waitFor, act } from "@/utils/test-utils"
 import SapAiCore from "../SapAiCore"

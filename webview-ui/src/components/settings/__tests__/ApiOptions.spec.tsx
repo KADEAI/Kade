@@ -32,14 +32,14 @@ vi.mock("@vscode/webview-ui-toolkit/react", () => ({
 			{children}
 		</label>
 	),
-	// kilocode_change start
+	// kade_change start
 	VSCodeDropdown: ({ children, value, onChange, className }: any) => (
 		<select value={value} onChange={onChange} className={className}>
 			{children}
 		</select>
 	),
 	VSCodeOption: ({ children, value }: any) => <option value={value}>{children}</option>,
-	// kilocode_change start
+	// kade_change start
 }))
 
 // Mock other components
@@ -283,14 +283,14 @@ vi.mock("@src/components/ui/hooks/useSelectedModel", () => ({
 			}
 		}
 	}),
-	// kilocode_change start
+	// kade_change start
 	useModelProviders: vi.fn(() => ({
 		data: {
 			openai: { id: "openai", name: "OpenAI" },
 			anthropic: { id: "anthropic", name: "Anthropic" },
 		},
 	})),
-	// kilocode_change end
+	// kade_change end
 }))
 
 const renderApiOptions = (props: Partial<ApiOptionsProps> = {}) => {
@@ -373,7 +373,7 @@ describe("ApiOptions", () => {
 		// it's included in the ApiOptions component when appropriate.
 	})
 
-	// kilocode_change: skip, we use a custom provider select component
+	// kade_change: skip, we use a custom provider select component
 	it.skip("filters providers by search input and shows no match message when appropriate", () => {
 		renderApiOptions({
 			apiConfiguration: {},
@@ -538,7 +538,7 @@ describe("ApiOptions", () => {
 		})
 	})
 
-	// kilocode_change start
+	// kade_change start
 	describe("Anthropic provider deployment name settings", () => {
 		it("shows deployment name checkbox and input when deployment name is set", () => {
 			const mockSetApiConfigurationField = vi.fn()
@@ -580,7 +580,7 @@ describe("ApiOptions", () => {
 			expect(mockSetApiConfigurationField).toHaveBeenCalledWith("anthropicDeploymentName", "")
 		})
 	})
-	// kilocode_change end
+	// kade_change end
 
 	describe("LiteLLM provider tests", () => {
 		it("renders LiteLLM component when provider is selected", () => {

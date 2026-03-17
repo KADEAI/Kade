@@ -165,11 +165,11 @@ export class GenerateImageTool extends BaseTool<"generate_image"> {
 
 		// Validate API key for OpenRouter
 		const openRouterApiKey = state?.openRouterImageApiKey
-		const kiloCodeApiKey = state?.kiloCodeImageApiKey // kilocode_change
+		const kiloCodeApiKey = state?.kiloCodeImageApiKey // kade_change
 
-		// kilocode_change start
+		// kade_change start
 		if (imageProvider === "openrouter" && !openRouterApiKey && !kiloCodeApiKey) {
-			// kilocode_change end
+			// kade_change end
 			const errorMessage = t("tools:generateImage.openRouterApiKeyRequired")
 			await task.say("error", errorMessage)
 			pushToolResult(formatResponse.toolError(errorMessage))
@@ -203,7 +203,7 @@ export class GenerateImageTool extends BaseTool<"generate_image"> {
 			}
 
 			let result
-			// kilocode_change start: Updated from "roo" to "kilocode" provider
+			// kade_change start: Updated from "roo" to "kilocode" provider
 			// Use Kilo Code Cloud provider (supports both chat completions and images API via OpenRouter)
 			// Use OpenRouter provider (only supports chat completions API)
 			const handler =
@@ -230,7 +230,7 @@ export class GenerateImageTool extends BaseTool<"generate_image"> {
 				task.taskId,
 			)
 
-			// kilocode_change end
+			// kade_change end
 
 			if (!result.success) {
 				await task.say("error", result.error || "Failed to generate image")

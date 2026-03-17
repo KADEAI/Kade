@@ -15,7 +15,7 @@ import { getWorkspacePath, arePathsEqual } from "../../../utils/path"
 import { GlobalFileNames } from "../../../shared/globalFileNames"
 
 import { CustomModesManager } from "../CustomModesManager"
-import { getProjectRooDirectoryForCwd } from "../../../services/roo-config" // kilocode_change
+import { getProjectRooDirectoryForCwd } from "../../../services/roo-config" // kade_change
 
 vi.mock("vscode", () => ({
 	workspace: {
@@ -1087,7 +1087,7 @@ describe("CustomModesManager", () => {
 				writtenRuleFiles.forEach((filePath) => {
 					const normalizedPath = path.normalize(filePath)
 					const expectedBasePath = path.normalize(
-						getProjectRooDirectoryForCwd(mockWorkspacePath), // kilocode_change
+						getProjectRooDirectoryForCwd(mockWorkspacePath), // kade_change
 					)
 					expect(normalizedPath.startsWith(expectedBasePath)).toBe(true)
 				})

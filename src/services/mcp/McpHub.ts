@@ -561,7 +561,7 @@ export class McpHub {
 		await this.initializeMcpServers("global")
 	}
 
-	// kilocode_change start
+	// kade_change start
 	// Check alternative MCP configuration paths (for compatibility with other tools)
 	private async checkAlternativeMcpPaths(workspacePath: string): Promise<string | null> {
 		const alternativePaths = [
@@ -580,7 +580,7 @@ export class McpHub {
 
 		return null
 	}
-	// kilocode_change end
+	// kade_change end
 
 	// Get project-level MCP configuration path
 	private async getProjectMcpPath(): Promise<string | null> {
@@ -592,7 +592,7 @@ export class McpHub {
 			await fs.access(projectMcpPath)
 			return projectMcpPath
 		} catch {
-			// kilocode_change
+			// kade_change
 			return this.checkAlternativeMcpPaths(workspacePath)
 
 			// If not found in .kilocode/, fall back to .mcp.json in root directory
@@ -885,7 +885,7 @@ export class McpHub {
 			this.kiloNotificationService.connect(name, connection.client)
 
 			// Initial fetch of tools and resources
-			await this.fetchAvailableServerCapabilities(name, source) // kilocode_change: logic moved into method
+			await this.fetchAvailableServerCapabilities(name, source) // kade_change: logic moved into method
 		} catch (error) {
 			// Update status with error
 			const connection = this.findConnection(name, source)
@@ -949,7 +949,7 @@ export class McpHub {
 		)
 	}
 
-	// kilocode_change start: method added
+	// kade_change start: method added
 	/**
 	 * Helper method to set the supported server capabilities
 	 * @param serverName The name of the server to find
@@ -971,7 +971,7 @@ export class McpHub {
 			connection.server.resourceTemplates = await this.fetchResourceTemplatesList(serverName, source)
 		}
 	}
-	// kilocode_change end
+	// kade_change end
 	/**
 	 * Find a connection by sanitized server name.
 	 * This is used when parsing MCP tool responses where the server name has been
@@ -997,12 +997,12 @@ export class McpHub {
 				return []
 			}
 
-			// kilocode_change start
+			// kade_change start
 			// Only proceed of the server defined the tools capability.
 			if (!connection.client.getServerCapabilities()?.tools) {
 				return []
 			}
-			// kilocode_change end
+			// kade_change end
 
 			const response = await connection.client.request({ method: "tools/list" }, ListToolsResultSchema)
 
@@ -1059,12 +1059,12 @@ export class McpHub {
 				return []
 			}
 
-			// kilocode_change start
+			// kade_change start
 			// Only proceed of the server defined the resources capability.
 			if (!connection.client.getServerCapabilities()?.resources) {
 				return []
 			}
-			// kilocode_change end
+			// kade_change end
 
 			const response = await connection.client.request({ method: "resources/list" }, ListResourcesResultSchema)
 			return response?.resources || []
@@ -1084,12 +1084,12 @@ export class McpHub {
 				return []
 			}
 
-			// kilocode_change start
+			// kade_change start
 			// Only proceed of the server defined the resources capability.
 			if (!connection.client.getServerCapabilities()?.resources) {
 				return []
 			}
-			// kilocode_change end
+			// kade_change end
 
 			const response = await connection.client.request(
 				{ method: "resources/templates/list" },
@@ -1497,7 +1497,7 @@ export class McpHub {
 						await this.connectToServer(serverName, updatedConfig, serverSource)
 					} else if (connection.server.status === "connected") {
 						// Only refresh capabilities if connected
-						await this.fetchAvailableServerCapabilities(serverName, serverSource) // kilocode_change: logic moved into method
+						await this.fetchAvailableServerCapabilities(serverName, serverSource) // kade_change: logic moved into method
 					}
 				} catch (error) {
 					console.error(`Failed to refresh capabilities for ${serverName}:`, error)

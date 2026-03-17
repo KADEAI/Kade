@@ -840,7 +840,7 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 			if (match) filePath = match[1]
 		}
 		if (!filePath && legacyPath) {
-			// kilocode_change: Strip line range from legacy path (e.g. "flappy.html 1-260" → "flappy.html")
+			// kade_change: Strip line range from legacy path (e.g. "flappy.html 1-260" → "flappy.html")
 			// This mirrors parseLegacy behavior to prevent partial messages from having broken paths
 			const rangeMatch = legacyPath.match(/^(.*?)(?::|\s+)(\d+)-(\d+)$/)
 			if (rangeMatch) {
@@ -862,7 +862,7 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 			}
 		}
 
-		// kilocode_change: Only show partial when we have a complete-looking path
+		// kade_change: Only show partial when we have a complete-looking path
 		// This prevents showing intermediate partial paths like "av" when the full
 		// path "av/sample.txt" is still streaming, which causes double display
 		if (!filePath) {

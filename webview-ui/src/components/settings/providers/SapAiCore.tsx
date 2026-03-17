@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useEvent } from "react-use"
 import { vscode } from "@src/utils/vscode"

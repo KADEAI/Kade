@@ -7,7 +7,7 @@ import axios from "axios"
 import {
 	type ProviderSettingsEntry,
 	type ClineMessage,
-	openRouterDefaultModelId, // kilocode_change: openRouterDefaultModelId
+	openRouterDefaultModelId, // kade_change: openRouterDefaultModelId
 	ORGANIZATION_ALLOW_ALL,
 	DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
 } from "@roo-code/types"
@@ -159,7 +159,7 @@ vi.mock("vscode", () => ({
 		showWarningMessage: vi.fn(),
 		showErrorMessage: vi.fn(),
 		onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
-		createTextEditorDecorationType: vi.fn(() => ({ dispose: vi.fn() })), // kilocode_change
+		createTextEditorDecorationType: vi.fn(() => ({ dispose: vi.fn() })), // kade_change
 	},
 	workspace: {
 		getConfiguration: vi.fn().mockReturnValue({
@@ -177,7 +177,7 @@ vi.mock("vscode", () => ({
 	env: {
 		uriScheme: "vscode",
 		language: "en",
-		uiKind: 1, // kilocode_change Desktop
+		uiKind: 1, // kade_change Desktop
 		appName: "Visual Studio Code",
 	},
 	ExtensionMode: {
@@ -185,14 +185,14 @@ vi.mock("vscode", () => ({
 		Development: 2,
 		Test: 3,
 	},
-	// kilocode_change start
+	// kade_change start
 	UIKind: {
 		1: "Desktop",
 		2: "Web",
 		Desktop: 1,
 		Web: 2,
 	},
-	// kilocode_change end
+	// kade_change end
 	version: "1.85.0",
 }))
 
@@ -537,7 +537,7 @@ describe("ClineProvider", () => {
 
 		// Verify Content Security Policy contains the necessary PostHog domains
 		expect(mockWebviewView.webview.html).toContain(
-			// kilocode_change: added localhost:3000
+			// kade_change: added localhost:3000
 			"connect-src vscode-webview://test-csp-source https://* http://localhost:3000 https://api.requesty.ai https://us.i.posthog.com https://us-assets.i.posthog.com",
 		)
 
@@ -557,15 +557,15 @@ describe("ClineProvider", () => {
 			version: "1.0.0",
 			isBrowserSessionActive: false,
 			clineMessages: [],
-			taskHistoryFullLength: 0, // kilocode_change
-			taskHistoryVersion: 0, // kilocode_change
+			taskHistoryFullLength: 0, // kade_change
+			taskHistoryVersion: 0, // kade_change
 			shouldShowAnnouncement: false,
 			apiConfiguration: {
-				// kilocode_change start
+				// kade_change start
 				apiProvider: "kilocode",
 				kilocodeModel: openRouterDefaultModelId,
 				kilocodeToken: "kilocode-token",
-				// kilocode_change end
+				// kade_change end
 			},
 			kilocodeDefaultModel: openRouterDefaultModelId,
 			customInstructions: undefined,
@@ -604,7 +604,7 @@ describe("ClineProvider", () => {
 			showRooIgnoredFiles: false,
 			renderContext: "sidebar",
 			maxReadFileLine: 500,
-			showAutoApproveMenu: false, // kilocode_change
+			showAutoApproveMenu: false, // kade_change
 			maxImageFileSize: 5,
 			maxTotalImageSize: 20,
 			cloudUserInfo: null,
@@ -796,7 +796,7 @@ describe("ClineProvider", () => {
 		expect(state).toHaveProperty("alwaysAllowWrite")
 		expect(state).toHaveProperty("alwaysAllowExecute")
 		expect(state).toHaveProperty("alwaysAllowBrowser")
-		// expect(state).toHaveProperty("taskHistory") // kilocode_change
+		// expect(state).toHaveProperty("taskHistory") // kade_change
 		expect(state).toHaveProperty("soundEnabled")
 		expect(state).toHaveProperty("ttsEnabled")
 		expect(state).toHaveProperty("diffEnabled")
@@ -1212,13 +1212,13 @@ describe("ClineProvider", () => {
 				listConfig: vi.fn().mockResolvedValue([{ name: "test-config", id: "test-id", apiProvider: "anthropic" }]),
 				saveConfig: vi.fn().mockResolvedValue("test-id"),
 				setModeConfig: vi.fn(),
-				// kilocode_change start
+				// kade_change start
 				getProfile: vi.fn().mockResolvedValue({
 					name: "test-config",
 					apiProvider: "anthropic",
 					id: "test-id",
 				}),
-				//kilocode_change end
+				//kade_change end
 			} as any
 
 		// Update API configuration
@@ -1228,10 +1228,10 @@ describe("ClineProvider", () => {
 			apiConfiguration: { apiProvider: "anthropic" },
 		})
 
-		// kilocode_change start
+		// kade_change start
 		// upsertApiConfiguration now passes activate=false, so setModeConfig should NOT be called
 		expect(provider.providerSettingsManager.setModeConfig).not.toHaveBeenCalled()
-		// kilocode_change end
+		// kade_change end
 	})
 
 	test("file content includes line numbers", async () => {
@@ -2102,14 +2102,14 @@ describe("ClineProvider", () => {
 					listConfig: vi
 						.fn()
 						.mockResolvedValue([{ name: "test-config", id: "test-id", apiProvider: "anthropic" }]),
-					// kilocode_change start
+					// kade_change start
 					getProfile: vi.fn().mockResolvedValue({
 						name: "test-config",
 						apiProvider: "anthropic",
 						apiKey: "test-key",
 						id: "test-id",
 					}),
-					// kilocode_change end
+					// kade_change end
 				} as any
 
 			const testApiConfig = {
@@ -2132,10 +2132,10 @@ describe("ClineProvider", () => {
 				{ name: "test-config", id: "test-id", apiProvider: "anthropic" },
 			])
 
-			// kilocode_change start
+			// kade_change start
 			// currentApiConfigName should NOT be updated when activate=false
 			expect(mockContext.globalState.update).not.toHaveBeenCalledWith("currentApiConfigName", "test-config")
-			// kilocode_change end
+			// kade_change end
 
 			// Verify state was posted to webview
 			expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: "state" }))
@@ -2145,7 +2145,7 @@ describe("ClineProvider", () => {
 			await provider.resolveWebviewView(mockWebviewView)
 			const messageHandler = (mockWebviewView.webview.onDidReceiveMessage as any).mock.calls[0][0]
 
-				// kilocode_change start
+				// kade_change start
 				// Mock saveConfig to throw an error to test error handling
 				; (provider as any).providerSettingsManager = {
 					setModeConfig: vi.fn(),
@@ -2160,7 +2160,7 @@ describe("ClineProvider", () => {
 						id: "test-id",
 					}),
 				} as any
-			// kilocode_change end
+			// kade_change end
 
 			// Setup Task instance with auto-mock from the top of the file
 			const mockCline = new Task(defaultTaskOptions) // Create a new mocked instance
@@ -2184,13 +2184,13 @@ describe("ClineProvider", () => {
 			)
 			expect(vscode.window.showErrorMessage).toHaveBeenCalledWith("errors.create_api_config")
 
-			// kilocode_change start
+			// kade_change start
 			// // Verify state was still updated
 			// expect(mockContext.globalState.update).toHaveBeenCalledWith("listApiConfigMeta", [
 			// 	{ name: "test-config", id: "test-id", apiProvider: "anthropic" },
 			// ])
 			// expect(mockContext.globalState.update).toHaveBeenCalledWith("currentApiConfigName", "test-config")
-			// kilocode_change end
+			// kade_change end
 		})
 
 		test("handles successful saveApiConfiguration", async () => {
@@ -2438,7 +2438,7 @@ describe("Project MCP Settings", () => {
 
 		// Verify error message was shown
 		expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-			// kilocode_change
+			// kade_change
 			expect.stringContaining("Failed to create or open .kilocode/mcp.json"),
 		)
 	})
@@ -2511,7 +2511,7 @@ vi.mock("../../../api/providers/fetchers/modelCache", () => ({
 }))
 
 describe.skip("getTelemetryProperties", () => {
-	// kilocode_change: skip suite
+	// kade_change: skip suite
 	let defaultTaskOptions: TaskOptions
 	let provider: ClineProvider
 	let mockContext: vscode.ExtensionContext
@@ -2752,14 +2752,14 @@ describe("ClineProvider - Router Models", () => {
 				unboundApiKey: "unbound-key",
 				litellmApiKey: "litellm-key",
 				litellmBaseUrl: "http://localhost:4000",
-				// kilocode_change start
+				// kade_change start
 				geminiApiKey: "gemini-key",
 				googleGeminiBaseUrl: "https://gemini.example.com",
 				nanoGptApiKey: "nano-gpt-key",
 				ovhCloudAiEndpointsApiKey: "ovhcloud-key",
 				inceptionLabsApiKey: "inception-key",
 				inceptionLabsBaseUrl: "https://api.inceptionlabs.ai/v1/",
-				// kilocode_change end
+				// kade_change end
 			},
 		} as any)
 
@@ -2784,8 +2784,8 @@ describe("ClineProvider - Router Models", () => {
 		await messageHandler({ type: "requestRouterModels" })
 
 		// Verify getModels was called for each provider with correct options
-		expect(getModels).toHaveBeenCalledWith({ provider: "openrouter", apiKey: "openrouter-key" }) // kilocode_change: apiKey
-		// kilocode_change start
+		expect(getModels).toHaveBeenCalledWith({ provider: "openrouter", apiKey: "openrouter-key" }) // kade_change: apiKey
+		// kade_change start
 		expect(getModels).toHaveBeenCalledWith({
 			provider: "gemini",
 			apiKey: "gemini-key",
@@ -2797,9 +2797,9 @@ describe("ClineProvider - Router Models", () => {
 			apiKey: "inception-key",
 			baseUrl: "https://api.inceptionlabs.ai/v1/",
 		})
-		// kilocode_change end
+		// kade_change end
 		expect(getModels).toHaveBeenCalledWith({ provider: "requesty", apiKey: "requesty-key" })
-		expect(getModels).toHaveBeenCalledWith({ provider: "glama" }) // kilocode_change
+		expect(getModels).toHaveBeenCalledWith({ provider: "glama" }) // kade_change
 		expect(getModels).toHaveBeenCalledWith({ provider: "unbound", apiKey: "unbound-key" })
 		expect(getModels).toHaveBeenCalledWith({ provider: "vercel-ai-gateway" })
 		expect(getModels).toHaveBeenCalledWith({ provider: "deepinfra" })
@@ -2822,22 +2822,22 @@ describe("ClineProvider - Router Models", () => {
 			routerModels: {
 				deepinfra: mockModels,
 				openrouter: mockModels,
-				gemini: mockModels, // kilocode_change
+				gemini: mockModels, // kade_change
 				requesty: mockModels,
-				glama: mockModels, // kilocode_change
-				synthetic: mockModels, // kilocode_change
+				glama: mockModels, // kade_change
+				synthetic: mockModels, // kade_change
 				unbound: mockModels,
 				roo: mockModels,
 				chutes: mockModels,
 				litellm: mockModels,
 				kilocode: mockModels,
-				"nano-gpt": mockModels, // kilocode_change
-				ollama: mockModels, // kilocode_change
+				"nano-gpt": mockModels, // kade_change
+				ollama: mockModels, // kade_change
 				lmstudio: {},
 				"vercel-ai-gateway": mockModels,
-				ovhcloud: mockModels, // kilocode_change
-				inception: mockModels, // kilocode_change
-				"sap-ai-core": {}, // kilocode_change
+				ovhcloud: mockModels, // kade_change
+				inception: mockModels, // kade_change
+				"sap-ai-core": {}, // kade_change
 				huggingface: {},
 				"io-intelligence": {},
 			},
@@ -2853,20 +2853,20 @@ describe("ClineProvider - Router Models", () => {
 			apiConfiguration: {
 				openRouterApiKey: "openrouter-key",
 				requestyApiKey: "requesty-key",
-				glamaApiKey: "glama-key", // kilocode_change
+				glamaApiKey: "glama-key", // kade_change
 				unboundApiKey: "unbound-key",
 				litellmApiKey: "litellm-key",
 				litellmBaseUrl: "http://localhost:4000",
-				// kilocode_change start
+				// kade_change start
 				chutesApiKey: "chutes-key",
 				geminiApiKey: "gemini-key",
 				googleGeminiBaseUrl: "https://gemini.example.com",
-				nanoGptApiKey: "nano-gpt-key", // kilocode_change
+				nanoGptApiKey: "nano-gpt-key", // kade_change
 				ovhCloudAiEndpointsApiKey: "ovhcloud-key",
 				inceptionLabsApiKey: "inception-key",
 				inceptionLabsBaseUrl: "https://api.inceptionlabs.ai/v1/",
 				syntheticApiKey: "synthetic-key",
-				// kilocode_change end
+				// kade_change end
 			},
 		} as any)
 
@@ -2878,18 +2878,18 @@ describe("ClineProvider - Router Models", () => {
 		// Mock some providers to succeed and others to fail
 		vi.mocked(getModels)
 			.mockResolvedValueOnce(mockModels) // openrouter success
-			.mockResolvedValueOnce(mockModels) // kilocode_change: gemini success
+			.mockResolvedValueOnce(mockModels) // kade_change: gemini success
 			.mockRejectedValueOnce(new Error("Requesty API error")) //
-			.mockResolvedValueOnce(mockModels) // kilocode_change glama success
+			.mockResolvedValueOnce(mockModels) // kade_change glama success
 			.mockRejectedValueOnce(new Error("Unbound API error")) // unbound fail
 			.mockRejectedValueOnce(new Error("Kilocode-OpenRouter API error")) // kilocode-openrouter fail
-			.mockRejectedValueOnce(new Error("Ollama API error")) // kilocode_change
+			.mockRejectedValueOnce(new Error("Ollama API error")) // kade_change
 			.mockResolvedValueOnce(mockModels) // vercel-ai-gateway success
 			.mockResolvedValueOnce(mockModels) // deepinfra success
-			.mockResolvedValueOnce(mockModels) // nano-gpt success // kilocode_change
-			.mockResolvedValueOnce(mockModels) // kilocode_change: ovhcloud
-			.mockResolvedValueOnce(mockModels) // kilocode_change: inception success
-			.mockResolvedValueOnce(mockModels) // kilocode_change: synthetic success
+			.mockResolvedValueOnce(mockModels) // nano-gpt success // kade_change
+			.mockResolvedValueOnce(mockModels) // kade_change: ovhcloud
+			.mockResolvedValueOnce(mockModels) // kade_change: inception success
+			.mockResolvedValueOnce(mockModels) // kade_change: synthetic success
 			.mockResolvedValueOnce(mockModels) // roo success
 			.mockRejectedValueOnce(new Error("Chutes API error")) // chutes fail
 			.mockRejectedValueOnce(new Error("LiteLLM connection failed")) // litellm fail
@@ -2902,9 +2902,9 @@ describe("ClineProvider - Router Models", () => {
 			routerModels: {
 				deepinfra: mockModels,
 				openrouter: mockModels,
-				gemini: mockModels, // kilocode_change
+				gemini: mockModels, // kade_change
 				requesty: {},
-				glama: mockModels, // kilocode_change
+				glama: mockModels, // kade_change
 				unbound: {},
 				roo: mockModels,
 				chutes: {},
@@ -2912,12 +2912,12 @@ describe("ClineProvider - Router Models", () => {
 				lmstudio: {},
 				litellm: {},
 				kilocode: {},
-				"nano-gpt": mockModels, // kilocode_change
+				"nano-gpt": mockModels, // kade_change
 				"vercel-ai-gateway": mockModels,
-				ovhcloud: mockModels, // kilocode_change
-				inception: mockModels, // kilocode_change
-				synthetic: mockModels, // kilocode_change
-				"sap-ai-core": {}, // kilocode_change
+				ovhcloud: mockModels, // kade_change
+				inception: mockModels, // kade_change
+				synthetic: mockModels, // kade_change
+				"sap-ai-core": {}, // kade_change
 				huggingface: {},
 				"io-intelligence": {},
 			},
@@ -2939,14 +2939,14 @@ describe("ClineProvider - Router Models", () => {
 			values: { provider: "unbound" },
 		})
 
-		// kilocode_change start
+		// kade_change start
 		expect(mockPostMessage).toHaveBeenCalledWith({
 			type: "singleRouterModelFetchResponse",
 			success: false,
 			error: "Chutes API error",
 			values: { provider: "chutes" },
 		})
-		// kilocode_change end
+		// kade_change end
 
 		expect(mockPostMessage).toHaveBeenCalledWith({
 			type: "singleRouterModelFetchResponse",
@@ -2986,12 +2986,12 @@ describe("ClineProvider - Router Models", () => {
 			apiConfiguration: {
 				openRouterApiKey: "openrouter-key",
 				requestyApiKey: "requesty-key",
-				glamaApiKey: "glama-key", // kilocode_change
+				glamaApiKey: "glama-key", // kade_change
 				unboundApiKey: "unbound-key",
-				// kilocode_change start
+				// kade_change start
 				ovhCloudAiEndpointsApiKey: "ovhcloud-key",
 				chutesApiKey: "chutes-key",
-				// kilocode_change end
+				// kade_change end
 				// No litellm config
 			},
 		} as any)
@@ -3026,13 +3026,13 @@ describe("ClineProvider - Router Models", () => {
 			apiConfiguration: {
 				openRouterApiKey: "openrouter-key",
 				requestyApiKey: "requesty-key",
-				glamaApiKey: "glama-key", // kilocode_change
+				glamaApiKey: "glama-key", // kade_change
 				unboundApiKey: "unbound-key",
-				// kilocode_change start
+				// kade_change start
 				ovhCloudAiEndpointsApiKey: "ovhcloud-key",
 				chutesApiKey: "chutes-key",
 				nanoGptApiKey: "nano-gpt-key",
-				// kilocode_change end
+				// kade_change end
 				// No litellm config
 			},
 		} as any)
@@ -3058,22 +3058,22 @@ describe("ClineProvider - Router Models", () => {
 			routerModels: {
 				deepinfra: mockModels,
 				openrouter: mockModels,
-				gemini: mockModels, // kilocode_change
+				gemini: mockModels, // kade_change
 				requesty: mockModels,
-				glama: mockModels, // kilocode_change
+				glama: mockModels, // kade_change
 				unbound: mockModels,
 				roo: mockModels,
 				chutes: mockModels,
 				litellm: {},
 				kilocode: mockModels,
-				"nano-gpt": mockModels, // kilocode_change
-				ollama: mockModels, // kilocode_change
+				"nano-gpt": mockModels, // kade_change
+				ollama: mockModels, // kade_change
 				lmstudio: {},
 				"vercel-ai-gateway": mockModels,
-				ovhcloud: mockModels, // kilocode_change
-				inception: mockModels, // kilocode_change
-				synthetic: mockModels, // kilocode_change
-				"sap-ai-core": {}, // kilocode_change
+				ovhcloud: mockModels, // kade_change
+				inception: mockModels, // kade_change
+				synthetic: mockModels, // kade_change
+				"sap-ai-core": {}, // kade_change
 				huggingface: {},
 				"io-intelligence": {},
 			},

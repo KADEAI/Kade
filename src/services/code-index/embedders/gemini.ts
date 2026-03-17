@@ -58,7 +58,7 @@ export class GeminiEmbedder implements IEmbedder {
 				stack: error instanceof Error ? error.stack : undefined,
 				location: "GeminiEmbedder:createEmbeddings",
 			})
-			console.error("Gemini embedder error in createEmbeddings:", error) // kilocode_change
+			console.error("Gemini embedder error in createEmbeddings:", error) // kade_change
 			throw error
 		}
 	}
@@ -78,7 +78,7 @@ export class GeminiEmbedder implements IEmbedder {
 				stack: error instanceof Error ? error.stack : undefined,
 				location: "GeminiEmbedder:validateConfiguration",
 			})
-			console.error("Gemini embedder error in validateConfiguration:", error) // kilocode_change
+			console.error("Gemini embedder error in validateConfiguration:", error) // kade_change
 			throw error
 		}
 	}

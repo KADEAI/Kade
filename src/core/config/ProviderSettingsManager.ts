@@ -11,7 +11,7 @@ import {
 	DEFAULT_CONSECUTIVE_MISTAKE_LIMIT,
 	getModelId,
 	type ProviderName,
-	type ProfileType, // kilocode_change - autocomplete profile type system
+	type ProfileType, // kade_change - autocomplete profile type system
 	isProviderName,
 } from "@roo-code/types"
 import { TelemetryService } from "@roo-code/telemetry"
@@ -19,7 +19,7 @@ import { TelemetryService } from "@roo-code/telemetry"
 import { Mode, modes } from "../../shared/modes"
 import { migrateMorphApiKey } from "./kilocode/migrateMorphApiKey"
 import { buildApiHandler } from "../../api"
-import { t } from "../../i18n" // kilocode_change - autocomplete profile type system
+import { t } from "../../i18n" // kade_change - autocomplete profile type system
 
 // Type-safe model migrations mapping
 type ModelMigrations = {
@@ -50,7 +50,7 @@ export const providerProfilesSchema = z.object({
 			openAiHeadersMigrated: z.boolean().optional(),
 			consecutiveMistakeLimitMigrated: z.boolean().optional(),
 			todoListEnabledMigrated: z.boolean().optional(),
-			morphApiKeyMigrated: z.boolean().optional(), // kilocode_change: Morph API key migration
+			morphApiKeyMigrated: z.boolean().optional(), // kade_change: Morph API key migration
 		})
 		.optional(),
 })
@@ -84,7 +84,7 @@ export class ProviderSettingsManager {
 		},
 	}
 
-	// kilocode_change start
+	// kade_change start
 	private pendingDuplicateIdRepairReport: Record<string, string[]> | null = null
 
 	public consumeDuplicateIdRepairReport(): Record<string, string[]> | null {
@@ -92,7 +92,7 @@ export class ProviderSettingsManager {
 		this.pendingDuplicateIdRepairReport = null
 		return report
 	}
-	// kilocode_change end
+	// kade_change end
 
 	private readonly context: ExtensionContext
 
@@ -100,14 +100,14 @@ export class ProviderSettingsManager {
 		this.context = context
 
 		// TODO: We really shouldn't have async methods in the constructor.
-		// kilocode_change start
+		// kade_change start
 		// only initialize ONCE, and save the promise in case somebody needs to wait.
 		this.initialization = this.init_runMigrations()
 		this.initialization.catch(console.error)
-		// kilocode_change end
+		// kade_change end
 	}
 
-	// kilocode_change start
+	// kade_change start
 	private readonly initialization: Promise<void>
 	/**
 	 * Wait for initialization migrations to complete.  These were started during construction.
@@ -126,7 +126,7 @@ export class ProviderSettingsManager {
 		existingIds.add(id)
 		return id
 	}
-	// kilocode_change end
+	// kade_change end
 
 	public generateId() {
 		return Math.random().toString(36).substring(2, 15)
@@ -140,7 +140,7 @@ export class ProviderSettingsManager {
 		return next
 	}
 
-	// kilocode_change: private & renamed:
+	// kade_change: private & renamed:
 	async init_runMigrations() {
 		try {
 			return await this.lock(async () => {
@@ -187,7 +187,7 @@ export class ProviderSettingsManager {
 					}
 				}
 
-				// kilocode_change start: Repair duplicated IDs (keep the first occurrence based on apiConfigs insertion order).
+				// kade_change start: Repair duplicated IDs (keep the first occurrence based on apiConfigs insertion order).
 				const existingIds = new Set(
 					Object.values(providerProfiles.apiConfigs)
 						.map((c) => c.id)
@@ -254,7 +254,7 @@ export class ProviderSettingsManager {
 						}
 					}
 				}
-				// kilocode_Change end
+				// kade_change end
 
 				// Ensure migrations field exists
 				if (!providerProfiles.migrations) {
@@ -264,7 +264,7 @@ export class ProviderSettingsManager {
 						openAiHeadersMigrated: false,
 						consecutiveMistakeLimitMigrated: false,
 						todoListEnabledMigrated: false,
-						morphApiKeyMigrated: false, // kilocode_change: Morph API key migration
+						morphApiKeyMigrated: false, // kade_change: Morph API key migration
 					} // Initialize with default values
 					isDirty = true
 				}
@@ -299,13 +299,13 @@ export class ProviderSettingsManager {
 					isDirty = true
 				}
 
-				// kilocode_change start
+				// kade_change start
 				if (!providerProfiles.migrations.morphApiKeyMigrated) {
 					const result = await migrateMorphApiKey(this.context, providerProfiles)
 					providerProfiles.migrations.morphApiKeyMigrated = true
 					isDirty ||= result
 				}
-				// kilocode_change end
+				// kade_change end
 
 				if (isDirty) {
 					await this.store(providerProfiles)
@@ -489,7 +489,7 @@ export class ProviderSettingsManager {
 					id: apiConfig.id || "",
 					apiProvider: apiConfig.apiProvider,
 					modelId: this.cleanModelId(getModelId(apiConfig)),
-					profileType: apiConfig.profileType, // kilocode_change - autocomplete profile type system
+					profileType: apiConfig.profileType, // kade_change - autocomplete profile type system
 				}))
 			})
 		} catch (error) {
@@ -497,7 +497,7 @@ export class ProviderSettingsManager {
 		}
 	}
 
-	// kilocode_change start - autocomplete profile type system
+	// kade_change start - autocomplete profile type system
 	/**
 	 * Validate that only one autocomplete profile exists
 	 */
@@ -519,7 +519,7 @@ export class ProviderSettingsManager {
 			throw new Error(t("settings:providers.autocomplete.onlyOneAllowed", { existingName }))
 		}
 	}
-	// kilocode_change end
+	// kade_change end
 
 	/**
 	 * Save a config with the given name.
@@ -531,7 +531,7 @@ export class ProviderSettingsManager {
 			return await this.lock(async () => {
 				const providerProfiles = await this.load()
 
-				// kilocode_change start" autocomplete profile type system and check for duplicate id's
+				// kade_change start" autocomplete profile type system and check for duplicate id's
 				await this.validateAutocompleteConstraint(providerProfiles, name, config.profileType)
 
 				const existingEntry = providerProfiles.apiConfigs[name]
@@ -546,10 +546,10 @@ export class ProviderSettingsManager {
 					existingEntry?.id && existingEntry.id.length > 0
 						? existingEntry.id
 						: this.generateUniqueId(existingIds)
-				// kilocode_change end
+				// kade_change end
 
 				// Filter out settings from other providers.
-				// kilocode_change: Remove strict parse to allow any config to save
+				// kade_change: Remove strict parse to allow any config to save
 				const filteredConfig = config as any
 				providerProfiles.apiConfigs[name] = { ...filteredConfig, id }
 				await this.store(providerProfiles)

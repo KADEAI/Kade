@@ -9,7 +9,7 @@ import { CloudTelemetryClient as TelemetryClient } from "../TelemetryClient.js"
 const mockFetch = vi.fn()
 global.fetch = mockFetch as any
 
-// kilocode_change - skip these tests since we don't use this code
+// kade_change - skip these tests since we don't use this code
 describe.skip("TelemetryClient", () => {
 	const getPrivateProperty = <T>(instance: any, propertyName: string): T => {
 		return instance[propertyName]

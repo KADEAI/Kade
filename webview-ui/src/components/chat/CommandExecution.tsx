@@ -33,7 +33,7 @@ export const CommandExecution = ({
 	allowOutputAutoScroll = true,
 }: CommandExecutionProps) => {
 	const {
-		terminalShellIntegrationDisabled = true, // kilocode_change: default
+		terminalShellIntegrationDisabled = true, // kade_change: default
 	} = useExtensionState()
 
 	const { command, output: parsedOutput } = useMemo(() => parseCommandAndOutput(text), [text])

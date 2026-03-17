@@ -20,7 +20,7 @@ import {
 
 
 import { Section } from "./Section"
-import CommitMessagePromptSettings from "./CommitMessagePromptSettings" // kilocode_change
+import CommitMessagePromptSettings from "./CommitMessagePromptSettings" // kade_change
 
 interface PromptsSettingsProps {
 	customSupportPrompts: Record<string, string | undefined>

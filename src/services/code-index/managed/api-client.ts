@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 /**
  * API client for managed codebase indexing
  *

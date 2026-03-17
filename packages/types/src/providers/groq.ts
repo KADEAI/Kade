@@ -75,7 +75,7 @@ export const groqModels = {
 		maxTokens: 32766,
 		contextWindow: 131072,
 		supportsImages: false,
-		supportsPromptCache: true, // kilocode_change
+		supportsPromptCache: true, // kade_change
 		supportsNativeTools: true,
 		defaultToolProtocol: "markdown",
 		inputPrice: 0.15,
@@ -87,7 +87,7 @@ export const groqModels = {
 		maxTokens: 32768,
 		contextWindow: 131072,
 		supportsImages: false,
-		supportsPromptCache: true, // kilocode_change
+		supportsPromptCache: true, // kade_change
 		supportsNativeTools: true,
 		defaultToolProtocol: "markdown",
 		inputPrice: 0.1,

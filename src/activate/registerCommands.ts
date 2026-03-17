@@ -6,7 +6,7 @@ import { TelemetryService } from "@roo-code/telemetry"
 
 import { getCommand } from "../utils/commands"
 import { ClineProvider } from "../core/webview/ClineProvider"
-import { exportSettings } from "../core/config/importExport" // kilocode_change
+import { exportSettings } from "../core/config/importExport" // kade_change
 import { ContextProxy } from "../core/config/ContextProxy"
 import { focusPanel } from "../utils/focusPanel"
 
@@ -16,10 +16,10 @@ import { CodeIndexManager } from "../services/code-index/manager"
 import { importSettingsWithFeedback } from "../core/config/importExport"
 import { MdmService } from "../services/mdm/MdmService"
 import { t } from "../i18n"
-import { getAppUrl } from "@roo-code/types" // kilocode_change
-import { generateTerminalCommand } from "../utils/terminalCommandGenerator" // kilocode_change
-import { AgentManagerProvider } from "../core/kilocode/agent-manager/AgentManagerProvider" // kilocode_change
-import { GroupChatProvider } from "../core/kilocode/group-chat/GroupChatProvider" // kilocode_change
+import { getAppUrl } from "@roo-code/types" // kade_change
+import { generateTerminalCommand } from "../utils/terminalCommandGenerator" // kade_change
+import { AgentManagerProvider } from "../core/kilocode/agent-manager/AgentManagerProvider" // kade_change
+import { GroupChatProvider } from "../core/kilocode/group-chat/GroupChatProvider" // kade_change
 
 /**
  * Helper to get the visible ClineProvider instance or log if not found.
@@ -41,9 +41,9 @@ export type RegisterCommandOptions = {
 	provider: ClineProvider
 }
 
-// kilocode_change start - Agent Manager provider
+// kade_change start - Agent Manager provider
 let agentManagerProvider: AgentManagerProvider | undefined
-let groupChatProvider: GroupChatProvider | undefined // kilocode_change
+let groupChatProvider: GroupChatProvider | undefined // kade_change
 
 const registerAgentManager = (options: RegisterCommandOptions) => {
 	const { context, outputChannel, provider } = options
@@ -51,19 +51,19 @@ const registerAgentManager = (options: RegisterCommandOptions) => {
 	agentManagerProvider = new AgentManagerProvider(context, outputChannel, provider)
 	context.subscriptions.push(agentManagerProvider)
 
-	// kilocode_change start - Group Chat provider
+	// kade_change start - Group Chat provider
 	groupChatProvider = new GroupChatProvider(context, outputChannel, provider)
 	context.subscriptions.push(groupChatProvider)
-	// kilocode_change end
+	// kade_change end
 }
-// kilocode_change end
+// kade_change end
 
 export const registerCommands = (options: RegisterCommandOptions) => {
 	const { context, outputChannel } = options
 
-	// kilocode_change start
+	// kade_change start
 	registerAgentManager(options)
-	// kilocode_change end
+	// kade_change end
 
 	for (const [id, callback] of Object.entries(getCommandsMap(options))) {
 		const command = getCommand(id as CommandId)
@@ -73,7 +73,7 @@ export const registerCommands = (options: RegisterCommandOptions) => {
 
 const getCommandsMap = ({ context, outputChannel }: RegisterCommandOptions): Record<CommandId, any> => ({
 	activationCompleted: () => { },
-	// kilocode_change start
+	// kade_change start
 	agentManagerOpen: () => {
 		agentManagerProvider?.openPanel()
 	},
@@ -85,7 +85,7 @@ const getCommandsMap = ({ context, outputChannel }: RegisterCommandOptions): Rec
 			vscode.window.showErrorMessage("Group Chat Provider not initialized. Please try reloading the window.")
 		}
 	},
-	// kilocode_change end
+	// kade_change end
 	cloudButtonClicked: () => {
 		const visibleProvider = getVisibleProviderOrLog(outputChannel)
 
@@ -143,7 +143,7 @@ const getCommandsMap = ({ context, outputChannel }: RegisterCommandOptions): Rec
 
 		visibleProvider.postMessageToWebview({ type: "action", action: "historyButtonClicked" })
 	},
-	// kilocode_change begin
+	// kade_change begin
 	mcpButtonClicked: () => {
 		const visibleProvider = getVisibleProviderOrLog(outputChannel)
 
@@ -178,7 +178,7 @@ const getCommandsMap = ({ context, outputChannel }: RegisterCommandOptions): Rec
 	helpButtonClicked: () => {
 		vscode.env.openExternal(vscode.Uri.parse(getAppUrl()))
 	},
-	// kilocode_change end
+	// kade_change end
 	marketplaceButtonClicked: () => {
 		const visibleProvider = getVisibleProviderOrLog(outputChannel)
 		if (!visibleProvider) return
@@ -234,7 +234,7 @@ const getCommandsMap = ({ context, outputChannel }: RegisterCommandOptions): Rec
 		}
 
 		visibleProvider.postMessageToWebview({ type: "acceptInput" })
-	}, // kilocode_change begin
+	}, // kade_change begin
 	focusChatInput: async () => {
 		try {
 			await vscode.commands.executeCommand("kilo-code.SidebarProvider.focus")
@@ -257,7 +257,7 @@ const getCommandsMap = ({ context, outputChannel }: RegisterCommandOptions): Rec
 			outputChannel.appendLine(`Error in focusChatInput: ${error}`)
 		}
 	},
-	generateTerminalCommand: async () => await generateTerminalCommand({ outputChannel, context }), // kilocode_change
+	generateTerminalCommand: async () => await generateTerminalCommand({ outputChannel, context }), // kade_change
 	exportSettings: async () => {
 		const visibleProvider = getVisibleProviderOrLog(outputChannel)
 		if (!visibleProvider) return
@@ -287,7 +287,7 @@ const getCommandsMap = ({ context, outputChannel }: RegisterCommandOptions): Rec
 			outputChannel.appendLine(`Error handling external URI: ${uriString}, error: ${error}`)
 		}
 	},
-	// kilocode_change end
+	// kade_change end
 	toggleAutoApprove: async () => {
 		const visibleProvider = getVisibleProviderOrLog(outputChannel)
 

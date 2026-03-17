@@ -6,7 +6,7 @@ import type { ProviderSettings, ModelInfo, ToolProtocol } from "@roo-code/types"
 import { ApiStream } from "./transform/stream"
 
 import {
-	GlamaHandler, // kilocode_change
+	GlamaHandler, // kade_change
 	AnthropicHandler,
 	AwsBedrockHandler,
 	CerebrasHandler,
@@ -19,7 +19,7 @@ import {
 	OpenAiNativeHandler,
 	DeepSeekHandler,
 	MoonshotHandler,
-	NanoGptHandler, // kilocode_change
+	NanoGptHandler, // kade_change
 	MistralHandler,
 	VsCodeLmHandler,
 	UnboundHandler,
@@ -31,13 +31,13 @@ import {
 	HuggingFaceHandler,
 	ChutesHandler,
 	LiteLLMHandler,
-	// kilocode_change start
+	// kade_change start
 	VirtualQuotaFallbackHandler,
 	GeminiCliHandler,
 	SyntheticHandler,
 	OVHcloudAIEndpointsHandler,
 	SapAiCoreHandler,
-	// kilocode_change end
+	// kade_change end
 	ClaudeCodeHandler,
 	CliProxyHandler,
 	QwenCodeHandler,
@@ -55,12 +55,12 @@ import {
 	OpenAiCodexHandler,
 	KiroHandler,
 } from "./providers"
-// kilocode_change start
+// kade_change start
 import { KilocodeOpenrouterHandler } from "./providers/kilocode-openrouter"
 import { InceptionLabsHandler } from "./providers/inception"
 import { OpenCodeHandler } from "./providers/opencode"
 import { AntigravityHandler } from "./providers/antigravity"
-// kilocode_change end
+// kade_change end
 import { NativeOllamaHandler } from "./providers/native-ollama"
 
 export interface SingleCompletionHandler {
@@ -91,14 +91,14 @@ export interface ApiHandlerCreateMessageMetadata {
 	 * @default true
 	 */
 	store?: boolean
-	// kilocode_change start
+	// kade_change start
 	/**
 	 * KiloCode-specific: The project ID for the current workspace (derived from git origin remote).
 	 * Used by KiloCodeOpenrouterHandler for backend tracking. Ignored by other providers.
 	 * @kilocode-only
 	 */
 	projectId?: string
-	// kilocode_change end
+	// kade_change end
 	/**
 	 * Optional array of tool definitions to pass to the model.
 	 * For OpenAI-compatible providers, these are ChatCompletionTool definitions.
@@ -121,13 +121,13 @@ export interface ApiHandlerCreateMessageMetadata {
 	 * Only applies when toolProtocol is "native".
 	 */
 	parallelToolCalls?: boolean
-	// kilocode_change start
+	// kade_change start
 	/**
 	 * KiloCode-specific: Raw tool definitions for logging and debugging.
 	 * @kilocode-only
 	 */
 	tool_manifest?: any[]
-	// kilocode_change end
+	// kade_change end
 }
 
 export interface ApiHandler {
@@ -149,7 +149,7 @@ export interface ApiHandler {
 	 */
 	countTokens(content: Array<Anthropic.Messages.ContentBlockParam>): Promise<number>
 
-	contextWindow?: number // kilocode_change: Add contextWindow property for virtual quota fallback
+	contextWindow?: number // kade_change: Add contextWindow property for virtual quota fallback
 }
 
 
@@ -158,24 +158,24 @@ export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
 
 	let handler: ApiHandler
 	switch (apiProvider) {
-		// kilocode_change start
+		// kade_change start
 		case "kilocode":
 			handler = new KilocodeOpenrouterHandler(options); break
 		case "gemini-cli":
 			handler = new GeminiCliHandler(options); break
 		case "virtual-quota-fallback":
 			handler = new VirtualQuotaFallbackHandler(options); break
-		// kilocode_change end
+		// kade_change end
 		case "anthropic":
 			handler = new AnthropicHandler(options); break
 		case "cli-proxy":
 			handler = new CliProxyHandler(options); break
 		case "claude-code":
 			handler = new ClaudeCodeHandler(options); break
-		// kilocode_change start
+		// kade_change start
 		case "glama":
 			handler = new GlamaHandler(options); break
-		// kilocode_change end
+		// kade_change end
 		case "openrouter":
 			handler = new OpenRouterHandler(options); break
 		case "bedrock":
@@ -202,10 +202,10 @@ export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
 			handler = new QwenCodeHandler(options); break
 		case "moonshot":
 			handler = new MoonshotHandler(options); break
-		// kilocode_change start
+		// kade_change start
 		case "nano-gpt":
 			handler = new NanoGptHandler(options); break
-		// kilocode_change end
+		// kade_change end
 		case "vscode-lm":
 			handler = new VsCodeLmHandler(options); break
 		case "mistral":
@@ -238,7 +238,7 @@ export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
 			handler = new ZAiHandler(options); break
 		case "fireworks":
 			handler = new FireworksHandler(options); break
-		// kilocode_change start
+		// kade_change start
 		case "synthetic":
 			handler = new SyntheticHandler(options); break
 		case "inception":
@@ -249,7 +249,7 @@ export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
 			handler = new SapAiCoreHandler(options); break
 		case "opencode":
 			handler = new OpenCodeHandler(options); break
-		// kilocode_change end
+		// kade_change end
 		case "io-intelligence":
 			handler = new IOIntelligenceHandler(options); break
 		case "roo":
@@ -268,7 +268,7 @@ export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
 			handler = new OpenAiCodexHandler(options); break
 		case "kiro":
 			handler = new KiroHandler(options); break
-		case "antigravity": // kilocode_change
+		case "antigravity": // kade_change
 			handler = new AntigravityHandler(options); break
 		case "apertis":
 			// Assuming there is an ApertisHandler or falling back to Anthropic

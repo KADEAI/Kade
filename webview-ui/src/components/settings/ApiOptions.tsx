@@ -3,7 +3,7 @@ import { useRegisterSetting } from "./useSettingsSearch"
 import { convertHeadersToObject } from "./utils/headers"
 import { useDebounce } from "react-use"
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
-// import { ExternalLinkIcon } from "@radix-ui/react-icons" // kilocode_change
+// import { ExternalLinkIcon } from "@radix-ui/react-icons" // kade_change
 
 import {
 	type ProviderName,
@@ -11,7 +11,7 @@ import {
 	DEFAULT_CONSECUTIVE_MISTAKE_LIMIT,
 	openRouterDefaultModelId,
 	requestyDefaultModelId,
-	glamaDefaultModelId, // kilocode_change
+	glamaDefaultModelId, // kade_change
 	unboundDefaultModelId,
 	litellmDefaultModelId,
 	openAiNativeDefaultModelId,
@@ -23,12 +23,12 @@ import {
 	geminiCliDefaultModelId,
 	deepSeekDefaultModelId,
 	moonshotDefaultModelId,
-	// kilocode_change start
+	// kade_change start
 	syntheticDefaultModelId,
 	ovhCloudAiEndpointsDefaultModelId,
 	inceptionDefaultModelId,
 	// MODEL_SELECTION_ENABLED,
-	// kilocode_change end
+	// kade_change end
 	mistralDefaultModelId,
 	xaiDefaultModelId,
 	groqDefaultModelId,
@@ -40,9 +40,9 @@ import {
 	sambaNovaDefaultModelId,
 	internationalZAiDefaultModelId,
 	mainlandZAiDefaultModelId,
-	// kilocode_change start
+	// kade_change start
 	opencodeDefaultModelId,
-	// kilocode_change end
+	// kade_change end
 	fireworksDefaultModelId,
 	featherlessDefaultModelId,
 	ioIntelligenceDefaultModelId,
@@ -52,7 +52,7 @@ import {
 	vercelAiGatewayDefaultModelId,
 	deepInfraDefaultModelId,
 	minimaxDefaultModelId,
-	nanoGptDefaultModelId, //kilocode_change
+	nanoGptDefaultModelId, //kade_change
 	type ToolProtocol,
 	TOOL_PROTOCOL,
 } from "@roo-code/types"
@@ -64,12 +64,12 @@ import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useRouterModels } from "@src/components/ui/hooks/useRouterModels"
 import { useSelectedModel } from "@src/components/ui/hooks/useSelectedModel"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
-// kilocode_change start
+// kade_change start
 //import {
 //	useOpenRouterModelProviders,
 //	OPENROUTER_DEFAULT_PROVIDER_NAME,
 //} from "@src/components/ui/hooks/useOpenRouterModelProviders"
-// kilocode_change start
+// kade_change start
 import { filterModels } from "./utils/organizationFilters"
 import {
 	Select,
@@ -96,7 +96,7 @@ import {
 	DeepSeek,
 	Doubao,
 	Gemini,
-	Glama, // kilocode_change
+	Glama, // kade_change
 	Groq,
 	HuggingFace,
 	IOIntelligence,
@@ -104,7 +104,7 @@ import {
 	LiteLLM,
 	Mistral,
 	Moonshot,
-	NanoGpt, // kilocode_change
+	NanoGpt, // kade_change
 	Ollama,
 	OpenAI,
 	OpenAICodex,
@@ -118,7 +118,7 @@ import {
 	Vertex,
 	VSCodeLM,
 	XAI,
-	// kilocode_change start
+	// kade_change start
 	GeminiCli,
 	VirtualQuotaFallbackProvider,
 	Synthetic,
@@ -127,7 +127,7 @@ import {
 
 	SapAiCore,
 	CliProxy,
-	// kilocode_change end
+	// kade_change end
 	ZAi,
 	Fireworks,
 	Featherless,
@@ -153,10 +153,10 @@ import { TemperatureControl } from "./TemperatureControl"
 import { RateLimitSecondsControl } from "./RateLimitSecondsControl"
 import { ConsecutiveMistakeLimitControl } from "./ConsecutiveMistakeLimitControl"
 import { BedrockCustomArn } from "./providers/BedrockCustomArn"
-import { KiloCode } from "../kilocode/settings/providers/KiloCode" // kilocode_change
+import { KiloCode } from "../kilocode/settings/providers/KiloCode" // kade_change
 import { RooBalanceDisplay } from "./providers/RooBalanceDisplay"
 import { KiloProviderRouting, KiloProviderRoutingManagedByOrganization } from "./providers/KiloProviderRouting"
-import { RateLimitAfterControl } from "./RateLimitAfterSettings" // kilocode_change
+import { RateLimitAfterControl } from "./RateLimitAfterSettings" // kade_change
 import ToolProtocolSelector from "./ToolProtocolSelector"
 import {
 	Sliders,
@@ -305,8 +305,8 @@ export interface ApiOptionsProps {
 	fromWelcomeView?: boolean
 	errorMessage: string | undefined
 	setErrorMessage: React.Dispatch<React.SetStateAction<string | undefined>>
-	hideKiloCodeButton?: boolean // kilocode_change
-	currentApiConfigName?: string // kilocode_change
+	hideKiloCodeButton?: boolean // kade_change
+	currentApiConfigName?: string // kade_change
 	showModelOnly?: boolean
 	hideProtocolAndAdvanced?: boolean
 	hideRecommendation?: boolean
@@ -320,7 +320,7 @@ const ApiOptions = ({
 	errorMessage,
 	setErrorMessage,
 	hideKiloCodeButton = false,
-	currentApiConfigName, // kilocode_change
+	currentApiConfigName, // kade_change
 	showModelOnly,
 	hideProtocolAndAdvanced,
 	hideRecommendation,
@@ -421,7 +421,7 @@ const ApiOptions = ({
 		info: selectedModelInfo,
 	} = useSelectedModel(apiConfiguration)
 
-	// kilocode_change start: queryKey, chutesApiKey, gemini
+	// kade_change start: queryKey, chutesApiKey, gemini
 	const { data: routerModels, refetch: refetchRouterModels } = useRouterModels({
 		openRouterBaseUrl: apiConfiguration?.openRouterBaseUrl,
 		openRouterApiKey: apiConfiguration?.openRouterApiKey,
@@ -445,7 +445,7 @@ const ApiOptions = ({
 	//			apiConfiguration.openRouterModelId in routerModels.openrouter,
 	//	},
 	//)
-	// kilocode_change end
+	// kade_change end
 
 	// Update `apiModelId` whenever `selectedModelId` changes.
 	useEffect(() => {
@@ -482,8 +482,8 @@ const ApiOptions = ({
 			} else if (
 				selectedProvider === "litellm" ||
 				selectedProvider === "deepinfra" ||
-				selectedProvider === "chutes" || // kilocode_change
-				selectedProvider === "synthetic" || // kilocode_change
+				selectedProvider === "chutes" || // kade_change
+				selectedProvider === "synthetic" || // kade_change
 				selectedProvider === "roo"
 			) {
 				vscode.postMessage({ type: "requestRouterModels" })
@@ -501,8 +501,8 @@ const ApiOptions = ({
 			apiConfiguration?.litellmApiKey,
 			apiConfiguration?.deepInfraApiKey,
 			apiConfiguration?.deepInfraBaseUrl,
-			apiConfiguration?.chutesApiKey, // kilocode_change
-			apiConfiguration?.ovhCloudAiEndpointsBaseUrl, // kilocode_change
+			apiConfiguration?.chutesApiKey, // kade_change
+			apiConfiguration?.ovhCloudAiEndpointsBaseUrl, // kade_change
 			customHeaders,
 		],
 	)
@@ -596,12 +596,12 @@ const ApiOptions = ({
 			> = {
 				deepinfra: { field: "deepInfraModelId", default: deepInfraDefaultModelId },
 				openrouter: { field: "openRouterModelId", default: openRouterDefaultModelId },
-				glama: { field: "glamaModelId", default: glamaDefaultModelId }, // kilocode_change
+				glama: { field: "glamaModelId", default: glamaDefaultModelId }, // kade_change
 				unbound: { field: "unboundModelId", default: unboundDefaultModelId },
 				requesty: { field: "requestyModelId", default: requestyDefaultModelId },
 				litellm: { field: "litellmModelId", default: litellmDefaultModelId },
-				"nano-gpt": { field: "nanoGptModelId", default: nanoGptDefaultModelId }, // kilocode_change
-				opencode: { field: "opencodeModelId", default: opencodeDefaultModelId }, // kilocode_change
+				"nano-gpt": { field: "nanoGptModelId", default: nanoGptDefaultModelId }, // kade_change
+				opencode: { field: "opencodeModelId", default: opencodeDefaultModelId }, // kade_change
 				anthropic: { field: "apiModelId", default: anthropicDefaultModelId },
 				cerebras: { field: "apiModelId", default: cerebrasDefaultModelId },
 				"claude-code": { field: "apiModelId", default: claudeCodeDefaultModelId },
@@ -636,7 +636,7 @@ const ApiOptions = ({
 				openai: { field: "openAiModelId" },
 				ollama: { field: "ollamaModelId" },
 				lmstudio: { field: "lmStudioModelId" },
-				// kilocode_change start
+				// kade_change start
 				kilocode: { field: "kilocodeModel", default: kilocodeDefaultModel },
 				antigravity: { field: "apiModelId", default: antigravityDefaultModelId },
 				kiro: { field: "apiModelId" },
@@ -645,7 +645,7 @@ const ApiOptions = ({
 				synthetic: { field: "apiModelId", default: syntheticDefaultModelId },
 				ovhcloud: { field: "ovhCloudAiEndpointsModelId", default: ovhCloudAiEndpointsDefaultModelId },
 				inception: { field: "inceptionLabsModelId", default: inceptionDefaultModelId },
-				// kilocode_change end
+				// kade_change end
 			}
 
 			const config = PROVIDER_MODEL_CONFIG[value]
@@ -691,7 +691,7 @@ const ApiOptions = ({
 	// const showToolProtocolSelector = true
 
 	// Convert providers to SearchableSelect options
-	// kilocode_change start: no organizationAllowList
+	// kade_change start: no organizationAllowList
 	const providerOptions = useMemo(
 		() =>
 			PROVIDERS.filter(({ value }) => value !== "opencode").map(({ value, label }) => {
@@ -708,7 +708,7 @@ const ApiOptions = ({
 		() => FREE_PROVIDER_GUIDE.find((entry) => entry.provider === selectedProvider),
 		[selectedProvider],
 	)
-	// kilocode_change end
+	// kade_change end
 
 
 	return (
@@ -841,7 +841,7 @@ const ApiOptions = ({
 				</div>
 
 				<div className="flex flex-col gap-4">
-					{/* kilocode_change start */}
+					{/* kade_change start */}
 					{selectedProvider === "kilocode" && (
 						<KiloCode
 							apiConfiguration={apiConfiguration}
@@ -853,7 +853,7 @@ const ApiOptions = ({
 							kilocodeDefaultModel={kilocodeDefaultModel}
 						/>
 					)}
-					{/* kilocode_change end */}
+					{/* kade_change end */}
 
 					{selectedProvider === "antigravity" && (
 						<Antigravity
@@ -900,7 +900,7 @@ const ApiOptions = ({
 					)}
 
 					{
-						/* kilocode_change start */
+						/* kade_change start */
 						selectedProvider === "glama" && (
 							<Glama
 								apiConfiguration={apiConfiguration}
@@ -912,7 +912,7 @@ const ApiOptions = ({
 								simplifySettings={fromWelcomeView}
 							/>
 						)
-						/* kilocode_change end */
+						/* kade_change end */
 					}
 
 					{selectedProvider === "unbound" && (
@@ -938,7 +938,7 @@ const ApiOptions = ({
 						/>
 					)}
 
-					{/* kilocode_change start */}
+					{/* kade_change start */}
 					{selectedProvider === "inception" && (
 						<Inception
 							apiConfiguration={apiConfiguration}
@@ -949,19 +949,19 @@ const ApiOptions = ({
 							modelValidationError={modelValidationError}
 						/>
 					)}
-					{/* kilocode_change end */}
+					{/* kade_change end */}
 
-					{/* kilocode_change start */}
+					{/* kade_change start */}
 
 
-					{/* kilocode_change start */}
+					{/* kade_change start */}
 					{selectedProvider === "cli-proxy" && (
 						<CliProxy
 							apiConfiguration={apiConfiguration}
 							setApiConfigurationField={setApiConfigurationField}
 						/>
 					)}
-					{/* kilocode_change end */}
+					{/* kade_change end */}
 
 					{selectedProvider === "anthropic" && (
 						<Anthropic
@@ -984,7 +984,7 @@ const ApiOptions = ({
 						/>
 					)}
 
-					{/* kilocode_change start */}
+					{/* kade_change start */}
 					{selectedProvider === "ovhcloud" && (
 						<OvhCloudAiEndpoints
 							apiConfiguration={apiConfiguration}
@@ -994,7 +994,7 @@ const ApiOptions = ({
 							modelValidationError={modelValidationError}
 						/>
 					)}
-					{/* kilocode_change end */}
+					{/* kade_change end */}
 
 					{selectedProvider === "mistral" && (
 						<Mistral
@@ -1030,7 +1030,7 @@ const ApiOptions = ({
 					)}
 
 					{selectedProvider === "gemini" && (
-						// kilocode_change: added props
+						// kade_change: added props
 						<Gemini
 							apiConfiguration={apiConfiguration}
 							setApiConfigurationField={setApiConfigurationField}
@@ -1107,7 +1107,7 @@ const ApiOptions = ({
 						/>
 					)}
 
-					{/* kilocode_change start */}
+					{/* kade_change start */}
 					{selectedProvider === "nano-gpt" && (
 						<NanoGpt
 							apiConfiguration={apiConfiguration}
@@ -1117,7 +1117,7 @@ const ApiOptions = ({
 							modelValidationError={modelValidationError}
 						/>
 					)}
-					{/* kilocode_change end */}
+					{/* kade_change end */}
 
 					{selectedProvider === "vscode-lm" && (
 						<VSCodeLM
@@ -1166,7 +1166,7 @@ const ApiOptions = ({
 						/>
 					)}
 
-					{/* kilocode_change start */}
+					{/* kade_change start */}
 					{selectedProvider === "gemini-cli" && (
 						<GeminiCli
 							apiConfiguration={apiConfiguration}
@@ -1184,7 +1184,7 @@ const ApiOptions = ({
 							setApiConfigurationField={setApiConfigurationField}
 						/>
 					)}
-					{/* kilocode_change end */}
+					{/* kade_change end */}
 
 					{selectedProvider === "litellm" && (
 						<LiteLLM
@@ -1256,7 +1256,7 @@ const ApiOptions = ({
 								modelValidationError={modelValidationError}
 							/>
 						)
-						// kilocode_change end
+						// kade_change end
 					}
 
 					{selectedProvider === "roo" && (
@@ -1278,14 +1278,14 @@ const ApiOptions = ({
 						/>
 					)}
 
-					{/* kilocode_change start */}
+					{/* kade_change start */}
 					{selectedProvider === "sap-ai-core" && (
 						<SapAiCore
 							apiConfiguration={apiConfiguration}
 							setApiConfigurationField={setApiConfigurationField}
 						/>
 					)}
-					{/* kilocode_change end */}
+					{/* kade_change end */}
 
 					{selectedProviderModels.length > 0 && !["openai-codex", "antigravity", "gemini-cli"].includes(selectedProvider) && (
 						<>
@@ -1377,7 +1377,7 @@ const ApiOptions = ({
 					)}
 
 					{
-						// kilocode_change start
+						// kade_change start
 						(selectedProvider === "kilocode" || selectedProvider === "openrouter") &&
 						(apiConfiguration.kilocodeOrganizationId ? (
 							<KiloProviderRoutingManagedByOrganization
@@ -1390,7 +1390,7 @@ const ApiOptions = ({
 								kilocodeDefaultModel={kilocodeDefaultModel}
 							/>
 						))
-						// kilocode_change end
+						// kade_change end
 					}
 				</div>
 			</div>
@@ -1452,12 +1452,12 @@ const ApiOptions = ({
 										/>
 									)}
 									{
-										// kilocode_change start
+										// kade_change start
 										<RateLimitAfterControl
 											rateLimitAfterEnabled={apiConfiguration.rateLimitAfter}
 											onChange={(field, value) => setApiConfigurationField(field, value)}
 										/>
-										// kilocode_change end
+										// kade_change end
 									}
 									<RateLimitSecondsControl
 										value={apiConfiguration.rateLimitSeconds || 0}

@@ -1,7 +1,7 @@
 import * as path from "path"
 import * as os from "os"
 import fs from "fs/promises"
-import fsSync from "fs" // kilocode_change
+import fsSync from "fs" // kade_change
 
 /**
  * Gets the global .roo directory path based on the current platform
@@ -26,7 +26,7 @@ import fsSync from "fs" // kilocode_change
  */
 export function getGlobalRooDirectory(): string {
 	const homeDir = os.homedir()
-	return path.join(homeDir, ".kilocode") // kilocode_change
+	return path.join(homeDir, ".kilocode") // kade_change
 }
 
 /**
@@ -59,14 +59,14 @@ export function getGlobalRooDirectory(): string {
  * ```
  */
 export function getProjectRooDirectoryForCwd(cwd: string): string {
-	// kilocode_change start
+	// kade_change start
 	const kiloDir = path.join(cwd, ".kilocode")
 	const rooDir = path.join(cwd, ".roo")
 	if (fsSync.existsSync(rooDir) && !fsSync.existsSync(kiloDir)) {
 		return rooDir
 	}
 	return kiloDir
-	// kilocode_change end
+	// kade_change end
 }
 
 /**

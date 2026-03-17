@@ -10,7 +10,7 @@
  * @returns true if the model should use single file reads
  */
 export function shouldUseSingleFileRead(
-	_modelId: string, // kilocode_change
+	_modelId: string, // kade_change
 ): boolean {
-	return false // kilocode_change
+	return false // kade_change
 }

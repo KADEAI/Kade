@@ -122,7 +122,7 @@ export function SearchableSelect({
 						"border border-vscode-dropdown-border",
 						"bg-vscode-dropdown-background hover:bg-transparent",
 						"text-vscode-dropdown-foreground",
-						"rounded-full", // kilocode_change: rounded-full
+						"rounded-full", // kade_change: rounded-full
 						!selectedOption && "text-muted-foreground",
 						className,
 					)}

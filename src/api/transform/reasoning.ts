@@ -10,7 +10,7 @@ export type OpenRouterReasoningParams = {
 	effort?: ReasoningEffortExtended
 	max_tokens?: number
 	exclude?: boolean
-	enabled?: boolean // kilocode_change
+	enabled?: boolean // kade_change
 }
 
 export type RooReasoningParams = {

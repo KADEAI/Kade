@@ -1,4 +1,4 @@
-// kilocode_change - new file: Speech-to-text availability check (extracted from ClineProvider)
+// kade_change - new file: Speech-to-text availability check (extracted from ClineProvider)
 import type { ProviderSettingsManager } from "../config/ProviderSettingsManager"
 import { getOpenAiApiKey } from "../../services/stt/utils/getOpenAiCredentials"
 import { getGeminiApiKey } from "../../services/stt/utils/getGeminiCredentials"

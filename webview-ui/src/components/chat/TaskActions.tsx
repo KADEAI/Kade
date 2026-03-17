@@ -8,8 +8,8 @@ import { useCopyToClipboard } from "@/utils/clipboard"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 
 import { DeleteTaskDialog } from "../history/DeleteTaskDialog"
-// import { ShareButton } from "./ShareButton" // kilocode_change unused
-// import { CloudTaskButton } from "./CloudTaskButton" // kilocode_change: unused
+// import { ShareButton } from "./ShareButton" // kade_change unused
+// import { CloudTaskButton } from "./CloudTaskButton" // kade_change: unused
 import { CopyIcon, DownloadIcon, Trash2Icon, FileJsonIcon, MessageSquareCodeIcon } from "lucide-react"
 import { LucideIconButton } from "./LucideIconButton"
 
@@ -63,7 +63,7 @@ export const TaskActions = ({ item, buttonsDisabled }: TaskActionsProps) => {
 					)}
 				</>
 			)}
-			{/* <ShareButton item={item} disabled={false} showLabel={false} /> kilocode_change: unused */}
+			{/* <ShareButton item={item} disabled={false} showLabel={false} /> kade_change: unused */}
 			{/* <CloudTaskButton item={item} disabled={buttonsDisabled} />  */}
 			{debug && item?.id && (
 				<>

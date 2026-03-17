@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import { useState, useEffect, useMemo } from "react"
 import { vscode } from "@src/utils/vscode"
 import { useAppTranslation } from "@/i18n/TranslationContext"

@@ -133,7 +133,7 @@ export class FileContextTracker {
 			const filePath = path.join(taskDir, GlobalFileNames.taskMetadata)
 			await safeWriteJson(filePath, metadata)
 
-			// kilocode_change start
+			// kade_change start
 			// Post directly to webview for CLI to react to file save
 			const provider = this.providerRef.deref()
 			if (provider) {
@@ -142,7 +142,7 @@ export class FileContextTracker {
 					payload: [taskId, filePath],
 				})
 			}
-			// kilocode_change end
+			// kade_change end
 		} catch (error) {
 			console.error("Failed to save task metadata:", error)
 		}

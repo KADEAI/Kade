@@ -104,12 +104,12 @@ export async function presentAssistantMessage(cline: Task) {
 			let block: any
 	let wasPartialAtStart = false
 	try {
-		// kilocode_change: avoid cloneDeep for performance during streaming
+		// kade_change: avoid cloneDeep for performance during streaming
 		block = cline.assistantMessageContent[cline.currentStreamingContentIndex]
 		wasPartialAtStart = block?.partial || false
 
 
-		// kilocode_change: Generate stable ID for XML tools that lack one
+		// kade_change: Generate stable ID for XML tools that lack one
 		// Use existing toolUseId from XML parser if available, otherwise generate xml_ prefixed ID
 		if (block && block.type === "tool_use" && !block.id) {
 			if ((block as any).toolUseId) {
@@ -438,13 +438,13 @@ export async function presentAssistantMessage(cline: Task) {
 			break
 		}
 		case "tool_use": {
-			// kilocode_change: Skip attempt_completion tools during streaming since they're handled separately
+			// kade_change: Skip attempt_completion tools during streaming since they're handled separately
 			if (block.name === "attempt_completion" && block.partial) {
 				console.log("[presentAssistantMessage] Skipping attempt_completion during streaming (handled by AgentLoop)")
 				break
 			}
 
-			// kilocode_change: Only fetch state and save checkpoint for the final execution, not for streaming updates
+			// kade_change: Only fetch state and save checkpoint for the final execution, not for streaming updates
 			let state: any
 			let mode: any
 			let customModes: any
@@ -460,7 +460,7 @@ export async function presentAssistantMessage(cline: Task) {
 				await checkpointSaveAndMark(cline)
 			}
 
-			// kilocode_change start
+			// kade_change start
 			// Fast Apply + native tool aliases compatibility:
 			if (
 				!block.partial &&
@@ -471,7 +471,7 @@ export async function presentAssistantMessage(cline: Task) {
 				block.name = "edit_file"
 				block.originalName = undefined
 			}
-			// kilocode_change end
+			// kade_change end
 
 			const toolDescription = (): string => {
 				const toolName = block.originalName || block.name
@@ -502,12 +502,12 @@ export async function presentAssistantMessage(cline: Task) {
 					case "grep":
 						return `[${toolName} for '${block.params.query || block.params.regex}'${getPath() ? ` in '${getPath()}'` : ""
 							}${block.params.file_pattern ? ` (pattern: '${block.params.file_pattern}')` : ""}]`
-					// kilocode_change start
+					// kade_change start
 					case "edit_file":
 						return `[${toolName} for '${getPath()}']`
 					case "delete_file":
 						return `[${toolName} for '${getPath()}']`
-					// kilocode_change end
+					// kade_change end
 					case "edit":
 						return `[${toolName} for '${getPath()}']`
 					case "list_files":
@@ -544,14 +544,14 @@ export async function presentAssistantMessage(cline: Task) {
 						const modeName = getModeBySlug(mode, customModes)?.name ?? mode
 						return `[${toolName} in ${modeName} mode: '${message}']`
 					}
-					// kilocode_change start
+					// kade_change start
 					case "new_rule":
 						return `[${toolName} for '${getPath()}']`
 					case "report_bug":
 						return `[${toolName}]`
 					case "condense":
 						return `[${toolName}]`
-					// kilocode_change end
+					// kade_change end
 					case "run_slash_command":
 						return `[${toolName} for '${block.params.command}'${block.params.args ? ` with args: ${block.params.args}` : ""
 							}]`
@@ -633,7 +633,7 @@ export async function presentAssistantMessage(cline: Task) {
 			// Native protocol tool calls ALWAYS have an ID (set when parsed from tool_call chunks).
 			// XML protocol tool calls now have synthetic IDs with xml_ prefix (for EditHistoryService).
 			// Unified protocol tool calls have IDs with unified_ prefix.
-			// kilocode_change: Handle xml_ prefix and toolUseId field
+			// kade_change: Handle xml_ prefix and toolUseId field
 			const toolCallId = (block as any).id || (block as any).toolUseId
 			let toolProtocol: ToolProtocol = TOOL_PROTOCOL.MARKDOWN
 			if (toolCallId) {
@@ -653,7 +653,7 @@ export async function presentAssistantMessage(cline: Task) {
 			const isMultipleNativeToolCallsEnabled = false
 
 			const pushToolResult = (content: ToolResponse) => {
-				// kilocode_change: Removed [STDOUT] prefix for a cleaner look
+				// kade_change: Removed [STDOUT] prefix for a cleaner look
 				if (typeof content === "string") {
 					content = content
 				} else if (Array.isArray(content)) {
@@ -725,7 +725,7 @@ export async function presentAssistantMessage(cline: Task) {
 					if (lastIndex >= 0 && cline.userMessageContent[lastIndex].type === "text") {
 						const lastBlock = cline.userMessageContent[lastIndex] as Anthropic.TextBlockParam
 						lastBlock.text += `\n\n${fullResult}`
-						// kilocode_change: Use an array of tool IDs to track ALL tools that contributed to this block.
+						// kade_change: Use an array of tool IDs to track ALL tools that contributed to this block.
 						// This fixes the issue where multi-file reads only update the last file's context.
 						if (!(lastBlock as any)._toolUseIds) {
 							// Migrate any existing single ID to the new array format
@@ -739,7 +739,7 @@ export async function presentAssistantMessage(cline: Task) {
 							; (lastBlock as any)._toolUseId = toolCallId
 						}
 					} else {
-						// kilocode_change: Initialize with array format for new blocks
+						// kade_change: Initialize with array format for new blocks
 						cline.userMessageContent.push({
 							type: "text",
 							text: fullResult,
@@ -751,12 +751,12 @@ export async function presentAssistantMessage(cline: Task) {
 				// For XML protocol: Only one tool per message is allowed
 				// For native protocol with experimental flag enabled: Multiple tools can be executed in sequence
 				// For native protocol with experimental flag disabled: Single tool per message (default safe behavior)
-				// kilocode_change start
+				// kade_change start
 				// For XML and Unified protocols: Multiple sequential tools are allowed per message.
 				// For native protocol with experimental flag disabled: Single tool per message (default safe behavior)
                 // For MARKDOWN and UNIFIED protocols: Multiple sequential tools are allowed per message
                 // Do not set didAlreadyUseTool = true to allow multiple tools
-				// kilocode_change end
+				// kade_change end
 				// If toolProtocol is NATIVE and isMultipleNativeToolCallsEnabled is true,
 				// allow multiple tool calls in sequence (don't set didAlreadyUseTool)
 			}
@@ -767,7 +767,7 @@ export async function presentAssistantMessage(cline: Task) {
 				progressStatus?: ToolProgressStatus,
 				isProtected?: boolean,
 			) => {
-				// kilocode_change start: YOLO mode with AI gatekeeper
+				// kade_change start: YOLO mode with AI gatekeeper
 				const state = await cline.providerRef.deref()?.getState()
 				if (cline.yoloMode || state?.yoloMode) {
 					// If gatekeeper is configured, use it to evaluate the approval
@@ -782,7 +782,7 @@ export async function presentAssistantMessage(cline: Task) {
 					captureAskApproval(block.name, true)
 					return true
 				}
-				// kilocode_change end
+				// kade_change end
 
 				const { response, text, images } = await cline.ask(
 					type,
@@ -806,7 +806,7 @@ export async function presentAssistantMessage(cline: Task) {
 						pushToolResult(formatResponse.toolDenied(toolProtocol))
 					}
 					cline.didRejectTool = true
-					captureAskApproval(block.name, false) // kilocode_change
+					captureAskApproval(block.name, false) // kade_change
 					return false
 				}
 
@@ -818,7 +818,7 @@ export async function presentAssistantMessage(cline: Task) {
 					)
 				}
 
-				captureAskApproval(block.name, true) // kilocode_change
+				captureAskApproval(block.name, true) // kade_change
 				return true
 			}
 
@@ -992,21 +992,21 @@ export async function presentAssistantMessage(cline: Task) {
 				}
 			}
 
-			// await checkpointSaveAndMark(cline) // kilocode_change: moved out of switch
+			// await checkpointSaveAndMark(cline) // kade_change: moved out of switch
 			switch (block.name) {
 				case "write_to_file":
 					// FAST-PATH: Skip handle() for partial blocks - AgentLoop handles streaming
 					if (block.partial) {
 						break
 					}
-					// await checkpointSaveAndMark(cline) // kilocode_change
+					// await checkpointSaveAndMark(cline) // kade_change
 					await writeToFileTool.handle(cline, block as ToolUse<"write_to_file">, {
 						askApproval,
 						handleError,
 						pushToolResult,
 						removeClosingTag,
 						toolProtocol,
-						toolCallId, // kilocode_change: use computed toolCallId for XML/Native/Unified
+						toolCallId, // kade_change: use computed toolCallId for XML/Native/Unified
 					})
 					break
 				case "update_todo_list":
@@ -1016,7 +1016,7 @@ export async function presentAssistantMessage(cline: Task) {
 						pushToolResult,
 						removeClosingTag,
 						toolProtocol,
-						toolCallId, // kilocode_change: use computed toolCallId
+						toolCallId, // kade_change: use computed toolCallId
 					})
 					break
 				case "edit":
@@ -1024,7 +1024,7 @@ export async function presentAssistantMessage(cline: Task) {
 					if (block.partial) {
 						break
 					}
-					// await checkpointSaveAndMark(cline) // kilocode_change
+					// await checkpointSaveAndMark(cline) // kade_change
 					if (toolProtocol === TOOL_PROTOCOL.MARKDOWN || (toolProtocol as string) === "unified") {
 						// For native and unified protocol, handle the tool normally with toolCallId
 						await editTool.handle(cline, block as ToolUse<"edit">, {
@@ -1033,7 +1033,7 @@ export async function presentAssistantMessage(cline: Task) {
 							pushToolResult,
 							removeClosingTag,
 							toolProtocol,
-							toolCallId, // kilocode_change: use computed toolCallId
+							toolCallId, // kade_change: use computed toolCallId
 						})
 					} else {
 						// For XML protocol, handle the tool normally without toolCallId
@@ -1047,7 +1047,7 @@ export async function presentAssistantMessage(cline: Task) {
 						})
 					}
 					break
-				// kilocode_change start: Morph fast apply
+				// kade_change start: Morph fast apply
 				case "edit_file":
 				case "delete_file":
 				case "new_rule":
@@ -1063,7 +1063,7 @@ export async function presentAssistantMessage(cline: Task) {
 							pushToolResult,
 							removeClosingTag,
 							toolProtocol,
-							toolCallId, // kilocode_change: use computed toolCallId
+							toolCallId, // kade_change: use computed toolCallId
 						})
 					} else if (block.name === "delete_file") {
 						await deleteFileTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
@@ -1075,7 +1075,7 @@ export async function presentAssistantMessage(cline: Task) {
 						await condenseTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
 					}
 					break
-				// kilocode_change end
+				// kade_change end
 				case "read_file":
 					// FAST-PATH: Skip handle() for partial blocks - AgentLoop handles streaming
 					if (block.partial) {
@@ -1102,7 +1102,7 @@ export async function presentAssistantMessage(cline: Task) {
 							pushToolResult,
 							removeClosingTag,
 							toolProtocol,
-							toolCallId, // kilocode_change: use computed toolCallId
+							toolCallId, // kade_change: use computed toolCallId
 						})
 					}
 					break
@@ -1113,7 +1113,7 @@ export async function presentAssistantMessage(cline: Task) {
 						pushToolResult,
 						removeClosingTag,
 						toolProtocol,
-						toolCallId, // kilocode_change
+						toolCallId, // kade_change
 					})
 					break
 				case "list_dir":
@@ -1123,7 +1123,7 @@ export async function presentAssistantMessage(cline: Task) {
 						pushToolResult,
 						removeClosingTag,
 						toolProtocol,
-						toolCallId, // kilocode_change
+						toolCallId, // kade_change
 					})
 					break
 				case "mkdir":
@@ -1153,7 +1153,7 @@ export async function presentAssistantMessage(cline: Task) {
 						pushToolResult,
 						removeClosingTag,
 						toolProtocol,
-						toolCallId, // kilocode_change
+						toolCallId, // kade_change
 					})
 					break
 				case "fast_context":
@@ -1173,7 +1173,7 @@ export async function presentAssistantMessage(cline: Task) {
 						pushToolResult,
 						removeClosingTag,
 						toolProtocol,
-						toolCallId, // kilocode_change
+						toolCallId, // kade_change
 					})
 					break
 				case "glob":
@@ -1183,7 +1183,7 @@ export async function presentAssistantMessage(cline: Task) {
 						pushToolResult,
 						removeClosingTag,
 						toolProtocol,
-						toolCallId, // kilocode_change
+						toolCallId, // kade_change
 					})
 					break
 				case "browser_action":
@@ -1204,7 +1204,7 @@ export async function presentAssistantMessage(cline: Task) {
 						pushToolResult,
 						removeClosingTag,
 						toolProtocol,
-						toolCallId, // kilocode_change
+						toolCallId, // kade_change
 					})
 					break
 				case "use_mcp_tool":
@@ -1242,7 +1242,7 @@ export async function presentAssistantMessage(cline: Task) {
 						pushToolResult,
 						removeClosingTag,
 						toolProtocol,
-						toolCallId, // kilocode_change
+						toolCallId, // kade_change
 					})
 					break
 				case "attempt_completion": {
@@ -1262,7 +1262,7 @@ export async function presentAssistantMessage(cline: Task) {
 					)
 					break
 				}
-				// kilocode_change start
+				// kade_change start
 				case "new_rule":
 					await newRuleTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
 					break
@@ -1272,7 +1272,7 @@ export async function presentAssistantMessage(cline: Task) {
 				case "condense":
 					await condenseTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
 					break
-				// kilocode_change end
+				// kade_change end
 				case "web_search":
 					await webSearchTool.handle(cline, block as ToolUse<"web_search">, {
 						askApproval,
@@ -1431,7 +1431,7 @@ async function checkpointSaveAndMark(task: Task) {
 		return
 	}
 	try {
-		// kilocode_change: order changed to prevent second execution while still awaiting the save
+		// kade_change: order changed to prevent second execution while still awaiting the save
 		task.currentStreamingDidCheckpoint = true
 		await task.checkpointSave(true)
 	} catch (error) {

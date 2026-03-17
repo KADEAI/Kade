@@ -10,7 +10,7 @@ import { ProviderSettings, ModelInfo, BEDROCK_1M_CONTEXT_MODEL_IDS, litellmDefau
 import { useSelectedModel } from "../useSelectedModel"
 import { useRouterModels } from "../useRouterModels"
 import { useOpenRouterModelProviders } from "../useOpenRouterModelProviders"
-import { ExtensionStateContextProvider } from "@src/context/ExtensionStateContext" // kilocode_change
+import { ExtensionStateContextProvider } from "@src/context/ExtensionStateContext" // kade_change
 
 vi.mock("../useRouterModels")
 vi.mock("../useOpenRouterModelProviders")
@@ -26,14 +26,14 @@ const createWrapper = () => {
 			},
 		},
 	})
-	// kilocode_change start: wrap with ExtensionStateContextProvider
+	// kade_change start: wrap with ExtensionStateContextProvider
 	return ({ children }: { children: React.ReactNode }) =>
 		React.createElement(
 			ExtensionStateContextProvider,
 			null,
 			React.createElement(QueryClientProvider, { client: queryClient }, children),
 		)
-	// kilocode_change end
+	// kade_change end
 }
 
 describe("useSelectedModel", () => {
@@ -62,10 +62,10 @@ describe("useSelectedModel", () => {
 						"test-model": baseModelInfo,
 					},
 					requesty: {},
-					glama: {}, // kilocode_change
+					glama: {}, // kade_change
 					unbound: {},
 					litellm: {},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"io-intelligence": {},
 				},
 				isLoading: false,
@@ -127,10 +127,10 @@ describe("useSelectedModel", () => {
 						},
 					},
 					requesty: {},
-					glama: {}, // kilocode_change
+					glama: {}, // kade_change
 					unbound: {},
 					litellm: {},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"io-intelligence": {},
 				},
 				isLoading: false,
@@ -196,10 +196,10 @@ describe("useSelectedModel", () => {
 						"test-model": baseModelInfo,
 					},
 					requesty: {},
-					glama: {}, // kilocode_change
+					glama: {}, // kade_change
 					unbound: {},
 					litellm: {},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"io-intelligence": {},
 				},
 				isLoading: false,
@@ -252,10 +252,10 @@ describe("useSelectedModel", () => {
 				data: {
 					openrouter: { "test-model": baseModelInfo },
 					requesty: {},
-					glama: {}, // kilocode_change
+					glama: {}, // kade_change
 					unbound: {},
 					litellm: {},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"io-intelligence": {},
 				},
 				isLoading: false,
@@ -297,10 +297,10 @@ describe("useSelectedModel", () => {
 						},
 					},
 					requesty: {},
-					glama: {}, // kilocode_change
+					glama: {}, // kade_change
 					unbound: {},
 					litellm: {},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"io-intelligence": {},
 				},
 				isLoading: false,
@@ -361,7 +361,7 @@ describe("useSelectedModel", () => {
 
 		it("should NOT set loading when openrouter provider metadata is loading but provider is static (anthropic)", () => {
 			mockUseRouterModels.mockReturnValue({
-				data: { openrouter: {}, requesty: {}, glama: {}, unbound: {}, litellm: {}, "io-intelligence": {} }, // kilocode_change
+				data: { openrouter: {}, requesty: {}, glama: {}, unbound: {}, litellm: {}, "io-intelligence": {} }, // kade_change
 				isLoading: false,
 				isError: false,
 			} as any)
@@ -429,10 +429,10 @@ describe("useSelectedModel", () => {
 				data: {
 					openrouter: {},
 					requesty: {},
-					glama: {}, // kilocode_change
+					glama: {}, // kade_change
 					unbound: {},
 					litellm: {},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"io-intelligence": {},
 				},
 				isLoading: false,
@@ -468,10 +468,10 @@ describe("useSelectedModel", () => {
 				data: {
 					openrouter: {},
 					requesty: {},
-					glama: {}, // kilocode_change
+					glama: {}, // kade_change
 					unbound: {},
 					litellm: {},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"io-intelligence": {},
 				},
 				isLoading: false,
@@ -498,7 +498,7 @@ describe("useSelectedModel", () => {
 		})
 	})
 
-	// kilocode_change start
+	// kade_change start
 	describe("litellm provider", () => {
 		beforeEach(() => {
 			mockUseRouterModels.mockReturnValue({
@@ -508,7 +508,7 @@ describe("useSelectedModel", () => {
 					glama: {},
 					unbound: {},
 					litellm: {},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"io-intelligence": {},
 				},
 				isLoading: false,
@@ -553,7 +553,7 @@ describe("useSelectedModel", () => {
 					litellm: {
 						"claude-3-7-sonnet-20250219": modelInfo,
 					},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"io-intelligence": {},
 				},
 				isLoading: false,
@@ -572,7 +572,7 @@ describe("useSelectedModel", () => {
 			expect(result.current.info).toEqual(modelInfo)
 		})
 	})
-	// kilocode_change end
+	// kade_change end
 
 	describe("bedrock provider with 1M context", () => {
 		beforeEach(() => {
@@ -580,10 +580,10 @@ describe("useSelectedModel", () => {
 				data: {
 					openrouter: {},
 					requesty: {},
-					glama: {}, // kilocode_change
+					glama: {}, // kade_change
 					unbound: {},
 					litellm: {},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"io-intelligence": {},
 				},
 				isLoading: false,
@@ -656,7 +656,7 @@ describe("useSelectedModel", () => {
 					requesty: {},
 					unbound: {},
 					litellm: {},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"io-intelligence": {},
 				},
 				isLoading: false,
@@ -694,7 +694,7 @@ describe("useSelectedModel", () => {
 							supportsNativeTools: true,
 						},
 					},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"io-intelligence": {},
 				},
 				isLoading: false,
@@ -735,7 +735,7 @@ describe("useSelectedModel", () => {
 					litellm: {
 						"custom-model": customModelInfo,
 					},
-					kiro: {}, // kilocode_change
+					kiro: {}, // kade_change
 					"io-intelligence": {},
 				},
 				isLoading: false,

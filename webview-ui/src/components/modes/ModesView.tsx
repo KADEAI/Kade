@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
-import { KiloShareModesBanner } from "../kilocode/KiloShareModesBanner" // kilocode_change
+import { KiloShareModesBanner } from "../kilocode/KiloShareModesBanner" // kade_change
 import {
 	VSCodeCheckbox,
 	VSCodeRadioGroup,
@@ -295,11 +295,11 @@ const ModesView = () => {
 		return customModes?.find(findMode) || modes.find(findMode)
 	}, [visualMode, customModes, modes])
 
-	// kilocode_change start
+	// kade_change start
 	const isOrganizationMode = useMemo(() => {
 		return getCurrentMode()?.source === "organization"
 	}, [getCurrentMode])
-	// kilocode_change end
+	// kade_change end
 
 	// Check if the current mode has rules to export
 	const checkRulesDirectory = useCallback((slug: string) => {
@@ -708,9 +708,9 @@ const ModesView = () => {
 
 
 					<div className="flex items-center gap-1 mb-1 flex-wrap">
-						{isOrganizationMode && <OrganizationModeWarning />} {/* kilocode_change start */}
+						{isOrganizationMode && <OrganizationModeWarning />} {/* kade_change start */}
 						{/* Only show name and delete for custom modes that are not organization modes */}
-						{/* kilocode_change end */}
+						{/* kade_change end */}
 						{isRenamingMode ? (
 							<>
 								<VSCodeTextField

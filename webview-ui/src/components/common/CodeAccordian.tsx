@@ -5,7 +5,7 @@ import { getLanguageFromPath } from "@src/utils/getLanguageFromPath"
 import { formatPathTooltip } from "@src/utils/formatPathTooltip"
 
 import { ToolUseBlock, ToolUseBlockHeader } from "./ToolUseBlock"
-import CodeBlock from "../kilocode/common/CodeBlock" // kilocode_change
+import CodeBlock from "../kilocode/common/CodeBlock" // kade_change
 import { PathTooltip } from "../ui/PathTooltip"
 import DiffView from "./DiffView"
 import { cn } from "@/lib/utils"
@@ -39,7 +39,7 @@ const CodeAccordian = ({
     diffStats,
 }: CodeAccordianProps) => {
     const inferredLanguage = useMemo(() => language ?? (path ? getLanguageFromPath(path) : "txt"), [path, language])
-    const source = useMemo(() => String(code).trim() /*kilocode_change: coerce to string*/, [code])
+    const source = useMemo(() => String(code).trim() /*kade_change: coerce to string*/, [code])
     const hasHeader = Boolean(path || isFeedback || header)
 
     // Calculate stats from code if not provided (fallback)

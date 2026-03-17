@@ -46,7 +46,7 @@ async function safeReadFile(filePath: string): Promise<string> {
  * Get the path to a system prompt file for a specific mode
  */
 export function getSystemPromptFilePath(cwd: string, mode: Mode): string {
-	// kilocode_change
+	// kade_change
 	return path.join(cwd, ".kilocode", `system-prompt-${mode}`)
 }
 
@@ -68,7 +68,7 @@ export async function loadSystemPromptFile(cwd: string, mode: Mode, variables: P
  * Ensures the .kilocode directory exists, creating it if necessary
  */
 export async function ensureRooDirectory(cwd: string): Promise<void> {
-	// kilocode_change
+	// kade_change
 	const rooDir = path.join(cwd, ".kilocode")
 
 	// Check if directory already exists

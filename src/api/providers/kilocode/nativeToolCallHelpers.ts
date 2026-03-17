@@ -2,7 +2,7 @@ import OpenAI from "openai"
 import type { ApiHandlerCreateMessageMetadata } from "../../index"
 import {
 	getModelId,
-	nativeFunctionCallingProviders, // kilocode_change
+	nativeFunctionCallingProviders, // kade_change
 	ProviderName,
 	ProviderSettings,
 	TOOL_PROTOCOL,

@@ -107,7 +107,7 @@ export async function taskMetadata({
 		task: (() => {
 			if (!hasMessages) return t("common:tasks.no_messages", { taskNumber });
 
-			// kilocode_change: Live Assistant Heartbeat logic in persistence layer
+			// kade_change: Live Assistant Heartbeat logic in persistence layer
 			// We want the latest assistant message that ISN'T a tool call (JSON) or an error key
 			const assistantMessages = messages.filter(m =>
 				m.type === "say" &&

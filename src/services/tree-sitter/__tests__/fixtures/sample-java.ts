@@ -29,10 +29,10 @@ public @interface TestAnnotationDefinition {
 // Interface declaration test - at least 4 lines long
 public interface TestInterfaceDefinition<T extends Comparable<T>> {
     // Interface method declarations
-    void testInterfaceMethod(String message, T data); // kilocode_change: whitespace
+    void testInterfaceMethod(String message, T data); // kade_change: whitespace
     
     // Default method in interface - 4+ lines
-    default String testInterfaceDefaultMethod(String input, T data) { // kilocode_change: whitespace
+    default String testInterfaceDefaultMethod(String input, T data) { // kade_change: whitespace
         return String.format("%s: %s", input, data.toString());
     }
 }
@@ -85,16 +85,16 @@ public class TestClassDefinition<T extends Comparable<T>>
 
     // Method implementation - at least 4 lines long
     @Override
-    public void testInterfaceMethod(String message, T data) { // kilocode_change: whitespace
+    public void testInterfaceMethod(String message, T data) { // kade_change: whitespace
         System.out.println(testInterfaceDefaultMethod(message, data));
     }
 
-    // kilocode_change start: method added
+    // kade_change start: method added
     @TestAnnotationDefinition(value="test")    
     void testMultipleAnnotationMethod(String message, T data) {
         System.out.println(testInterfaceDefaultMethod(message, data));
     }
-    // kilocode_change end
+    // kade_change end
 
     // Generic method test - at least 4 lines long
     public <R extends Comparable<R>> R testGenericMethodDefinition(

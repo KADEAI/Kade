@@ -7,12 +7,12 @@ import {
 	claudeCodeModels,
 	deepSeekModels,
 	moonshotModels,
-	// kilocode_change start
+	// kade_change start
 	// geminiModels,
 	// geminiModels,
 	geminiCliModels,
 	cliProxyModels,
-	// kilocode_change end
+	// kade_change end
 	mistralModels,
 	openAiNativeModels,
 	qwenCodeModels,
@@ -40,18 +40,18 @@ export const MODELS_BY_PROVIDER: Partial<Record<ProviderName, Record<string, Mod
 	deepseek: deepSeekModels,
 	doubao: doubaoModels,
 	moonshot: moonshotModels,
-	// kilocode_change start
+	// kade_change start
 	// gemini: geminiModels,
 	"gemini-cli": geminiCliModels,
 	"cli-proxy": cliProxyModels,
-	// kilocode_change end
+	// kade_change end
 	mistral: mistralModels,
 	"openai-native": openAiNativeModels,
 	"qwen-code": qwenCodeModels,
 	vertex: vertexModels,
 	xai: xaiModels,
 	groq: groqModels,
-	// chutes: chutesModels, // kilocode_change
+	// chutes: chutesModels, // kade_change
 	sambanova: sambaNovaModels,
 	zai: internationalZAiModels,
 	fireworks: fireworksModels,
@@ -74,7 +74,7 @@ export const PROVIDERS = [
 	{ value: "antigravity", label: "Google Gemini (Antigravity)", website: "https://cloud.google.com/vertex-ai/docs/generative-ai/code/code-assistance" },
 	{ value: "doubao", label: "Doubao", website: "https://www.volcengine.com/product/ark" },
 
-	// kilocode_change start
+	// kade_change start
 	{ value: "inception", label: "Inception", website: "https://inceptionlabs.ai" },
 	{ value: "gemini-cli", label: "Google Gemini CLI (OAuth)", website: "https://ai.google.dev" },
 	{ value: "virtual-quota-fallback", label: "Virtual Quota Fallback", website: "https://kilo.ai" },
@@ -83,7 +83,7 @@ export const PROVIDERS = [
 	{ value: "sap-ai-core", label: "SAP AI Core", website: "https://www.sap.com/products/technology-platform/ai-core.html" },
 	{ value: "opencode", label: "OpenCode", website: "https://opencode.ai" },
 	{ value: "cli-proxy", label: "Cli Proxy", website: "https://kilo.ai" },
-	// kilocode_change end
+	// kade_change end
 	{ value: "deepseek", label: "DeepSeek", website: "https://deepseek.com" },
 	{ value: "moonshot", label: "Moonshot", website: "https://moonshot.cn" },
 	{ value: "openai-native", label: "OpenAI (Native)", website: "https://openai.com" },
@@ -92,8 +92,8 @@ export const PROVIDERS = [
 	{ value: "qwen-code", label: "Qwen Code", website: "https://qwenlm.ai" },
 	{ value: "vertex", label: "GCP Vertex AI", website: "https://cloud.google.com/vertex-ai" },
 	{ value: "bedrock", label: "Amazon Bedrock", website: "https://aws.amazon.com/bedrock" },
-	{ value: "glama", label: "Glama", website: "https://glama.ai" }, // kilocode_change
-	{ value: "nano-gpt", label: "Nano-GPT", website: "https://nano-gpt.com" }, //kilocode_change
+	{ value: "glama", label: "Glama", website: "https://glama.ai" }, // kade_change
+	{ value: "nano-gpt", label: "Nano-GPT", website: "https://nano-gpt.com" }, //kade_change
 	{ value: "vscode-lm", label: "VS Code LM API", website: "https://code.visualstudio.com" },
 	{ value: "mistral", label: "Mistral", website: "https://mistral.ai" },
 	{ value: "lmstudio", label: "LM Studio", website: "https://lmstudio.ai" },
@@ -111,12 +111,12 @@ export const PROVIDERS = [
 	{ value: "fireworks", label: "Fireworks AI", website: "https://fireworks.ai" },
 	{ value: "featherless", label: "Featherless AI", website: "https://featherless.ai" },
 	{ value: "io-intelligence", label: "IO Intelligence", website: "https://io-intelligence.ai" },
-	// kilocode_change start
+	// kade_change start
 	// { value: "roo", label: "Roo Code Cloud", website: "https://kilo.ai" },
-	// kilocode_change end
+	// kade_change end
 	{ value: "vercel-ai-gateway", label: "Vercel AI Gateway", website: "https://vercel.com/ai" },
 	{ value: "minimax", label: "MiniMax", website: "https://minimaxi.com" },
 	{ value: "baseten", label: "Baseten", website: "https://baseten.co" },
 	{ value: "kiro", label: "Kiro", website: "http://localhost:8000" },
-	{ value: "kilocode", label: "Kilo Gateway", website: "https://kilo.ai" }, // kilocode_change
+	{ value: "kilocode", label: "Kilo Gateway", website: "https://kilo.ai" }, // kade_change
 ].sort((a, b) => a.label.localeCompare(b.label))

@@ -2,11 +2,11 @@ import * as os from "os"
 import type { SystemPromptSettings } from "../types"
 import { getEffectiveProtocol, isNativeProtocol } from "@roo-code/types"
 
-// kilocode_change start
+// kade_change start
 import { getFastApplyEditingInstructions } from "../tools/edit-file"
 import { type ClineProviderState } from "../../webview/ClineProvider"
 import { getFastApplyModelType, isFastApplyAvailable } from "../../tools/kilocode/editFileTool"
-// kilocode_change end
+// kade_change end
 
 function getVendorConfidentialitySection(): string {
 	return `

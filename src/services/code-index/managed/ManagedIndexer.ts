@@ -1,4 +1,4 @@
-// kilocode_change new file
+// kade_change new file
 
 import * as vscode from "vscode"
 import * as path from "path"
@@ -143,7 +143,7 @@ export class ManagedIndexer implements vscode.Disposable {
 
 	// Handle changes to vscode workspace folder changes
 	workspaceFoldersListener: vscode.Disposable | null = null
-	// kilocode_change: Listen to configuration changes from ContextProxy
+	// kade_change: Listen to configuration changes from ContextProxy
 	configChangeListener: vscode.Disposable | undefined | null = null
 	config: ManagedIndexerConfig | null = null
 	organization: KiloOrganization | null = null
@@ -176,7 +176,7 @@ export class ManagedIndexer implements vscode.Disposable {
 	// on proper memoization/invalidation techniques
 
 	fetchConfig(): ManagedIndexerConfig {
-		// kilocode_change: Read directly from ContextProxy instead of ClineProvider
+		// kade_change: Read directly from ContextProxy instead of ClineProvider
 		const kilocodeToken = this.contextProxy?.getSecret("kilocodeToken")
 		const kilocodeOrganizationId = this.contextProxy?.getValue("kilocodeOrganizationId")
 		const kilocodeTesterWarningsDisabledUntil = this.contextProxy?.getValue("kilocodeTesterWarningsDisabledUntil")
@@ -414,7 +414,7 @@ export class ManagedIndexer implements vscode.Disposable {
 	}
 
 	dispose() {
-		// kilocode_change: Dispose configuration change listener
+		// kade_change: Dispose configuration change listener
 		this.configChangeListener?.dispose()
 		this.configChangeListener = null
 

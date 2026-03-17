@@ -93,11 +93,11 @@ async function main() {
 		format: "cjs",
 		sourcesContent: false,
 		platform: "node",
-		// kilocode_change start: for ps-list
+		// kade_change start: for ps-list
 		banner: {
 			js: "const __importMetaUrl = typeof __filename !== 'undefined' ? require('url').pathToFileURL(__filename).href : undefined;",
 		},
-		// kilocode_change end
+		// kade_change end
 	}
 
 	const srcDir = __dirname
@@ -113,7 +113,7 @@ async function main() {
 	 * @type {import('esbuild').Plugin[]}
 	 */
 	const plugins = [
-		// kilocode_change start
+		// kade_change start
 		{
 			name: "import-meta-url-plugin",
 			setup(build) {
@@ -130,7 +130,7 @@ async function main() {
 				})
 			},
 		},
-		// kilocode_change end
+		// kade_change end
 		{
 			name: "copyFiles",
 			setup(build) {

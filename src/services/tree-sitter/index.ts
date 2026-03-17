@@ -6,7 +6,7 @@ import { parseMarkdown } from "./markdownParser"
 import { RooIgnoreController } from "../../core/ignore/RooIgnoreController"
 import { QueryCapture } from "web-tree-sitter"
 
-const METHOD_CAPTURE = ["definition.method", "definition.method.start"] // kilocode_change
+const METHOD_CAPTURE = ["definition.method", "definition.method.start"] // kade_change
 
 // Private constant
 const DEFAULT_MIN_COMPONENT_LINES_VALUE = 4
@@ -28,7 +28,7 @@ export function setMinComponentLines(value: number): void {
 	currentMinComponentLines = value
 }
 
-// kilocode_change start
+// kade_change start
 function shouldSkipMinLines(lineCount: number, capture: QueryCapture, language: string) {
 	if (METHOD_CAPTURE.includes(capture.name)) {
 		// In object-oriented programming languages, method signatures are only one line and should not be ignored.
@@ -36,7 +36,7 @@ function shouldSkipMinLines(lineCount: number, capture: QueryCapture, language: 
 	}
 	return lineCount < getMinComponentLines()
 }
-// kilocode_change end
+// kade_change end
 
 const extensions = [
 	"tla",
@@ -238,7 +238,7 @@ function processCaptures(captures: QueryCapture[], lines: string[], language: st
 		const lineCount = endLine - startLine + 1
 
 		// Skip components that don't span enough lines
-		if (shouldSkipMinLines(lineCount, capture, language) /*kilocode_change: orginal logic moved into function*/) {
+		if (shouldSkipMinLines(lineCount, capture, language) /*kade_change: orginal logic moved into function*/) {
 			return
 		}
 

@@ -31,7 +31,7 @@ export const toolNames = [
 	"new_task",
 	"fetch_instructions",
 	"codebase_search",
-	// kilocode_change start
+	// kade_change start
 	"edit_file",
 	"new_rule",
 	"report_bug",
@@ -39,14 +39,14 @@ export const toolNames = [
 	"delete_file",
 	"mkdir",
 	"move_file",
-	// kilocode_change end
+	// kade_change end
 	"update_todo_list",
 	"run_slash_command",
 	"generate_image",
-	// kilocode_change start
+	// kade_change start
 	"run_sub_agent",
 	"fast_context",
-	// kilocode_change end
+	// kade_change end
 	"web_search",
 	"web_fetch",
 	"research_web",
@@ -86,7 +86,7 @@ export const TOOL_PROTOCOL = {
  */
 export type ToolProtocol = (typeof TOOL_PROTOCOL)[keyof typeof TOOL_PROTOCOL]
 
-export const toolProtocolSchema = z.enum([TOOL_PROTOCOL.UNIFIED, TOOL_PROTOCOL.MARKDOWN]) // kilocode_change
+export const toolProtocolSchema = z.enum([TOOL_PROTOCOL.UNIFIED, TOOL_PROTOCOL.MARKDOWN]) // kade_change
 
 /**
  * Checks if the protocol is native (non-XML).

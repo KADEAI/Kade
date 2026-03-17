@@ -4,8 +4,8 @@ import { formatTimeAgo } from "@/utils/format"
 import { CopyButton } from "./CopyButton"
 import { ExportButton } from "./ExportButton"
 import { DeleteButton } from "./DeleteButton"
-import { FavoriteButton } from "../kilocode/history/FavoriteButton" // kilocode_change
-import { KiloShareSessionButton } from "./KiloShareSessionButton" // kilocode_change
+import { FavoriteButton } from "../kilocode/history/FavoriteButton" // kade_change
+import { KiloShareSessionButton } from "./KiloShareSessionButton" // kade_change
 import { StandardTooltip } from "../ui/standard-tooltip"
 
 export interface TaskItemFooterProps {

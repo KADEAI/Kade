@@ -24,7 +24,7 @@ export const LMStudio = ({ apiConfiguration, setApiConfigurationField }: LMStudi
 	const { t } = useAppTranslation()
 
 	const [lmStudioModels, setLmStudioModels] = useState<ModelRecord>({})
-	const routerModels = useRouterModels({ lmStudioBaseUrl: apiConfiguration.lmStudioBaseUrl }) // kilocode_change: query key
+	const routerModels = useRouterModels({ lmStudioBaseUrl: apiConfiguration.lmStudioBaseUrl }) // kade_change: query key
 
 	const handleInputChange = useCallback(
 		<K extends keyof ProviderSettings, E>(

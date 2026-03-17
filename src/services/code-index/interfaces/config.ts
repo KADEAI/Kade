@@ -7,10 +7,10 @@ import { EmbedderProvider } from "./manager"
 export interface CodeIndexConfig {
 	isConfigured: boolean
 	embedderProvider: EmbedderProvider
-	// kilocode_change start
+	// kade_change start
 	vectorStoreProvider?: "lancedb" | "qdrant" | "local-qdrant"
 	lancedbVectorStoreDirectoryPlaceholder?: string
-	// kilocode_change end
+	// kade_change end
 	modelId?: string
 	modelDimension?: number // Generic dimension property for all providers
 	openAiOptions?: ApiHandlerOptions
@@ -25,10 +25,10 @@ export interface CodeIndexConfig {
 	qdrantApiKey?: string
 	searchMinScore?: number
 	searchMaxResults?: number
-	// kilocode_change start
+	// kade_change start
 	embeddingBatchSize?: number
 	scannerMaxBatchRetries?: number
-			// kilocode_change end
+			// kade_change end
 	includePaths?: string[]
 }
 
@@ -39,10 +39,10 @@ export type PreviousConfigSnapshot = {
 	enabled: boolean
 	configured: boolean
 	embedderProvider: EmbedderProvider
-	// kilocode_change start
+	// kade_change start
 	vectorStoreProvider?: "lancedb" | "qdrant" | "local-qdrant"
 	lancedbVectorStoreDirectory?: string
-	// kilocode_change end
+	// kade_change end
 	modelId?: string
 	modelDimension?: number // Generic dimension property
 	openAiKey?: string

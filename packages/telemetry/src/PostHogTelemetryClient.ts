@@ -15,9 +15,9 @@ export class PostHogTelemetryClient extends BaseTelemetryClient {
 	private distinctId: string = vscode.env.machineId
 	// Git repository properties that should be filtered out for all users
 	private readonly gitPropertyNames = ["repositoryUrl", "repositoryName", "defaultBranch"]
-	// kilocode_change start: filter sensitive error properties for organization users
+	// kade_change start: filter sensitive error properties for organization users
 	private readonly orgFilteredProperties = ["errorMessage", "cliPath", "stderrPreview"]
-	// kilocode_change end
+	// kade_change end
 
 	constructor(debug = false) {
 		super(
@@ -25,7 +25,7 @@ export class PostHogTelemetryClient extends BaseTelemetryClient {
 				type: "exclude",
 				events: [
 					TelemetryEventName.TASK_MESSAGE,
-					// TelemetryEventName.LLM_COMPLETION // kilocode_change
+					// TelemetryEventName.LLM_COMPLETION // kade_change
 				],
 			},
 			debug,
@@ -33,7 +33,7 @@ export class PostHogTelemetryClient extends BaseTelemetryClient {
 
 		this.client = new PostHog(process.env.KILOCODE_POSTHOG_API_KEY || "", {
 			host: "https://us.i.posthog.com",
-			disableGeoip: false, // kilocode_change
+			disableGeoip: false, // kade_change
 		})
 	}
 
@@ -45,7 +45,7 @@ export class PostHogTelemetryClient extends BaseTelemetryClient {
 	 * @param allProperties All properties for context (to check organization membership)
 	 * @returns Whether the property should be included in telemetry events
 	 */
-	// kilocode_change start: add allProperties parameter for org-based filtering
+	// kade_change start: add allProperties parameter for org-based filtering
 	protected override isPropertyCapturable(propertyName: string, allProperties: Record<string, unknown>): boolean {
 		// Filter out git repository properties for all users
 		if (this.gitPropertyNames.includes(propertyName)) {
@@ -56,7 +56,7 @@ export class PostHogTelemetryClient extends BaseTelemetryClient {
 		}
 		return true
 	}
-	// kilocode_change end
+	// kade_change end
 
 	public override async capture(event: TelemetryEvent): Promise<void> {
 
@@ -110,7 +110,7 @@ export class PostHogTelemetryClient extends BaseTelemetryClient {
 		await this.client.shutdown()
 	}
 
-	// kilocode_change start
+	// kade_change start
 	public override async captureException(error: Error, properties?: Record<string | number, unknown>): Promise<void> {
 		if (this.isTelemetryEnabled()) {
 			let providerProperties = {}
@@ -167,5 +167,5 @@ export class PostHogTelemetryClient extends BaseTelemetryClient {
 			}
 		}
 	}
-	// kilocode_change end
+	// kade_change end
 }

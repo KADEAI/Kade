@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import { APERTIS_DEFAULT_BASE_URL, apertisDefaultModelInfo as APERTIS_THINKING_MODELS, apertisDefaultModelInfo as APERTIS_RESPONSES_API_MODELS } from "@roo-code/types"
 import type { ModelRecord } from "../../../shared/api"
 

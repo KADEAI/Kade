@@ -6,7 +6,7 @@ export type MoonshotModelId = keyof typeof moonshotModels
 export const moonshotDefaultModelId: MoonshotModelId = "kimi-k2-thinking"
 
 export const moonshotModels = {
-	// kilocode_change start
+	// kade_change start
 	"kimi-for-coding": {
 		maxTokens: 32_000,
 		contextWindow: 131_072,
@@ -25,7 +25,7 @@ export const moonshotModels = {
 		defaultTemperature: 0.6,
 		description: `Kimi for coding`,
 	},
-	// kilocode_change end
+	// kade_change end
 	"kimi-k2-0711-preview": {
 		maxTokens: 32_000,
 		contextWindow: 131_072,
@@ -96,7 +96,7 @@ export const moonshotModels = {
 		defaultTemperature: 1.0,
 		description: `The kimi-k2-thinking model is a general-purpose agentic reasoning model developed by Moonshot AI. Thanks to its strength in deep reasoning and multi-turn tool use, it can solve even the hardest problems.`,
 	},
-	// kilocode_change start
+	// kade_change start
 	"kimi-k2.5": {
 		maxTokens: 16_384,
 		contextWindow: 262_144,
@@ -115,7 +115,7 @@ export const moonshotModels = {
 		description:
 			"Kimi K2.5 is the latest generation of Moonshot AI's Kimi series, featuring improved reasoning capabilities and enhanced performance across diverse tasks.",
 	},
-	// kilocode_change end
+	// kade_change end
 } as const satisfies Record<string, ModelInfo>
 
 export const MOONSHOT_DEFAULT_TEMPERATURE = 0.6

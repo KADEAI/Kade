@@ -9,11 +9,11 @@ import React, {
 	useRef,
 	useState,
 } from "react"
-import { HistoryViewType } from "@/App" // kilocode_change
+import { HistoryViewType } from "@/App" // kade_change
 import {
 	CheckCheck,
 	SquareMousePointer,
-	History, // kilocode_change
+	History, // kade_change
 	Webhook,
 	GitBranch,
 	Bell,
@@ -23,29 +23,29 @@ import {
 	AlertTriangle,
 	Globe,
 	Info,
-	Bot, // kilocode_change
-	UserRound, // kilocode_change
+	Bot, // kade_change
+	UserRound, // kade_change
 	MessageSquare,
 	Monitor,
 	LucideIcon,
-	// SquareSlash, // kilocode_change
-	// Glasses, // kilocode_change
+	// SquareSlash, // kade_change
+	// Glasses, // kade_change
 	Plug,
 	Server,
 	Users2,
 	ArrowLeft,
-	GitCommitVertical, // kilocode_change: Added for Checkpoints
-	Zap, // kilocode_change: Added for Skills/Modes if needed
-	Infinity, // kilocode_change: Added for Infinity
+	GitCommitVertical, // kade_change: Added for Checkpoints
+	Zap, // kade_change: Added for Skills/Modes if needed
+	Infinity, // kade_change: Added for Infinity
 } from "lucide-react"
 
-// kilocode_change
+// kade_change
 import { ensureBodyPointerEventsRestored } from "@/utils/fixPointerEvents"
 import {
 	type ProviderSettings,
 	type ExperimentId,
 	type TelemetrySetting,
-	type ProfileType, // kilocode_change - autocomplete profile type system
+	type ProfileType, // kade_change - autocomplete profile type system
 	DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
 	ImageGenerationProvider,
 } from "@roo-code/types"
@@ -79,7 +79,7 @@ import ApiOptions from "./ApiOptions"
 import { AutoApproveSettings } from "./AutoApproveSettings"
 import { BrowserSettings } from "./BrowserSettings"
 import { CheckpointSettings } from "./CheckpointSettings"
-import { DisplaySettings } from "./DisplaySettings" // kilocode_change
+import { DisplaySettings } from "./DisplaySettings" // kade_change
 import { NotificationSettings } from "./NotificationSettings"
 import { ContextManagementSettings } from "./ContextManagementSettings"
 import { TerminalSettings } from "./TerminalSettings"
@@ -88,9 +88,9 @@ import { LanguageSettings } from "./LanguageSettings"
 import { About } from "./About"
 import { Section } from "./Section"
 import PromptsSettings from "./PromptsSettings"
-import McpView from "../kilocodeMcp/McpView" // kilocode_change
-import deepEqual from "fast-deep-equal" // kilocode_change
-import { GhostServiceSettingsView } from "../kilocode/settings/GhostServiceSettings" // kilocode_change
+import McpView from "../kilocodeMcp/McpView" // kade_change
+import deepEqual from "fast-deep-equal" // kade_change
+import { GhostServiceSettingsView } from "../kilocode/settings/GhostServiceSettings" // kade_change
 import { SlashCommandsSettings } from "./SlashCommandsSettings"
 import { UISettings } from "./UISettings"
 import ModesView from "../modes/ModesView"
@@ -99,7 +99,7 @@ import { SubAgentSettings } from "./SubAgentSettings"
 import { SkillsSettings } from "./SkillsSettings"
 import { InfinitySettings } from "./InfinitySettings"
 import { useSearchIndexRegistry, SearchIndexProvider } from "./useSettingsSearch"
-// import McpView from "../mcp/McpView" // kilocode_change: own view
+// import McpView from "../mcp/McpView" // kade_change: own view
 
 export const settingsTabsContainer = "flex flex-1 overflow-hidden [&.narrow_.tab-label]:hidden bg-[#1e1e1e] font-sans"
 export const settingsTabList =
@@ -118,8 +118,8 @@ const sectionNames = [
 	"slashCommands",
 	"browser",
 	"checkpoints",
-	"ghost", // kilocode_change
-	"display", // kilocode_change
+	"ghost", // kade_change
+	"display", // kade_change
 	"notifications",
 	"contextManagement",
 	"terminal",
@@ -135,20 +135,20 @@ const sectionNames = [
 	"about",
 ] as const
 
-export type SectionName = (typeof sectionNames)[number] // kilocode_change
+export type SectionName = (typeof sectionNames)[number] // kade_change
 
 type SettingsViewProps = {
 	onDone: () => void
 	targetSection?: string
-	editingProfile?: string // kilocode_change - profile to edit
-	historyViewType?: HistoryViewType // kilocode_change
-	setHistoryViewType?: (value: HistoryViewType) => void // kilocode_change
+	editingProfile?: string // kade_change - profile to edit
+	historyViewType?: HistoryViewType // kade_change
+	setHistoryViewType?: (value: HistoryViewType) => void // kade_change
 }
 
-// kilocode_change start - editingProfile
+// kade_change start - editingProfile
 const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref) => {
 	const { onDone, targetSection, editingProfile, historyViewType, setHistoryViewType } = props
-	// kilocode_change end - editingProfile
+	// kade_change end - editingProfile
 	const { t } = useAppTranslation()
 	const [isSearchOpen, setIsSearchOpen] = useState(false)
 
@@ -164,7 +164,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 			: "providers",
 	)
 
-	const [editingApiConfigName, setEditingApiConfigName] = useState<string>(currentApiConfigName || "default") // kilocode_change: Track which profile is being edited separately from the active profile
+	const [editingApiConfigName, setEditingApiConfigName] = useState<string>(currentApiConfigName || "default") // kade_change: Track which profile is being edited separately from the active profile
 
 	const scrollPositions = useRef<Record<SectionName, number>>(
 		Object.fromEntries(sectionNames.map((s) => [s, 0])) as Record<SectionName, number>,
@@ -176,11 +176,11 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 
 	const [cachedState, setCachedState] = useState(() => extensionState)
 
-	// kilocode_change begin
+	// kade_change begin
 	useEffect(() => {
 		ensureBodyPointerEventsRestored()
 	}, [isDiscardDialogShow])
-	// kilocode_change end
+	// kade_change end
 
 	const {
 		proLicenseKey,
@@ -208,9 +208,9 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 		checkpointTimeout,
 		diffEnabled,
 		experiments,
-		morphApiKey, // kilocode_change
-		fastApplyModel, // kilocode_change: Fast Apply model selection
-		fastApplyApiProvider, // kilocode_change: Fast Apply model api base url
+		morphApiKey, // kade_change
+		fastApplyModel, // kade_change: Fast Apply model selection
+		fastApplyApiProvider, // kade_change: Fast Apply model api base url
 		fuzzyMatchThreshold,
 		maxOpenTabsContext,
 		maxWorkspaceFiles,
@@ -236,40 +236,40 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 		writeDelayMs,
 		showRooIgnoredFiles,
 		remoteBrowserEnabled,
-		disableBrowserHeadless, // kilocode_change
+		disableBrowserHeadless, // kade_change
 		maxReadFileLine,
-		showAutoApproveMenu, // kilocode_change
-		showTaskTimeline, // kilocode_change
-		sendMessageOnEnter, // kilocode_change
-		showTimestamps, // kilocode_change
-		hideCostBelowThreshold, // kilocode_change
+		showAutoApproveMenu, // kade_change
+		showTaskTimeline, // kade_change
+		sendMessageOnEnter, // kade_change
+		showTimestamps, // kade_change
+		hideCostBelowThreshold, // kade_change
 		collapseCodeToolsByDefault,
 		maxImageFileSize,
 		maxTotalImageSize,
 		terminalCompressProgressBar,
 		maxConcurrentFileReads,
-		allowVeryLargeReads, // kilocode_change
-		terminalCommandApiConfigId, // kilocode_change
+		allowVeryLargeReads, // kade_change
+		terminalCommandApiConfigId, // kade_change
 		condensingApiConfigId,
 		customCondensingPrompt,
 		customSupportPrompts,
 		profileThresholds,
-		systemNotificationsEnabled, // kilocode_change
+		systemNotificationsEnabled, // kade_change
 		alwaysAllowFollowupQuestions,
 		alwaysAllowUpdateTodoList,
 		subAgentToolEnabled,
 		showSubAgentBanner,
 		enabledSkills,
 		followupAutoApproveTimeoutMs,
-		ghostServiceSettings, // kilocode_change
-		// kilocode_change start - Auto-purge settings
+		ghostServiceSettings, // kade_change
+		// kade_change start - Auto-purge settings
 		autoPurgeEnabled,
 		autoPurgeDefaultRetentionDays,
 		autoPurgeFavoritedTaskRetentionDays,
 		autoPurgeCompletedTaskRetentionDays,
 		autoPurgeIncompleteTaskRetentionDays,
 		autoPurgeLastRunTimestamp,
-		// kilocode_change end - Auto-purge settings
+		// kade_change end - Auto-purge settings
 		includeDiagnosticMessages,
 		maxDiagnosticMessages,
 		includeTaskHistoryInEnhance,
@@ -308,14 +308,14 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 		setCachedState((prevCachedState) => ({ ...prevCachedState, ...extensionState }))
 		prevApiConfigName.current = currentApiConfigName
 		setChangeDetected(false)
-		// kilocode_change start - Don't reset editingApiConfigName if we have an editingProfile prop (from auth return)
+		// kade_change start - Don't reset editingApiConfigName if we have an editingProfile prop (from auth return)
 		if (!editingProfile) {
 			setEditingApiConfigName(currentApiConfigName || "default")
 		}
-		// kilocode_change end
-	}, [currentApiConfigName, extensionState, editingProfile]) // kilocode_change
+		// kade_change end
+	}, [currentApiConfigName, extensionState, editingProfile]) // kade_change
 
-	// kilocode_change start: Set editing profile when prop changes (from auth return)
+	// kade_change start: Set editing profile when prop changes (from auth return)
 	useEffect(() => {
 		if (editingProfile) {
 			console.log("[SettingsView] Setting editing profile from prop:", editingProfile)
@@ -327,9 +327,9 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 			})
 		}
 	}, [editingProfile])
-	// kilocode_change end
+	// kade_change end
 
-	// kilocode_change start
+	// kade_change start
 	const isLoadingProfileForEditing = useRef(false)
 	const isSavingRef = useRef(false)
 
@@ -395,7 +395,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 			}
 		}
 	}, [extensionState, isChangeDetected, editingApiConfigName, currentApiConfigName])
-	// kilocode_change end
+	// kade_change end
 
 	// Bust the cache when settings are imported.
 	useEffect(() => {
@@ -407,18 +407,18 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 
 	const setCachedStateField: SetCachedStateField<keyof ExtensionStateContextType> = useCallback((field, value) => {
 		setCachedState((prevState) => {
-			// kilocode_change start
+			// kade_change start
 			if (deepEqual(prevState[field], value)) {
 				return prevState
 			}
-			// kilocode_change end
+			// kade_change end
 
 			setChangeDetected(true)
 			return { ...prevState, [field]: value }
 		})
 	}, [])
 
-	// kilocode_change start
+	// kade_change start
 	const setGhostServiceSettingsField = useCallback(
 		<K extends keyof NonNullable<ExtensionStateContextType["ghostServiceSettings"]>>(
 			field: K,
@@ -442,7 +442,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 		},
 		[],
 	)
-	// kilocode_change end
+	// kade_change end
 
 	const setApiConfigurationField = useCallback(
 		<K extends keyof ProviderSettings>(field: K, value: ProviderSettings[K], isUserAction: boolean = true) => {
@@ -609,7 +609,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 					browserViewportSize: browserViewportSize ?? "900x600",
 					remoteBrowserHost: remoteBrowserEnabled ? remoteBrowserHost : undefined,
 					remoteBrowserEnabled: remoteBrowserEnabled ?? false,
-					disableBrowserHeadless: disableBrowserHeadless ?? false, // kilocode_change
+					disableBrowserHeadless: disableBrowserHeadless ?? false, // kade_change
 					fuzzyMatchThreshold: fuzzyMatchThreshold ?? 1.0,
 					writeDelayMs,
 					screenshotQuality: screenshotQuality ?? 75,
@@ -677,28 +677,28 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 			vscode.postMessage({ type: "showSubAgentBanner", bool: showSubAgentBanner })
 			vscode.postMessage({ type: "ttsEnabled", bool: ttsEnabled })
 			vscode.postMessage({ type: "ttsSpeed", value: ttsSpeed })
-			vscode.postMessage({ type: "terminalCommandApiConfigId", text: terminalCommandApiConfigId || "" }) // kilocode_change
-			vscode.postMessage({ type: "showAutoApproveMenu", bool: showAutoApproveMenu }) // kilocode_change
-			vscode.postMessage({ type: "disableBrowserHeadless", bool: disableBrowserHeadless ?? false }) // kilocode_change
-			vscode.postMessage({ type: "allowVeryLargeReads", bool: allowVeryLargeReads }) // kilocode_change
+			vscode.postMessage({ type: "terminalCommandApiConfigId", text: terminalCommandApiConfigId || "" }) // kade_change
+			vscode.postMessage({ type: "showAutoApproveMenu", bool: showAutoApproveMenu }) // kade_change
+			vscode.postMessage({ type: "disableBrowserHeadless", bool: disableBrowserHeadless ?? false }) // kade_change
+			vscode.postMessage({ type: "allowVeryLargeReads", bool: allowVeryLargeReads }) // kade_change
 			vscode.postMessage({ type: "currentApiConfigName", text: currentApiConfigName })
-			vscode.postMessage({ type: "showTaskTimeline", bool: showTaskTimeline }) // kilocode_change
-			vscode.postMessage({ type: "sendMessageOnEnter", bool: sendMessageOnEnter }) // kilocode_change
-			vscode.postMessage({ type: "showTimestamps", bool: showTimestamps }) // kilocode_change
-			vscode.postMessage({ type: "hideCostBelowThreshold", value: hideCostBelowThreshold }) // kilocode_change
+			vscode.postMessage({ type: "showTaskTimeline", bool: showTaskTimeline }) // kade_change
+			vscode.postMessage({ type: "sendMessageOnEnter", bool: sendMessageOnEnter }) // kade_change
+			vscode.postMessage({ type: "showTimestamps", bool: showTimestamps }) // kade_change
+			vscode.postMessage({ type: "hideCostBelowThreshold", value: hideCostBelowThreshold }) // kade_change
 			vscode.postMessage({ type: "collapseCodeToolsByDefault", bool: collapseCodeToolsByDefault ?? false })
 			vscode.postMessage({ type: "updateCondensingPrompt", text: customCondensingPrompt || "" })
 			vscode.postMessage({ type: "setReasoningBlockCollapsed", bool: reasoningBlockCollapsed ?? true })
-			vscode.postMessage({ type: "upsertApiConfiguration", text: editingApiConfigName, apiConfiguration, scope: "global" }) // kilocode_change: Save to editing profile instead of current active profile
+			vscode.postMessage({ type: "upsertApiConfiguration", text: editingApiConfigName, apiConfiguration, scope: "global" }) // kade_change: Save to editing profile instead of current active profile
 			vscode.postMessage({ type: "telemetrySetting", text: telemetrySetting })
-			vscode.postMessage({ type: "systemNotificationsEnabled", bool: systemNotificationsEnabled }) // kilocode_change
-			vscode.postMessage({ type: "ghostServiceSettings", values: ghostServiceSettings }) // kilocode_change
-			vscode.postMessage({ type: "morphApiKey", text: morphApiKey }) // kilocode_change
-			vscode.postMessage({ type: "fastApplyModel", text: fastApplyModel }) // kilocode_change: Fast Apply model selection
-			vscode.postMessage({ type: "fastApplyApiProvider", text: fastApplyApiProvider }) // kilocode_change: Fast Apply model api base url
+			vscode.postMessage({ type: "systemNotificationsEnabled", bool: systemNotificationsEnabled }) // kade_change
+			vscode.postMessage({ type: "ghostServiceSettings", values: ghostServiceSettings }) // kade_change
+			vscode.postMessage({ type: "morphApiKey", text: morphApiKey }) // kade_change
+			vscode.postMessage({ type: "fastApplyModel", text: fastApplyModel }) // kade_change: Fast Apply model selection
+			vscode.postMessage({ type: "fastApplyApiProvider", text: fastApplyApiProvider }) // kade_change: Fast Apply model api base url
 			vscode.postMessage({ type: "kiloCodeImageApiKey", text: kiloCodeImageApiKey })
 			vscode.postMessage({ type: "slidingWindowSize", value: slidingWindowSize })
-			// kilocode_change start - Auto-purge settings
+			// kade_change start - Auto-purge settings
 			vscode.postMessage({ type: "autoPurgeEnabled", bool: autoPurgeEnabled })
 			vscode.postMessage({ type: "autoPurgeDefaultRetentionDays", value: autoPurgeDefaultRetentionDays })
 			vscode.postMessage({
@@ -713,9 +713,9 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 				type: "autoPurgeIncompleteTaskRetentionDays",
 				value: autoPurgeIncompleteTaskRetentionDays,
 			})
-			// kilocode_change end - Auto-purge settings
+			// kade_change end - Auto-purge settings
 
-			// kilocode_change: After saving, sync cachedState to extensionState without clobbering
+			// kade_change: After saving, sync cachedState to extensionState without clobbering
 			// the editing profile's apiConfiguration when editing a non-active profile.
 			// COMMENTED OUT TO FIX BUG: This sync was overwriting local state with stale extensionState immediately after save.
 			// if (editingApiConfigName !== currentApiConfigName) {
@@ -729,8 +729,8 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 			// 	// When editing the active profile, sync everything including apiConfiguration
 			// 	setCachedState((prevState) => ({ ...prevState, ...extensionState }))
 			// }
-			// kilocode_change end
-			// kilocode_change: Use isSavingRef to signal to the useEffect that the next
+			// kade_change end
+			// kade_change: Use isSavingRef to signal to the useEffect that the next
 			// extensionState update should be accepted (and will reset isChangeDetected).
 			// Also delay resetting isChangeDetected well past the debounce maxWait (300ms)
 			// to prevent stale debounced state updates from overwriting the saved values.
@@ -755,7 +755,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 
 	useImperativeHandle(ref, () => ({ checkUnsaveChanges }), [checkUnsaveChanges])
 
-	// kilocode_change start
+	// kade_change start
 	const onConfirmDialogResult = useCallback(
 		(confirm: boolean) => {
 			if (confirm) {
@@ -769,7 +769,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 		[setCachedState, setChangeDetected, extensionState], // Depend on extensionState to get the latest original state
 	)
 
-	// kilocode_change end
+	// kade_change end
 
 
 	// Handle tab changes with unsaved changes check
@@ -824,16 +824,16 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 			{ id: "subAgents", icon: UserRound },
 			{ id: "skills", icon: Zap },
 			{ id: "infinity", icon: Infinity },
-			// { id: "slashCommands", icon: SquareSlash }, // kilocode_change: needs work to be re-introduced
+			// { id: "slashCommands", icon: SquareSlash }, // kade_change: needs work to be re-introduced
 			{ id: "browser", icon: SquareMousePointer },
-			{ id: "checkpoints", icon: GitCommitVertical }, // kilocode_change: Updated to GitCommitVertical
-			{ id: "display", icon: Monitor }, // kilocode_change
-			{ id: "ghost" as const, icon: Bot }, // kilocode_change
+			{ id: "checkpoints", icon: GitCommitVertical }, // kade_change: Updated to GitCommitVertical
+			{ id: "display", icon: Monitor }, // kade_change
+			{ id: "ghost" as const, icon: Bot }, // kade_change
 			{ id: "notifications", icon: Bell },
 			{ id: "contextManagement", icon: Database },
 			{ id: "terminal", icon: SquareTerminal },
 			{ id: "prompts", icon: MessageSquare },
-			// { id: "ui", icon: Glasses }, // kilocode_change: we have our own display section
+			// { id: "ui", icon: Glasses }, // kade_change: we have our own display section
 			{ id: "experimental", icon: FlaskConical },
 			{ id: "language", icon: Globe },
 			{ id: "mcp", icon: Server },
@@ -846,9 +846,9 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 		if (targetSection && sectionNames.includes(targetSection as SectionName)) {
 			setActiveTab(targetSection as SectionName)
 		}
-	}, [targetSection]) // kilocode_change
+	}, [targetSection]) // kade_change
 
-	// kilocode_change start - Listen for messages to restore editing profile after auth
+	// kade_change start - Listen for messages to restore editing profile after auth
 	useEffect(() => {
 		const handleMessage = (event: MessageEvent) => {
 			const message = event.data
@@ -872,7 +872,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 		window.addEventListener("message", handleMessage)
 		return () => window.removeEventListener("message", handleMessage)
 	}, [])
-	// kilocode_change end
+	// kade_change end
 
 	// Function to scroll the active tab into view for vertical layout
 	const scrollToActiveTab = useCallback(() => {
@@ -1145,7 +1145,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 						{renderTab === "providers" && (
 							<div>
 								<Section>
-									{/* kilocode_change start changes to allow for editting a non-active profile */}
+									{/* kade_change start changes to allow for editting a non-active profile */}
 									<ApiConfigManager
 										currentApiConfigName={editingApiConfigName}
 										activeApiConfigName={currentApiConfigName}
@@ -1192,7 +1192,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 												prevApiConfigName.current = newName
 											}
 										}}
-										// kilocode_change start - autocomplete profile type system
+										// kade_change start - autocomplete profile type system
 										onUpsertConfig={(configName: string, profileType?: ProfileType) => {
 											vscode.postMessage({
 												type: "upsertApiConfiguration",
@@ -1206,9 +1206,9 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 											setEditingApiConfigName(configName)
 										}}
 									/>
-									{/* kilocode_change end changes to allow for editting a non-active profile */}
+									{/* kade_change end changes to allow for editting a non-active profile */}
 
-									{/* kilocode_change start - pass editing profile name */}
+									{/* kade_change start - pass editing profile name */}
 									<ApiOptions
 										uriScheme={uriScheme}
 										apiConfiguration={apiConfiguration}
@@ -1217,7 +1217,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 										setErrorMessage={setErrorMessage}
 										currentApiConfigName={editingApiConfigName}
 									/>
-									{/* kilocode_change end - pass editing profile name */}
+									{/* kade_change end - pass editing profile name */}
 								</Section>
 							</div>
 						)}
@@ -1225,7 +1225,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 						{/* Auto-Approve Section */}
 						{renderTab === "autoApprove" && (
 							<AutoApproveSettings
-								showAutoApproveMenu={showAutoApproveMenu} // kilocode_change
+								showAutoApproveMenu={showAutoApproveMenu} // kade_change
 								alwaysAllowReadOnly={alwaysAllowReadOnly}
 								alwaysAllowReadOnlyOutsideWorkspace={alwaysAllowReadOnlyOutsideWorkspace}
 								alwaysAllowWrite={alwaysAllowWrite}
@@ -1260,7 +1260,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 								screenshotQuality={screenshotQuality}
 								remoteBrowserHost={remoteBrowserHost}
 								remoteBrowserEnabled={remoteBrowserEnabled}
-								disableBrowserHeadless={disableBrowserHeadless} // kilocode_change
+								disableBrowserHeadless={disableBrowserHeadless} // kade_change
 								setCachedStateField={setCachedStateField}
 							/>
 						)}
@@ -1271,7 +1271,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 								enableCheckpoints={enableCheckpoints}
 								checkpointTimeout={checkpointTimeout}
 								setCachedStateField={setCachedStateField}
-								// kilocode_change start
+								// kade_change start
 								autoPurgeEnabled={autoPurgeEnabled}
 								autoPurgeDefaultRetentionDays={autoPurgeDefaultRetentionDays}
 								autoPurgeFavoritedTaskRetentionDays={autoPurgeFavoritedTaskRetentionDays}
@@ -1281,19 +1281,19 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 								onManualPurge={() => {
 									vscode.postMessage({ type: "manualPurge" })
 								}}
-							// kilocode_change end
+							// kade_change end
 							/>
 						)}
 
-						{/* kilocode_change start display section */}
+						{/* kade_change start display section */}
 						{renderTab === "display" && (
 							<DisplaySettings
 								reasoningBlockCollapsed={reasoningBlockCollapsed ?? true}
 								showTaskTimeline={showTaskTimeline}
-								historyViewType={historyViewType} // kilocode_change
-								setHistoryViewType={setHistoryViewType} // kilocode_change
+								historyViewType={historyViewType} // kade_change
+								setHistoryViewType={setHistoryViewType} // kade_change
 								sendMessageOnEnter={sendMessageOnEnter}
-								showTimestamps={cachedState.showTimestamps} // kilocode_change
+								showTimestamps={cachedState.showTimestamps} // kade_change
 								hideCostBelowThreshold={hideCostBelowThreshold}
 								collapseCodeToolsByDefault={collapseCodeToolsByDefault}
 								showSubAgentBanner={showSubAgentBanner}
@@ -1306,7 +1306,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 								onGhostServiceSettingsChange={setGhostServiceSettingsField}
 							/>
 						)}
-						{/* kilocode_change end display section */}
+						{/* kade_change end display section */}
 
 						{/* Notifications Section */}
 						{renderTab === "notifications" && (
@@ -1334,7 +1334,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 								maxImageFileSize={maxImageFileSize}
 								maxTotalImageSize={maxTotalImageSize}
 								maxConcurrentFileReads={maxConcurrentFileReads}
-								allowVeryLargeReads={allowVeryLargeReads /* kilocode_change */}
+								allowVeryLargeReads={allowVeryLargeReads /* kade_change */}
 								profileThresholds={profileThresholds}
 								includeDiagnosticMessages={includeDiagnosticMessages}
 								maxDiagnosticMessages={maxDiagnosticMessages}
@@ -1361,7 +1361,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 								terminalZshP10k={terminalZshP10k}
 								terminalZdotdir={terminalZdotdir}
 								terminalCompressProgressBar={terminalCompressProgressBar}
-								terminalCommandApiConfigId={terminalCommandApiConfigId} // kilocode_change
+								terminalCommandApiConfigId={terminalCommandApiConfigId} // kade_change
 								setCachedStateField={setCachedStateField}
 							/>
 						)}
@@ -1436,12 +1436,12 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>((props, ref)
 							<ExperimentalSettings
 								setExperimentEnabled={setExperimentEnabled}
 								experiments={experiments}
-								// kilocode_change start
+								// kade_change start
 								setCachedStateField={setCachedStateField}
 								morphApiKey={morphApiKey}
 								fastApplyModel={fastApplyModel}
 								fastApplyApiProvider={fastApplyApiProvider}
-								// kilocode_change end
+								// kade_change end
 								apiConfiguration={apiConfiguration}
 								setApiConfigurationField={setApiConfigurationField}
 								imageGenerationProvider={imageGenerationProvider}

@@ -1,4 +1,4 @@
-// kilocode_change: imported from Cline
+// kade_change: imported from Cline
 import { McpMarketplaceCatalog } from "../../../../src/shared/kilocode/mcp"
 
 /**

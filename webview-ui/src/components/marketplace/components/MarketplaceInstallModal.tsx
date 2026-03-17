@@ -366,7 +366,7 @@ export const MarketplaceInstallModal: React.FC<MarketplaceInstallModalProps> = (
 								{t("marketplace:install.done")}
 							</Button>
 							<Button
-								// kilocode_change: only display when item type is modes
+								// kade_change: only display when item type is modes
 								style={item.type === "mcp" ? { display: "none" } : undefined}
 								onClick={() => handlePostInstallAction(item.type === "mcp" ? "mcp" : "modes")}>
 								{item.type === "mcp"

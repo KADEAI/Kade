@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import type { ModelInfo } from "../model.js"
 
 export const APERTIS_DEFAULT_BASE_URL = "https://api.apertis.ai"

@@ -9,7 +9,7 @@ vi.mock("@/i18n/TranslationContext", () => ({
 	}),
 }))
 
-// kilocode_change: other settings menu for now, to be made similar later
+// kade_change: other settings menu for now, to be made similar later
 describe.skip("ImageGenerationSettings", () => {
 	const mockSetImageGenerationProvider = vi.fn()
 	const mockSetOpenRouterImageApiKey = vi.fn()
@@ -94,7 +94,7 @@ describe.skip("ImageGenerationSettings", () => {
 			).toBeInTheDocument()
 		})
 
-		// kilocode_change: no roo provider
+		// kade_change: no roo provider
 		it.skip("should not render API key field when provider is roo", () => {
 			const { queryByPlaceholderText } = render(
 				<ImageGenerationSettings {...defaultProps} enabled={true} imageGenerationProvider="kilocode" />,

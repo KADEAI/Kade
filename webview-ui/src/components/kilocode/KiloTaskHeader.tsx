@@ -1,4 +1,4 @@
-// kilocode_change: new file
+// kade_change: new file
 import { memo, useRef, useState } from "react"
 import { useWindowSize } from "react-use"
 import { useTranslation } from "react-i18next"

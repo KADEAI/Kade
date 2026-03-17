@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import React, { useMemo } from "react"
 import * as ProgressPrimitive from "@radix-ui/react-progress"
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"

@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest"
 import { OpenAI } from "openai"
 import { OpenRouterEmbedder, OPENROUTER_DEFAULT_PROVIDER_NAME } from "../openrouter"
 import { getModelDimension, getDefaultModelId } from "../../../../shared/embeddingModels"
-import { DEFAULT_HEADERS } from "../../../../api/providers/constants" // kilocode_change
+import { DEFAULT_HEADERS } from "../../../../api/providers/constants" // kade_change
 
 // Mock the OpenAI SDK
 vi.mock("openai")
@@ -90,7 +90,7 @@ describe("OpenRouterEmbedder", () => {
 			expect(MockedOpenAI).toHaveBeenCalledWith({
 				baseURL: "https://openrouter.ai/api/v1",
 				apiKey: mockApiKey,
-				defaultHeaders: DEFAULT_HEADERS, // kilocode_change
+				defaultHeaders: DEFAULT_HEADERS, // kade_change
 			})
 		})
 

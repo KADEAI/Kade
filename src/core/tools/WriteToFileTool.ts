@@ -17,7 +17,7 @@ import { EXPERIMENT_IDS, experiments } from "../../shared/experiments"
 import { convertNewFileToUnifiedDiff, computeDiffStats, sanitizeUnifiedDiff } from "../diff/stats"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
-import { trackContribution } from "../../services/contribution-tracking/ContributionTrackingService" // kilocode_change
+import { trackContribution } from "../../services/contribution-tracking/ContributionTrackingService" // kade_change
 
 interface WriteToFileParams {
 	path: string
@@ -82,7 +82,7 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 		let fileExists: boolean
 		const absolutePath = path.resolve(task.cwd, relPath)
 
-		// kilocode_change: Strongly prioritize cached editType from streaming if it exists.
+		// kade_change: Strongly prioritize cached editType from streaming if it exists.
 		// This prevents the state from flipping from "create" to "modify" once the empty 
 		// file is created on disk to support the VS Code Diff View.
 		if (task.diffViewProvider.editType !== undefined) {
@@ -104,12 +104,12 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 		if (!fileExists) {
 			await createDirectoriesForFile(absolutePath)
 		}
-		// kilocode_change start
+		// kade_change start
 		if (typeof newContent !== "string") {
 			console.warn(`[WriteToFileTool] converting incorrect model output ${typeof newContent} to string`)
 			newContent = JSON.stringify(newContent, null, "\t")
 		}
-		// kilocode_change end
+		// kade_change end
 
 		if (newContent.endsWith("```")) {
 			newContent = newContent.split("\n").slice(0, -1).join("\n")
@@ -126,7 +126,7 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 		// Capture snapshot for undo
 		try {
 			const { EditHistoryService } = await import("../../services/edit-history/EditHistoryService")
-			// kilocode_change: If we already have a snapshot from handlePartial/open, use it!
+			// kade_change: If we already have a snapshot from handlePartial/open, use it!
 			// This prevents the snapshot from capturing the "truncated" intermediate state
 			// if Auto-Save happened between the start of streaming and the final execute.
 			let originalContent: string | undefined = task.diffViewProvider.originalContent
@@ -194,7 +194,7 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 
 				const didApprove = await askApproval("tool", completeMessage, undefined, isWriteProtected)
 
-				// kilocode_change start
+				// kade_change start
 				// Track contribution (fire-and-forget, never blocks user workflow)
 				trackContribution({
 					cwd: task.cwd,
@@ -205,7 +205,7 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 					organizationId: state?.apiConfiguration?.kilocodeOrganizationId,
 					kilocodeToken: state?.apiConfiguration?.kilocodeToken || "",
 				})
-				// kilocode_change end
+				// kade_change end
 
 				if (!didApprove) {
 					return
@@ -241,7 +241,7 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 
 				const didApprove = await askApproval("tool", completeMessage, undefined, isWriteProtected)
 
-				// kilocode_change start
+				// kade_change start
 				// Track contribution (fire-and-forget, never blocks user workflow)
 				trackContribution({
 					cwd: task.cwd,
@@ -252,7 +252,7 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 					organizationId: state?.apiConfiguration?.kilocodeOrganizationId,
 					kilocodeToken: state?.apiConfiguration?.kilocodeToken || "",
 				})
-				// kilocode_change end
+				// kade_change end
 
 				if (!didApprove) {
 					await task.diffViewProvider.revertChanges()
@@ -316,7 +316,7 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 		let fileExists: boolean
 		const absolutePath = path.resolve(task.cwd, relPath)
 
-		// kilocode_change: Strongly prioritize cached editType from streaming if it exists.
+		// kade_change: Strongly prioritize cached editType from streaming if it exists.
 		// This prevents the state from flipping from "create" to "modify" once the empty 
 		// file is created on disk to support the VS Code Diff View.
 		if (task.diffViewProvider.editType !== undefined) {

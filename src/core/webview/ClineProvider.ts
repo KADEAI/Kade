@@ -36,10 +36,10 @@ import {
   type TokenUsage,
   type ToolUsage,
   RooCodeEventName,
-  TelemetryEventName, // kilocode_change
+  TelemetryEventName, // kade_change
   requestyDefaultModelId,
   openRouterDefaultModelId,
-  glamaDefaultModelId, // kilocode_change
+  glamaDefaultModelId, // kade_change
   DEFAULT_TERMINAL_OUTPUT_CHARACTER_LIMIT,
   DEFAULT_WRITE_DELAY_MS,
   ORGANIZATION_ALLOW_ALL,
@@ -109,7 +109,7 @@ import { Task } from "../task/Task";
 import { getSystemPromptFilePath } from "../prompts/sections/custom-system-prompt";
 
 import { webviewMessageHandler } from "./webviewMessageHandler";
-import { checkSpeechToTextAvailable } from "./speechToTextCheck"; // kilocode_change
+import { checkSpeechToTextAvailable } from "./speechToTextCheck"; // kade_change
 import type { ClineMessage, TodoItem } from "@roo-code/types";
 import {
   readApiMessages,
@@ -130,7 +130,7 @@ import {
   GeminiOAuthManager,
 } from "../../integrations/gemini/oauth";
 
-//kilocode_change start
+//kade_change start
 import {
   McpDownloadResponse,
   McpMarketplaceCatalog,
@@ -150,7 +150,7 @@ import { kilo_execIfExtension } from "../../shared/kilocode/cli-sessions/extensi
 import { DeviceAuthHandler } from "../kilocode/webview/deviceAuthHandler";
 
 export type ClineProviderState = Awaited<ReturnType<ClineProvider["getState"]>>;
-// kilocode_change end
+// kade_change end
 
 /**
  * https://github.com/microsoft/vscode-webview-ui-toolkit-samples/blob/main/default/weather-webview/src/providers/WeatherViewProvider.ts
@@ -197,8 +197,8 @@ export class ClineProvider
   private taskCreationCallback: (task: Task) => void;
   private taskEventListeners: WeakMap<Task, Array<() => void>> = new WeakMap();
   private currentWorkspacePath: string | undefined;
-  private autoPurgeScheduler?: any; // kilocode_change - (Any) Prevent circular import
-  private deviceAuthHandler?: DeviceAuthHandler; // kilocode_change - Device auth handler
+  private autoPurgeScheduler?: any; // kade_change - (Any) Prevent circular import
+  private deviceAuthHandler?: DeviceAuthHandler; // kade_change - Device auth handler
   private infinityInterval?: NodeJS.Timeout;
 
   private recentTasksCache?: string[];
@@ -208,16 +208,16 @@ export class ClineProvider
   private isPostingState = false;
   private pendingPostStateRequest = false;
   private pendingOperations: Map<string, PendingEditOperation> = new Map();
-  private runningTasks: Map<string, Task> = new Map(); // kilocode_change: track running tasks
-  private savedHomeProfileName?: string; // kilocode_change: Stash the home page profile before entering a chat
+  private runningTasks: Map<string, Task> = new Map(); // kade_change: track running tasks
+  private savedHomeProfileName?: string; // kade_change: Stash the home page profile before entering a chat
   private static readonly PENDING_OPERATION_TIMEOUT_MS = 30000; // 30 seconds
 
   private cloudOrganizationsCache: CloudOrganizationMembership[] | null = null;
   private cloudOrganizationsCacheTimestamp: number | null = null;
   private static readonly CLOUD_ORGANIZATIONS_CACHE_DURATION_MS = 30 * 1000; // 30 seconds - increased from 5s to reduce network overhead
 
-  private taskHistoryStorage?: TaskHistoryStorage; // kilocode_change: disk-based task history storage
-  private taskHistoryStorageReady: Promise<void>; // kilocode_change: promise that resolves when storage is ready
+  private taskHistoryStorage?: TaskHistoryStorage; // kade_change: disk-based task history storage
+  private taskHistoryStorageReady: Promise<void>; // kade_change: promise that resolves when storage is ready
 
   public isViewLaunched = false;
   public settingsImportedAt?: number;
@@ -276,7 +276,7 @@ export class ClineProvider
       this.customModesManager,
     );
 
-    // kilocode_change: Initialize disk-based task history storage eagerly
+    // kade_change: Initialize disk-based task history storage eagerly
     // This must complete before any task operations to prevent writing to globalState
     this.taskHistoryStorageReady = this.initializeTaskHistoryStorage();
 
@@ -287,7 +287,7 @@ export class ClineProvider
 
       // Create named listener functions so we can remove them later.
       const onTaskStarted = () => {
-        this.debouncedPostStateToWebview(); // kilocode_change: debounce to avoid rapid state rebuilds
+        this.debouncedPostStateToWebview(); // kade_change: debounce to avoid rapid state rebuilds
         this.emit(RooCodeEventName.TaskStarted, instance.taskId);
       };
       const onTaskCompleted = (
@@ -299,21 +299,21 @@ export class ClineProvider
           SessionManager.init()?.doSync(true);
         });
 
-        this.runningTasks.delete(taskId); // kilocode_change
-        this.debouncedPostStateToWebview(); // kilocode_change: debounce to avoid rapid state rebuilds
+        this.runningTasks.delete(taskId); // kade_change
+        this.debouncedPostStateToWebview(); // kade_change: debounce to avoid rapid state rebuilds
         return this.emit(
           RooCodeEventName.TaskCompleted,
           taskId,
           tokenUsage,
           toolUsage,
-        ); // kilocode_change: return
+        ); // kade_change: return
       };
       const onTaskAborted = async () => {
-        this.runningTasks.delete(instance.taskId); // kilocode_change
-        this.debouncedPostStateToWebview(); // kilocode_change: debounce to avoid rapid state rebuilds
+        this.runningTasks.delete(instance.taskId); // kade_change
+        this.debouncedPostStateToWebview(); // kade_change: debounce to avoid rapid state rebuilds
         this.emit(RooCodeEventName.TaskAborted, instance.taskId);
 
-        // kilocode_change: Removed automatic rehydration on streaming failure.
+        // kade_change: Removed automatic rehydration on streaming failure.
         // This was causing "zombie" tasks to keep coming back to life every few minutes
         // when background network/API errors occurred. Users should manually retry.
       };
@@ -322,8 +322,8 @@ export class ClineProvider
       const onTaskUnfocused = () =>
         this.emit(RooCodeEventName.TaskUnfocused, instance.taskId);
       const onTaskActive = (taskId: string) => {
-        this.runningTasks.set(taskId, instance); // kilocode_change
-        this.debouncedPostStateToWebview(); // kilocode_change: debounce to avoid rapid state rebuilds
+        this.runningTasks.set(taskId, instance); // kade_change
+        this.debouncedPostStateToWebview(); // kade_change: debounce to avoid rapid state rebuilds
         this.emit(RooCodeEventName.TaskActive, taskId);
       };
       const onTaskInteractive = (taskId: string) =>
@@ -331,8 +331,8 @@ export class ClineProvider
       const onTaskResumable = (taskId: string) =>
         this.emit(RooCodeEventName.TaskResumable, taskId);
       const onTaskIdle = (taskId: string) => {
-        this.runningTasks.delete(taskId); // kilocode_change
-        this.debouncedPostStateToWebview(); // kilocode_change: debounce to avoid rapid state rebuilds
+        this.runningTasks.delete(taskId); // kade_change
+        this.debouncedPostStateToWebview(); // kade_change: debounce to avoid rapid state rebuilds
         this.emit(RooCodeEventName.TaskIdle, taskId);
       };
       const onTaskPaused = (taskId: string) =>
@@ -354,7 +354,7 @@ export class ClineProvider
           tokenUsage,
           toolUsage,
         );
-      const onModelChanged = () => this.postStateToWebview(); // kilocode_change: Listen for model changes in virtual quota fallback
+      const onModelChanged = () => this.postStateToWebview(); // kade_change: Listen for model changes in virtual quota fallback
 
       // Attach the listeners.
       instance.on(RooCodeEventName.TaskStarted, onTaskStarted);
@@ -374,7 +374,7 @@ export class ClineProvider
         RooCodeEventName.TaskTokenUsageUpdated,
         onTaskTokenUsageUpdated,
       );
-      instance.on("modelChanged", onModelChanged); // kilocode_change: Listen for model changes in virtual quota fallback
+      instance.on("modelChanged", onModelChanged); // kade_change: Listen for model changes in virtual quota fallback
 
       // Store the cleanup functions for later removal.
       this.taskEventListeners.set(instance, [
@@ -396,7 +396,7 @@ export class ClineProvider
             RooCodeEventName.TaskTokenUsageUpdated,
             onTaskTokenUsageUpdated,
           ),
-        () => instance.off("modelChanged", onModelChanged), // kilocode_change: Clean up model change listener
+        () => instance.off("modelChanged", onModelChanged), // kade_change: Clean up model change listener
       ]);
     };
 
@@ -409,13 +409,13 @@ export class ClineProvider
       this.log("CloudService not ready, deferring cloud profile sync");
     }
 
-    // kilocode_change start - Initialize auto-purge scheduler
+    // kade_change start - Initialize auto-purge scheduler
     this.initializeAutoPurgeScheduler();
-    // kilocode_change end
+    // kade_change end
     void this.resetInfinityRunningState();
   }
 
-  // kilocode_change start
+  // kade_change start
   /**
    * Initialize the auto-purge scheduler
    */
@@ -459,7 +459,7 @@ export class ClineProvider
       );
     }
   }
-  // kilocode_change end
+  // kade_change end
 
   private async resetInfinityRunningState() {
     try {
@@ -769,7 +769,7 @@ export class ClineProvider
       return;
     }
 
-    // kilocode_change: Clear the stack immediately so that getCurrentTask() returns undefined
+    // kade_change: Clear the stack immediately so that getCurrentTask() returns undefined
     // during the potentially slow abortion process. This prevents global profile activations
     // from "leaking" into tasks that are currently being closed.
     let task = this.clineStack.pop();
@@ -777,7 +777,7 @@ export class ClineProvider
     if (task) {
       task.emit(RooCodeEventName.TaskUnfocused);
 
-      // kilocode_change start - Do NOT abort task when removing from stack to allow background execution, UNLESS it's already completed or aborted
+      // kade_change start - Do NOT abort task when removing from stack to allow background execution, UNLESS it's already completed or aborted
       const isRunning = this.runningTasks.has(task.taskId);
       if (!isRunning) {
         try {
@@ -802,7 +802,7 @@ export class ClineProvider
         // garbage collected.
         task = undefined;
       }
-      // kilocode_change end
+      // kade_change end
     }
   }
 
@@ -908,7 +908,7 @@ export class ClineProvider
       await this.removeClineFromStack();
     }
 
-    // kilocode_change start - Abort all running tasks
+    // kade_change start - Abort all running tasks
     for (const task of this.runningTasks.values()) {
       try {
         await task.abortTask(true);
@@ -917,7 +917,7 @@ export class ClineProvider
       }
     }
     this.runningTasks.clear();
-    // kilocode_change end
+    // kade_change end
 
     this.log("Cleared all tasks");
 
@@ -955,20 +955,20 @@ export class ClineProvider
     this.marketplaceManager?.cleanup();
     this.customModesManager?.dispose();
 
-    // kilocode_change start - Stop auto-purge scheduler and device auth service
+    // kade_change start - Stop auto-purge scheduler and device auth service
     if (this.autoPurgeScheduler) {
       this.autoPurgeScheduler.stop();
       this.autoPurgeScheduler = undefined;
     }
     await this.stopInfinity();
-    // kilocode_change end
+    // kade_change end
 
-    // kilocode_change start - Flush task history to disk before shutdown
+    // kade_change start - Flush task history to disk before shutdown
     if (this.taskHistoryStorage) {
       await this.taskHistoryStorage.flush();
       this.log("Flushed task history to disk");
     }
-    // kilocode_change end
+    // kade_change end
 
     this.log("Disposed all disposables");
     ClineProvider.activeInstances.delete(this);
@@ -1062,7 +1062,7 @@ export class ClineProvider
       return;
     }
 
-    //kilocode_change start
+    //kade_change start
     if (command === "addToContextAndFocus") {
       // Capture telemetry for inline assist quick task
       TelemetryService.instance.captureEvent(
@@ -1098,7 +1098,7 @@ ${prompt}
       await vscode.commands.executeCommand("kilo-code.focusChatInput");
       return;
     }
-    // kilocode_change end
+    // kade_change end
 
     await visibleProvider.createTask(prompt);
   }
@@ -1153,7 +1153,7 @@ ${prompt}
   ) {
     this.view = webviewView;
 
-    // kilocode_change start: extract constant inTabMode
+    // kade_change start: extract constant inTabMode
     // Set panel reference according to webview type
     const inTabMode = "onDidChangeViewState" in webviewView;
 
@@ -1162,14 +1162,14 @@ ${prompt}
     } else if ("onDidChangeVisibility" in webviewView) {
       setPanel(webviewView, "sidebar");
     }
-    // kilocode_change end
+    // kade_change end
 
     // Initialize out-of-scope variables that need to receive persistent
     // global state values. Single getState() call instead of 3 separate ones.
     this.getState().then(
       ({
         terminalShellIntegrationTimeout = Terminal.defaultShellIntegrationTimeout,
-        terminalShellIntegrationDisabled = true, // kilocode_change: default
+        terminalShellIntegrationDisabled = true, // kade_change: default
         terminalCommandDelay = 0,
         terminalZshClearEolMark = true,
         terminalZshOhMy = false,
@@ -1196,7 +1196,7 @@ ${prompt}
     const resourceRoots = [
       this.contextProxy.extensionUri,
       vscode.Uri.joinPath(this.contextProxy.extensionUri, "webview-ui"),
-      vscode.Uri.joinPath(this.contextProxy.extensionUri, "assets"), // kilocode_change
+      vscode.Uri.joinPath(this.contextProxy.extensionUri, "assets"), // kade_change
     ];
 
     // Add workspace folders to allow access to workspace files
@@ -1349,7 +1349,7 @@ ${prompt}
 
           if (profile?.name) {
             try {
-              // kilocode_change: DO NOT activate the profile if we already have a task-specific config.
+              // kade_change: DO NOT activate the profile if we already have a task-specific config.
               // Activating the profile here overwrites the global state, which can sometimes leak into the UI
               // if a debounced postStateToWebview is triggered by another event (like session sync).
               // The task-specific config is already loaded and will be passed to the Task constructor.
@@ -1391,7 +1391,7 @@ ${prompt}
         taskSyncEnabled,
       } = state;
 
-      // kilocode_change start: Restore task-specific API configuration if available
+      // kade_change start: Restore task-specific API configuration if available
       // We prioritize the history item's config to prevent "Sticky Models" from the global state.
       let apiConfiguration = (historyItem as any).apiConfiguration;
 
@@ -1403,9 +1403,9 @@ ${prompt}
       }
 
       // this.log(`[createTaskWithHistoryItem] Rehydrating task ${historyItem.id}. Using config: ${apiConfiguration.apiProvider} / ${apiConfiguration.apiModelId || apiConfiguration.openRouterModelId || apiConfiguration.kilocodeModel}`)
-      // kilocode_change end
+      // kade_change end
 
-      // kilocode_change: Check if there's already a running task with this ID.
+      // kade_change: Check if there's already a running task with this ID.
       // If so, reuse it to preserve live clineMessages during streaming.
       // Only create a new task if there's no running instance.
       // This fixes the issue where switching to a streaming chat would show stale messages.
@@ -1460,7 +1460,7 @@ ${prompt}
         });
         this.runningTasks.set(task.taskId, task);
       }
-      // kilocode_change end
+      // kade_change end
 
       if (isRehydratingCurrentTask) {
         // Replace the current task in-place to avoid UI flicker
@@ -1469,9 +1469,9 @@ ${prompt}
         // Properly dispose of the old task to ensure garbage collection
         const oldTask = this.clineStack[stackIndex];
 
-        // kilocode_change start - don't abort if it's the same task instance
+        // kade_change start - don't abort if it's the same task instance
         if (oldTask === task) {
-          // kilocode_change: Even if reusing the same task instance, ensure its configuration
+          // kade_change: Even if reusing the same task instance, ensure its configuration
           // is synced with the history item's saved configuration to prevent "Sticky Reset".
           // We use updateApiConfiguration to ensure the internal AI handler is rebuilt.
           if ((historyItem as any).apiConfiguration) {
@@ -1481,7 +1481,7 @@ ${prompt}
           await this.postStateToWebview();
           return task;
         }
-        // kilocode_change end
+        // kade_change end
 
         // Abort the old task to stop running processes and mark as abandoned
         try {
@@ -1666,11 +1666,11 @@ ${prompt}
     const providersUri = getUri(webview, this.contextProxy.extensionUri, [
       "assets",
       "providers",
-    ]); // kilocode_changes
+    ]); // kade_changes
     const iconsUri = getUri(webview, this.contextProxy.extensionUri, [
       "assets",
       "icons",
-    ]); // kilocode_change
+    ]); // kade_change
     const audioUri = getUri(webview, this.contextProxy.extensionUri, [
       "webview-ui",
       "audio",
@@ -1693,11 +1693,11 @@ ${prompt}
       "default-src 'none'",
       `font-src ${webview.cspSource} data:`,
       `style-src ${webview.cspSource} 'unsafe-inline' https://* http://${localServerUrl} http://127.0.0.1:${localPort} http://0.0.0.0:${localPort}`,
-      `img-src ${webview.cspSource} https://storage.googleapis.com https://img.clerk.com data: https://*.googleusercontent.com https://*.googleapis.com https://*.githubusercontent.com https://*.google.com https://icons.duckduckgo.com https://registry.npmmirror.com https://*.lobehub.com`, // kilocode_change: add google and ddg for favicons
+      `img-src ${webview.cspSource} https://storage.googleapis.com https://img.clerk.com data: https://*.googleusercontent.com https://*.googleapis.com https://*.githubusercontent.com https://*.google.com https://icons.duckduckgo.com https://registry.npmmirror.com https://*.lobehub.com`, // kade_change: add google and ddg for favicons
       `media-src ${webview.cspSource} blob:`,
       `script-src 'unsafe-eval' ${webview.cspSource} https://* https://*.posthog.com https://us-assets.i.posthog.com http://${localServerUrl} http://127.0.0.1:${localPort} http://0.0.0.0:${localPort} 'nonce-${nonce}' 'wasm-unsafe-eval'`,
-      `connect-src ${webview.cspSource} ${openRouterDomain} https://* http://localhost:3000 https://*.posthog.com https://us.i.posthog.com https://us-assets.i.posthog.com https://api.requesty.ai https://chat-plugins.lobehub.com https://market.lobehub.com ws://${localServerUrl} ws://127.0.0.1:${localPort} ws://0.0.0.0:${localPort} http://${localServerUrl} http://127.0.0.1:${localPort} http://0.0.0.0:${localPort}`, // kilocode_change: add http://localhost:3000
-      `worker-src blob:`, // kilocode_change: allow blob workers for local whisper
+      `connect-src ${webview.cspSource} ${openRouterDomain} https://* http://localhost:3000 https://*.posthog.com https://us.i.posthog.com https://us-assets.i.posthog.com https://api.requesty.ai https://chat-plugins.lobehub.com https://market.lobehub.com ws://${localServerUrl} ws://127.0.0.1:${localPort} ws://0.0.0.0:${localPort} http://${localServerUrl} http://127.0.0.1:${localPort} http://0.0.0.0:${localPort}`, // kade_change: add http://localhost:3000
+      `worker-src blob:`, // kade_change: allow blob workers for local whisper
     ];
 
     return /*html*/ `
@@ -1773,11 +1773,11 @@ ${prompt}
     const providersUri = getUri(webview, this.contextProxy.extensionUri, [
       "assets",
       "providers",
-    ]); // kilocode_changes
+    ]); // kade_changes
     const iconsUri = getUri(webview, this.contextProxy.extensionUri, [
       "assets",
       "icons",
-    ]); // kilocode_changes
+    ]); // kade_changes
     const audioUri = getUri(webview, this.contextProxy.extensionUri, [
       "webview-ui",
       "audio",
@@ -1814,7 +1814,7 @@ ${prompt}
             <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
             <meta name="theme-color" content="#000000">
 			<meta http-equiv="Permissions-Policy" content="microphone=(self)">
-			<!-- kilocode_change: add https://*.googleusercontent.com https://*.googleapis.com https://*.githubusercontent.com to img-src, https://*, http://localhost:3000 to connect-src -->
+			<!-- kade_change: add https://*.googleusercontent.com https://*.googleapis.com https://*.githubusercontent.com to img-src, https://*, http://localhost:3000 to connect-src -->
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource} data:; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https://*.googleusercontent.com https://storage.googleapis.com https://*.githubusercontent.com https://img.clerk.com data: https://*.googleapis.com https://registry.npmmirror.com https://*.lobehub.com https://*.google.com https://icons.duckduckgo.com; media-src ${webview.cspSource} blob:; script-src ${webview.cspSource} 'wasm-unsafe-eval' 'nonce-${nonce}' ${openRouterDomain} https://us-assets.i.posthog.com 'strict-dynamic'; connect-src ${webview.cspSource} https://* http://localhost:3000 https://api.requesty.ai https://us.i.posthog.com https://us-assets.i.posthog.com https://chat-plugins.lobehub.com https://market.lobehub.com; worker-src blob:;">
             <link rel="stylesheet" type="text/css" href="${stylesUri}">
 			<link href="${codiconsUri}" rel="stylesheet" />
@@ -1850,7 +1850,7 @@ ${prompt}
     this.webviewDisposables.push(messageDisposable);
   }
 
-  /* kilocode_change start */
+  /* kade_change start */
   /**
    * Handle messages from CLI ExtensionHost
    * This method allows the CLI to send messages directly to the webviewMessageHandler
@@ -1865,7 +1865,7 @@ ${prompt}
       throw error;
     }
   }
-  /* kilocode_change end */
+  /* kade_change end */
 
   /**
    * Handle switching to a new mode, including updating the associated API configuration
@@ -1956,7 +1956,7 @@ ${prompt}
   ): void {
     if (options.source === "task_switch") return;
 
-    // kilocode_change: If we're currently rehydrating a task, we MUST NOT allow
+    // kade_change: If we're currently rehydrating a task, we MUST NOT allow
     // global profile activations to touch the task instance until it's fully ready.
     if (this.isRehydrating) return;
 
@@ -1990,7 +1990,7 @@ ${prompt}
     } else {
       // No rebuild needed, just sync apiConfiguration
       (task as any).apiConfiguration = providerSettings;
-      // kilocode_change: If this is the current task, we need to ensure the webview is notified
+      // kade_change: If this is the current task, we need to ensure the webview is notified
       // so the model picker updates.
       if (task === this.getCurrentTask()) {
         void this.postStateToWebview();
@@ -2063,7 +2063,7 @@ ${prompt}
 
         // Change the provider for the current task.
         // TODO: We should rename `buildApiHandler` for clarity (e.g. `getProviderClient`).
-        // kilocode_change: Wrap in try-catch so that OAuth providers without credentials
+        // kade_change: Wrap in try-catch so that OAuth providers without credentials
         // don't prevent state from being posted to webview (which causes settings to revert)
         try {
           const task = this.getCurrentTask();
@@ -2085,7 +2085,7 @@ ${prompt}
 
         await TelemetryService.instance.updateIdentity(
           providerSettings.kilocodeToken ?? "",
-        ); // kilocode_change
+        ); // kade_change
       } else {
         // this.log(`[PERSISTENCE_DEBUG][upsertProviderProfile] NOT activating, only updating listApiConfigMeta`)
         await this.updateGlobalState(
@@ -2185,7 +2185,7 @@ ${prompt}
     }
     await TelemetryService.instance.updateIdentity(
       providerSettings.kilocodeToken ?? "",
-    ); // kilocode_change
+    ); // kade_change
 
     if (providerSettings.apiProvider) {
       this.emit(RooCodeEventName.ProviderProfileChanged, {
@@ -2290,7 +2290,7 @@ ${prompt}
     await this.upsertProviderProfile(currentApiConfigName, newConfiguration);
   }
 
-  // kilocode_change: Glama
+  // kade_change: Glama
 
   async handleGlamaCallback(code: string) {
     let apiKey: string;
@@ -2326,7 +2326,7 @@ ${prompt}
 
     await this.upsertProviderProfile(currentApiConfigName, newConfiguration);
   }
-  // kilocode_change end
+  // kade_change end
 
   // Requesty
 
@@ -2353,7 +2353,7 @@ ${prompt}
     await this.upsertProviderProfile(profileName, newConfiguration);
   }
 
-  // kilocode_change start
+  // kade_change start
   async handleKiloCodeCallback(token: string) {
     const kilocode: ProviderName = "kilocode";
     let { apiConfiguration, currentApiConfigName = "default" } =
@@ -2374,9 +2374,9 @@ ${prompt}
       });
     }
   }
-  // kilocode_change end
+  // kade_change end
 
-  // kilocode_change start - Device Auth Flow
+  // kade_change start - Device Auth Flow
   async startDeviceAuth() {
     if (!this.deviceAuthHandler) {
       this.deviceAuthHandler = new DeviceAuthHandler({
@@ -2392,13 +2392,13 @@ ${prompt}
   cancelDeviceAuth() {
     this.deviceAuthHandler?.cancelDeviceAuth();
   }
-  // kilocode_change end
+  // kade_change end
 
   // Task history
 
   async getTaskWithId(
     id: string,
-    kilo_withMessage = true, // kilocode_change session manager uses this method in the background
+    kilo_withMessage = true, // kade_change session manager uses this method in the background
   ): Promise<{
     historyItem: HistoryItem;
     taskDirPath: string;
@@ -2428,7 +2428,7 @@ ${prompt}
           await fs.readFile(apiConversationHistoryFilePath, "utf8"),
         );
 
-        // kilocode_change: The global state 'taskHistory' can be stale if a save is pending.
+        // kade_change: The global state 'taskHistory' can be stale if a save is pending.
         // We must read the latest apiConfiguration directly from the metadata file on disk
         // to prevent the "Shared Provider Leak" when switching chats rapidly.
         try {
@@ -2459,21 +2459,21 @@ ${prompt}
         if (kilo_withMessage) {
           vscode.window.showErrorMessage(
             `Task file not found for task ID: ${id} (file ${apiConversationHistoryFilePath})`,
-          ); //kilocode_change show extra debugging information to debug task not found issues
+          ); //kade_change show extra debugging information to debug task not found issues
         }
       }
     } else {
       if (kilo_withMessage) {
         vscode.window.showErrorMessage(
           `Task with ID: ${id} not found in history.`,
-        ); // kilocode_change show extra debugging information to debug task not found issues
+        ); // kade_change show extra debugging information to debug task not found issues
       }
     }
 
     // if we tried to get a task that doesn't exist, remove it from state
     // FIXME: this seems to happen sometimes when the json file doesnt save to disk for some reason
-    // await this.deleteTaskFromState(id) // kilocode_change disable confusing behaviour
-    await this.setTaskFileNotFound(id); // kilocode_change
+    // await this.deleteTaskFromState(id) // kade_change disable confusing behaviour
+    await this.setTaskFileNotFound(id); // kade_change
     throw new Error("Task not found");
   }
 
@@ -2487,7 +2487,7 @@ ${prompt}
     // this.log(`[PERSISTENCE_DEBUG][showTaskWithId] BEFORE switch - Global model: ${prevState.apiConfiguration?.apiModelId || prevState.apiConfiguration?.openRouterModelId || (prevState.apiConfiguration as any)?.kilocodeModel || "NONE"}`)
 
     if (id !== this.getCurrentTask()?.taskId) {
-      // kilocode_change: Stash the current home page profile before entering the chat.
+      // kade_change: Stash the current home page profile before entering the chat.
       // This allows us to restore it when the user leaves the chat (clearTask).
       // ONLY stash if coming from home page (no task on stack) AND we don't already have a stash.
       if (!prevTask) {
@@ -2513,7 +2513,7 @@ ${prompt}
       // If we have a task-specific config, we MUST ensure the global state doesn't overwrite it
       // during the brief window before the Task instance is fully initialized.
       await this.createTaskWithHistoryItem(historyItem); // Clears existing task.
-      await this.postStateToWebview(); // kilocode_change: Ensure state is updated after switching
+      await this.postStateToWebview(); // kade_change: Ensure state is updated after switching
     }
 
     const afterState = await this.getState();
@@ -2568,7 +2568,7 @@ ${prompt}
       // get the task directory full path
       const { taskDirPath } = await this.getTaskWithId(id);
 
-      // kilocode_change start
+      // kade_change start
       // Check if task is favorited
       const history = this.getTaskHistory();
       const task = history.find((item) => item.id === id);
@@ -2577,7 +2577,7 @@ ${prompt}
           "Cannot delete a favorited task. Please unfavorite it first.",
         );
       }
-      // kilocode_change end
+      // kade_change end
 
       // remove task from stack if it's the current task
       if (id === this.getCurrentTask()?.taskId) {
@@ -2585,7 +2585,7 @@ ${prompt}
         await this.removeClineFromStack();
       }
 
-      // kilocode_change start - Abort task if it's running
+      // kade_change start - Abort task if it's running
       const runningTask = this.runningTasks.get(id);
       if (runningTask) {
         try {
@@ -2595,7 +2595,7 @@ ${prompt}
         }
         this.runningTasks.delete(id);
       }
-      // kilocode_change end
+      // kade_change end
 
       // delete task from the task history state
       await this.deleteTaskFromState(id);
@@ -2637,7 +2637,7 @@ ${prompt}
   }
 
   async deleteTaskFromState(id: string) {
-    // kilocode_change: Use disk-based storage if available
+    // kade_change: Use disk-based storage if available
     if (this.taskHistoryStorage) {
       await this.taskHistoryStorage.delete(id);
       this.kiloCodeTaskHistoryVersion++;
@@ -2710,7 +2710,7 @@ ${prompt}
     }
   }
 
-  // kilocode_change start
+  // kade_change start
   async postRulesDataToWebview() {
     const workspacePath = this.cwd;
     if (workspacePath) {
@@ -2724,7 +2724,7 @@ ${prompt}
       });
     }
   }
-  // kilocode_change end
+  // kade_change end
 
   /**
 	/**
@@ -3068,7 +3068,7 @@ ${prompt}
       alwaysAllowWrite,
       alwaysAllowWriteOutsideWorkspace,
       alwaysAllowWriteProtected,
-      alwaysAllowDelete, // kilocode_change
+      alwaysAllowDelete, // kade_change
       alwaysAllowExecute,
       alwaysAllowBrowser,
       alwaysAllowMcp,
@@ -3085,7 +3085,7 @@ ${prompt}
       diffEnabled,
       enableCheckpoints,
       checkpointTimeout,
-      // taskHistory, // kilocode_change
+      // taskHistory, // kade_change
       soundVolume,
       browserViewportSize,
       screenshotQuality,
@@ -3104,7 +3104,7 @@ ${prompt}
       terminalZshP10k,
       terminalZdotdir,
       fuzzyMatchThreshold,
-      // mcpEnabled,  // kilocode_change: always true
+      // mcpEnabled,  // kade_change: always true
       enableMcpServerCreation,
       alwaysApproveResubmit,
       requestDelaySeconds,
@@ -3116,23 +3116,23 @@ ${prompt}
       customModePrompts,
       customSupportPrompts,
       enhancementApiConfigId,
-      commitMessageApiConfigId, // kilocode_change
-      terminalCommandApiConfigId, // kilocode_change
+      commitMessageApiConfigId, // kade_change
+      terminalCommandApiConfigId, // kade_change
       autoApprovalEnabled,
       customModes,
       experiments,
       maxOpenTabsContext,
       maxWorkspaceFiles,
       browserToolEnabled,
-      disableBrowserHeadless, // kilocode_change
+      disableBrowserHeadless, // kade_change
       telemetrySetting,
       showRooIgnoredFiles,
       language,
-      showAutoApproveMenu, // kilocode_change
-      showTaskTimeline, // kilocode_change
-      sendMessageOnEnter, // kilocode_change
-      showTimestamps, // kilocode_change
-      hideCostBelowThreshold, // kilocode_change
+      showAutoApproveMenu, // kade_change
+      showTaskTimeline, // kade_change
+      sendMessageOnEnter, // kade_change
+      showTimestamps, // kade_change
+      hideCostBelowThreshold, // kade_change
       collapseCodeToolsByDefault,
       maxReadFileLine,
       maxImageFileSize,
@@ -3147,18 +3147,18 @@ ${prompt}
       organizationAllowList,
       organizationSettingsVersion,
       maxConcurrentFileReads,
-      allowVeryLargeReads, // kilocode_change
-      ghostServiceSettings, // kilocode_changes
+      allowVeryLargeReads, // kade_change
+      ghostServiceSettings, // kade_changes
       condensingApiConfigId,
       customCondensingPrompt,
       codebaseIndexConfig,
       codebaseIndexModels,
       profileThresholds,
-      systemNotificationsEnabled, // kilocode_change
-      dismissedNotificationIds, // kilocode_change
-      morphApiKey, // kilocode_change
-      fastApplyModel, // kilocode_change: Fast Apply model selection
-      fastApplyApiProvider, // kilocode_change: Fast Apply model api base url
+      systemNotificationsEnabled, // kade_change
+      dismissedNotificationIds, // kade_change
+      morphApiKey, // kade_change
+      fastApplyModel, // kade_change: Fast Apply model selection
+      fastApplyApiProvider, // kade_change: Fast Apply model api base url
       alwaysAllowFollowupQuestions,
       followupAutoApproveTimeoutMs,
       includeDiagnosticMessages,
@@ -3175,8 +3175,8 @@ ${prompt}
       openRouterImageGenerationSelectedModel,
       openRouterUseMiddleOutTransform,
       featureRoomoteControlEnabled,
-      yoloMode, // kilocode_change
-      yoloGatekeeperApiConfigId, // kilocode_change: AI gatekeeper for YOLO mode
+      yoloMode, // kade_change
+      yoloGatekeeperApiConfigId, // kade_change: AI gatekeeper for YOLO mode
       isBrowserSessionActive,
       openAiCodexAccountId,
       openAiCodexAuthenticated,
@@ -3209,7 +3209,7 @@ ${prompt}
       proLicenseKey,
     } = await this.getState();
 
-    // kilocode_change start: Use task-specific config for UI state if in a chat
+    // kade_change start: Use task-specific config for UI state if in a chat
     // This is the final piece of the "Shared Provider Leak" fix.
     // If a task is active, the UI MUST reflect that task's configuration,
     // not the global "Home" configuration, to prevent "Sticky Model" leaks
@@ -3217,14 +3217,14 @@ ${prompt}
     const apiConfiguration =
       currentTask?.apiConfiguration || globalApiConfiguration;
 
-    // kilocode_change start: Get active model for virtual quota fallback UI display
+    // kade_change start: Get active model for virtual quota fallback UI display
     const virtualQuotaActiveModel =
       apiConfiguration?.apiProvider === "virtual-quota-fallback" && currentTask
         ? currentTask.api.getModel()
         : undefined;
-    // kilocode_change end
+    // kade_change end
 
-    // kilocode_change start - checkSpeechToTextAvailable (only when experiment enabled)
+    // kade_change start - checkSpeechToTextAvailable (only when experiment enabled)
     let speechToTextStatus:
       | { available: boolean; reason?: "apiKeyMissing" | "ffmpegNotInstalled" }
       | undefined = undefined;
@@ -3233,7 +3233,7 @@ ${prompt}
         this.providerSettingsManager,
       );
     }
-    // kilocode_change end - checkSpeechToTextAvailable
+    // kade_change end - checkSpeechToTextAvailable
 
     let cloudOrganizations: CloudOrganizationMembership[] = [];
 
@@ -3271,9 +3271,9 @@ ${prompt}
     const hasSystemPromptOverride =
       await this.hasFileBasedSystemPromptOverride(currentMode);
 
-    // kilocode_change start wrapper information
+    // kade_change start wrapper information
     const kiloCodeWrapperProperties = getKiloCodeWrapperProperties();
-    // kilocode_change: Cache task history to avoid loading entire array on every state rebuild
+    // kade_change: Cache task history to avoid loading entire array on every state rebuild
     // This is critical for performance in large codebases with many tasks
     let taskHistory: HistoryItem[];
     let taskHistoryLength: number;
@@ -3294,7 +3294,7 @@ ${prompt}
       this.cachedTaskHistoryVersion = this.kiloCodeTaskHistoryVersion;
     }
     this.kiloCodeTaskHistorySizeForTelemetryOnly = taskHistoryLength;
-    // kilocode_change end
+    // kade_change end
 
     return {
       version: this.context.extension?.packageJSON?.version ?? "",
@@ -3310,7 +3310,7 @@ ${prompt}
       alwaysAllowWriteOutsideWorkspace:
         alwaysAllowWriteOutsideWorkspace ?? false,
       alwaysAllowWriteProtected: alwaysAllowWriteProtected ?? false,
-      alwaysAllowDelete: alwaysAllowDelete ?? false, // kilocode_change
+      alwaysAllowDelete: alwaysAllowDelete ?? false, // kade_change
       alwaysAllowExecute: alwaysAllowExecute ?? true,
       alwaysAllowBrowser: alwaysAllowBrowser ?? true,
       alwaysAllowMcp: alwaysAllowMcp ?? true,
@@ -3318,14 +3318,14 @@ ${prompt}
       alwaysAllowSubtasks: alwaysAllowSubtasks ?? true,
       alwaysAllowUpdateTodoList: alwaysAllowUpdateTodoList ?? true,
       isBrowserSessionActive,
-      yoloMode: yoloMode ?? false, // kilocode_change
+      yoloMode: yoloMode ?? false, // kade_change
       allowedMaxRequests,
       allowedMaxCost,
       autoCondenseContext: autoCondenseContext ?? true,
       autoCondenseContextPercent: autoCondenseContextPercent ?? 100,
       uriScheme: vscode.env.uriScheme,
-      uiKind: vscode.UIKind[vscode.env.uiKind], // kilocode_change
-      kiloCodeWrapperProperties, // kilocode_change wrapper information
+      uiKind: vscode.UIKind[vscode.env.uiKind], // kade_change
+      kiloCodeWrapperProperties, // kade_change wrapper information
       kilocodeDefaultModel: await getKilocodeDefaultModel(
         apiConfiguration.kilocodeToken,
         apiConfiguration.kilocodeOrganizationId,
@@ -3338,8 +3338,8 @@ ${prompt}
       clineMessages: this.getCurrentTask()?.clineMessages || [],
       currentTaskTodos: this.getCurrentTask()?.todoList || [],
       messageQueue: this.getCurrentTask()?.messageQueueService?.messages,
-      taskHistoryFullLength: taskHistoryLength, // kilocode_change: use cached length
-      taskHistoryVersion: this.kiloCodeTaskHistoryVersion, // kilocode_change
+      taskHistoryFullLength: taskHistoryLength, // kade_change: use cached length
+      taskHistoryVersion: this.kiloCodeTaskHistoryVersion, // kade_change
       soundEnabled: soundEnabled ?? false,
       ttsEnabled: ttsEnabled ?? false,
       ttsSpeed: ttsSpeed ?? 1.0,
@@ -3347,7 +3347,7 @@ ${prompt}
       enableCheckpoints: enableCheckpoints ?? false,
       checkpointTimeout:
         checkpointTimeout ?? DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
-      shouldShowAnnouncement: false, // kilocode_change
+      shouldShowAnnouncement: false, // kade_change
       allowedCommands: mergedAllowedCommands,
       deniedCommands: mergedDeniedCommands,
       soundVolume: soundVolume ?? 0.5,
@@ -3372,7 +3372,7 @@ ${prompt}
       terminalZshP10k: terminalZshP10k ?? false,
       terminalZdotdir: terminalZdotdir ?? false,
       fuzzyMatchThreshold: fuzzyMatchThreshold ?? 1.0,
-      mcpEnabled: true, // kilocode_change: always true
+      mcpEnabled: true, // kade_change: always true
       enableMcpServerCreation: enableMcpServerCreation ?? true,
       alwaysApproveResubmit: alwaysApproveResubmit ?? true,
       requestDelaySeconds: requestDelaySeconds ?? 10,
@@ -3383,8 +3383,8 @@ ${prompt}
       customModePrompts: customModePrompts ?? {},
       customSupportPrompts: customSupportPrompts ?? {},
       enhancementApiConfigId,
-      commitMessageApiConfigId, // kilocode_change
-      terminalCommandApiConfigId, // kilocode_change
+      commitMessageApiConfigId, // kade_change
+      terminalCommandApiConfigId, // kade_change
       autoApprovalEnabled: autoApprovalEnabled ?? true,
       customModes,
       experiments: experiments ?? experimentDefault,
@@ -3393,24 +3393,24 @@ ${prompt}
       maxWorkspaceFiles: maxWorkspaceFiles ?? 200,
       cwd,
       browserToolEnabled: browserToolEnabled ?? false,
-      disableBrowserHeadless: disableBrowserHeadless ?? false, // kilocode_change
+      disableBrowserHeadless: disableBrowserHeadless ?? false, // kade_change
       telemetrySetting,
       telemetryKey,
       machineId,
       showRooIgnoredFiles: showRooIgnoredFiles ?? false,
-      showAutoApproveMenu: showAutoApproveMenu ?? false, // kilocode_change
-      showTaskTimeline: showTaskTimeline ?? true, // kilocode_change
-      sendMessageOnEnter: sendMessageOnEnter ?? true, // kilocode_change
-      showTimestamps: showTimestamps ?? false, // kilocode_change
-      hideCostBelowThreshold, // kilocode_change
+      showAutoApproveMenu: showAutoApproveMenu ?? false, // kade_change
+      showTaskTimeline: showTaskTimeline ?? true, // kade_change
+      sendMessageOnEnter: sendMessageOnEnter ?? true, // kade_change
+      showTimestamps: showTimestamps ?? false, // kade_change
+      hideCostBelowThreshold, // kade_change
       collapseCodeToolsByDefault: collapseCodeToolsByDefault ?? false,
-      language, // kilocode_change
+      language, // kade_change
       renderContext: this.renderContext,
       maxReadFileLine: maxReadFileLine ?? -1,
       maxImageFileSize: maxImageFileSize ?? 5,
       maxTotalImageSize: maxTotalImageSize ?? 20,
       maxConcurrentFileReads: maxConcurrentFileReads ?? 5,
-      allowVeryLargeReads: allowVeryLargeReads ?? false, // kilocode_change
+      allowVeryLargeReads: allowVeryLargeReads ?? false, // kade_change
       settingsImportedAt: this.settingsImportedAt,
       terminalCompressProgressBar: terminalCompressProgressBar ?? true,
       hasSystemPromptOverride,
@@ -3422,13 +3422,13 @@ ${prompt}
       cloudOrganizations,
       sharingEnabled: sharingEnabled ?? false,
       organizationAllowList,
-      // kilocode_change start
+      // kade_change start
       ghostServiceSettings: ghostServiceSettings,
-      // kilocode_change end
+      // kade_change end
       organizationSettingsVersion,
       condensingApiConfigId,
       customCondensingPrompt,
-      yoloGatekeeperApiConfigId, // kilocode_change: AI gatekeeper for YOLO mode
+      yoloGatekeeperApiConfigId, // kade_change: AI gatekeeper for YOLO mode
       codebaseIndexModels: codebaseIndexModels ?? EMBEDDING_MODEL_PROFILES,
       codebaseIndexConfig: {
         codebaseIndexEnabled:
@@ -3436,12 +3436,12 @@ ${prompt}
         codebaseIndexQdrantUrl:
           codebaseIndexConfig?.codebaseIndexQdrantUrl ??
           "http://localhost:6333",
-        // kilocode_change start
+        // kade_change start
         codebaseIndexVectorStoreProvider:
           codebaseIndexConfig?.codebaseIndexVectorStoreProvider ?? "qdrant",
         codebaseIndexLancedbVectorStoreDirectory:
           codebaseIndexConfig?.codebaseIndexLancedbVectorStoreDirectory,
-        // kilocode_change end
+        // kade_change end
         codebaseIndexEmbedderProvider:
           codebaseIndexConfig?.codebaseIndexEmbedderProvider ?? "openai",
         codebaseIndexEmbedderBaseUrl:
@@ -3456,12 +3456,12 @@ ${prompt}
           codebaseIndexConfig?.codebaseIndexSearchMaxResults,
         codebaseIndexSearchMinScore:
           codebaseIndexConfig?.codebaseIndexSearchMinScore,
-        // kilocode_change start
+        // kade_change start
         codebaseIndexEmbeddingBatchSize:
           codebaseIndexConfig?.codebaseIndexEmbeddingBatchSize,
         codebaseIndexScannerMaxBatchRetries:
           codebaseIndexConfig?.codebaseIndexScannerMaxBatchRetries,
-        // kilocode_change end
+        // kade_change end
         codebaseIndexBedrockRegion:
           codebaseIndexConfig?.codebaseIndexBedrockRegion,
         codebaseIndexBedrockProfile:
@@ -3482,11 +3482,11 @@ ${prompt}
       cloudApiUrl: getRooCodeApiUrl(),
       hasOpenedModeSelector:
         this.getGlobalState("hasOpenedModeSelector") ?? false,
-      systemNotificationsEnabled: systemNotificationsEnabled ?? false, // kilocode_change
-      dismissedNotificationIds: dismissedNotificationIds ?? [], // kilocode_change
-      morphApiKey, // kilocode_change
-      fastApplyModel: fastApplyModel ?? "auto", // kilocode_change: Fast Apply model selection
-      fastApplyApiProvider: fastApplyApiProvider ?? "current", // kilocode_change: Fast Apply model api base url
+      systemNotificationsEnabled: systemNotificationsEnabled ?? false, // kade_change
+      dismissedNotificationIds: dismissedNotificationIds ?? [], // kade_change
+      morphApiKey, // kade_change
+      fastApplyModel: fastApplyModel ?? "auto", // kade_change: Fast Apply model selection
+      fastApplyApiProvider: fastApplyApiProvider ?? "current", // kade_change: Fast Apply model api base url
       alwaysAllowFollowupQuestions: alwaysAllowFollowupQuestions ?? false,
       followupAutoApproveTimeoutMs: followupAutoApproveTimeoutMs ?? 60000,
       includeDiagnosticMessages: includeDiagnosticMessages ?? true,
@@ -3496,7 +3496,7 @@ ${prompt}
       includeCurrentCost: includeCurrentCost ?? true,
       maxGitStatusFiles: maxGitStatusFiles ?? 0,
       slidingWindowSize:
-        (this.getGlobalState("slidingWindowSize") as number) ?? 50, // kilocode_change
+        (this.getGlobalState("slidingWindowSize") as number) ?? 50, // kade_change
       taskSyncEnabled,
       remoteControlEnabled,
       imageGenerationProvider,
@@ -3504,7 +3504,7 @@ ${prompt}
       subAgentApiConfiguration: this.contextProxy.getValue(
         "subAgentApiConfiguration" as any,
       ) as any,
-      // kilocode_change start - Auto-purge settings (use already-destructured values from getState above)
+      // kade_change start - Auto-purge settings (use already-destructured values from getState above)
       autoPurgeEnabled,
       autoPurgeDefaultRetentionDays,
       autoPurgeFavoritedTaskRetentionDays,
@@ -3521,23 +3521,23 @@ ${prompt}
       infinityNextRunAt,
       infinitySavedPrompts: infinitySavedPrompts ?? [],
       activeInfinityPromptId,
-      // kilocode_change end
+      // kade_change end
       kiloCodeImageApiKey,
       openRouterImageGenerationSelectedModel,
       openRouterUseMiddleOutTransform,
       featureRoomoteControlEnabled,
-      virtualQuotaActiveModel, // kilocode_change: Include virtual quota active model in state
+      virtualQuotaActiveModel, // kade_change: Include virtual quota active model in state
       debug: vscode.workspace
         .getConfiguration(Package.name)
         .get<boolean>("debug", false),
-      speechToTextStatus, // kilocode_change: Speech-to-text availability status with failure reason
+      speechToTextStatus, // kade_change: Speech-to-text availability status with failure reason
       undoneToolIds:
         this.context.workspaceState.get<string[]>("claudix.undoneToolIds") ||
         [],
       acceptedToolIds:
         this.context.workspaceState.get<string[]>("claudix.acceptedToolIds") ||
         [],
-      activeTaskIds: Array.from(this.runningTasks.keys()), // kilocode_change: track active tasks
+      activeTaskIds: Array.from(this.runningTasks.keys()), // kade_change: track active tasks
       openAiCodexAccountId,
       openAiCodexAuthenticated,
       antigravityAuthenticated: antigravityAuthenticated ?? false,
@@ -3638,20 +3638,20 @@ ${prompt}
         ? geminiCliCredentials.value
         : undefined;
 
-    // kilocode_change: Check if we have credentials for other providers to set a better default
+    // kade_change: Check if we have credentials for other providers to set a better default
     const antigravityAuth = antigravityCredentialsValue;
     const geminiCliAuth = geminiCliCredentialsValue;
 
     // Build the apiConfiguration object combining state values and secrets.
-    // kilocode_change: Use current task's configuration if available for per-chat model persistence.
+    // kade_change: Use current task's configuration if available for per-chat model persistence.
     // If we are in a task, we MUST use its configuration entirely to avoid the "Sticky Reset"
     // where the UI flips back to the global default during refreshes.
-    // kilocode_change: Use current task's configuration if available for per-chat model persistence.
+    // kade_change: Use current task's configuration if available for per-chat model persistence.
     // If we are in a task, we MUST use its configuration entirely.
-    // kilocode_change: Check both the stack and the running tasks.
+    // kade_change: Check both the stack and the running tasks.
     // Sub-agents are often added to runningTasks but NOT the stack to avoid UI focus-stealing.
     // We want the UI to reflect the configuration of the task currently being "viewed" or "spawned".
-    // kilocode_change: ONLY use the task that is actively on the stack (being viewed).
+    // kade_change: ONLY use the task that is actively on the stack (being viewed).
     // Do NOT fall back to runningTasks — those are background tasks whose config
     // should NOT pollute the home page UI state. This was the root cause of the
     // "Shared Provider Leak" where a background task's model would stick on the home page.
@@ -3733,7 +3733,7 @@ ${prompt}
         stateValues.alwaysAllowFollowupQuestions ?? false,
       alwaysAllowUpdateTodoList: stateValues.alwaysAllowUpdateTodoList ?? true,
       isBrowserSessionActive,
-      yoloMode: stateValues.yoloMode ?? false, // kilocode_change
+      yoloMode: stateValues.yoloMode ?? false, // kade_change
       followupAutoApproveTimeoutMs:
         stateValues.followupAutoApproveTimeoutMs ?? 60000,
       diagnosticsEnabled: stateValues.diagnosticsEnabled ?? true,
@@ -3741,7 +3741,7 @@ ${prompt}
       allowedMaxCost: stateValues.allowedMaxCost,
       autoCondenseContext: stateValues.autoCondenseContext ?? true,
       autoCondenseContextPercent: stateValues.autoCondenseContextPercent ?? 100,
-      // taskHistory: stateValues.taskHistory ?? [], // kilocode_change
+      // taskHistory: stateValues.taskHistory ?? [], // kade_change
       allowedCommands: stateValues.allowedCommands,
       deniedCommands: stateValues.deniedCommands,
       soundEnabled: stateValues.soundEnabled ?? false,
@@ -3780,7 +3780,7 @@ ${prompt}
         stateValues.terminalCompressProgressBar ?? true,
       mode: stateValues.mode ?? defaultModeSlug,
       language: stateValues.language ?? formatLanguage(vscode.env.language),
-      mcpEnabled: true, // kilocode_change: always true
+      mcpEnabled: true, // kade_change: always true
       enableMcpServerCreation: stateValues.enableMcpServerCreation ?? true,
       mcpServers: this.mcpHub?.getAllServers() ?? [],
       alwaysApproveResubmit: stateValues.alwaysApproveResubmit ?? true,
@@ -3794,12 +3794,12 @@ ${prompt}
       customModePrompts: stateValues.customModePrompts ?? {},
       customSupportPrompts: stateValues.customSupportPrompts ?? {},
       enhancementApiConfigId: stateValues.enhancementApiConfigId,
-      commitMessageApiConfigId: stateValues.commitMessageApiConfigId, // kilocode_change
-      terminalCommandApiConfigId: stateValues.terminalCommandApiConfigId, // kilocode_change
-      // kilocode_change start
+      commitMessageApiConfigId: stateValues.commitMessageApiConfigId, // kade_change
+      terminalCommandApiConfigId: stateValues.terminalCommandApiConfigId, // kade_change
+      // kade_change start
       ghostServiceSettings: stateValues.ghostServiceSettings,
-      // kilocode_change end
-      // kilocode_change start - Auto-purge settings
+      // kade_change end
+      // kade_change start - Auto-purge settings
       autoPurgeEnabled: stateValues.autoPurgeEnabled ?? false,
       autoPurgeDefaultRetentionDays:
         stateValues.autoPurgeDefaultRetentionDays ?? 30,
@@ -3823,7 +3823,7 @@ ${prompt}
       infinityNextRunAt: stateValues.infinityNextRunAt,
       infinitySavedPrompts: stateValues.infinitySavedPrompts ?? [],
       activeInfinityPromptId: stateValues.activeInfinityPromptId,
-      // kilocode_change end
+      // kade_change end
       experiments: stateValues.experiments ?? experimentDefault,
       autoApprovalEnabled: stateValues.autoApprovalEnabled ?? true,
       customModes: customModesValue,
@@ -3834,24 +3834,24 @@ ${prompt}
       browserToolEnabled: stateValues.browserToolEnabled ?? false,
       telemetrySetting: stateValues.telemetrySetting || "unset",
       showRooIgnoredFiles: stateValues.showRooIgnoredFiles ?? false,
-      disableBrowserHeadless: stateValues.disableBrowserHeadless ?? false, // kilocode_change
-      showAutoApproveMenu: stateValues.showAutoApproveMenu ?? false, // kilocode_change
-      showTaskTimeline: stateValues.showTaskTimeline ?? true, // kilocode_change
-      sendMessageOnEnter: stateValues.sendMessageOnEnter ?? true, // kilocode_change
-      showTimestamps: stateValues.showTimestamps ?? false, // kilocode_change
-      hideCostBelowThreshold: stateValues.hideCostBelowThreshold ?? 0, // kilocode_change
+      disableBrowserHeadless: stateValues.disableBrowserHeadless ?? false, // kade_change
+      showAutoApproveMenu: stateValues.showAutoApproveMenu ?? false, // kade_change
+      showTaskTimeline: stateValues.showTaskTimeline ?? true, // kade_change
+      sendMessageOnEnter: stateValues.sendMessageOnEnter ?? true, // kade_change
+      showTimestamps: stateValues.showTimestamps ?? false, // kade_change
+      hideCostBelowThreshold: stateValues.hideCostBelowThreshold ?? 0, // kade_change
       collapseCodeToolsByDefault: stateValues.collapseCodeToolsByDefault ?? false,
       maxReadFileLine: stateValues.maxReadFileLine ?? -1,
       maxImageFileSize: stateValues.maxImageFileSize ?? 5,
       maxTotalImageSize: stateValues.maxTotalImageSize ?? 20,
       maxConcurrentFileReads: stateValues.maxConcurrentFileReads ?? 5,
-      allowVeryLargeReads: stateValues.allowVeryLargeReads ?? false, // kilocode_change
+      allowVeryLargeReads: stateValues.allowVeryLargeReads ?? false, // kade_change
       systemNotificationsEnabled:
-        stateValues.systemNotificationsEnabled ?? true, // kilocode_change
-      dismissedNotificationIds: stateValues.dismissedNotificationIds ?? [], // kilocode_change
-      morphApiKey: stateValues.morphApiKey, // kilocode_change
-      fastApplyModel: stateValues.fastApplyModel ?? "auto", // kilocode_change: Fast Apply model selection
-      fastApplyApiProvider: stateValues.fastApplyApiProvider ?? "current", // kilocode_change: Fast Apply model api config id
+        stateValues.systemNotificationsEnabled ?? true, // kade_change
+      dismissedNotificationIds: stateValues.dismissedNotificationIds ?? [], // kade_change
+      morphApiKey: stateValues.morphApiKey, // kade_change
+      fastApplyModel: stateValues.fastApplyModel ?? "auto", // kade_change: Fast Apply model selection
+      fastApplyApiProvider: stateValues.fastApplyApiProvider ?? "current", // kade_change: Fast Apply model api config id
       historyPreviewCollapsed: stateValues.historyPreviewCollapsed ?? false,
       reasoningBlockCollapsed: stateValues.reasoningBlockCollapsed ?? true,
       enterBehavior: stateValues.enterBehavior ?? "send",
@@ -3865,7 +3865,7 @@ ${prompt}
       organizationSettingsVersion,
       condensingApiConfigId: stateValues.condensingApiConfigId,
       customCondensingPrompt: stateValues.customCondensingPrompt,
-      yoloGatekeeperApiConfigId: stateValues.yoloGatekeeperApiConfigId, // kilocode_change: AI gatekeeper for YOLO mode
+      yoloGatekeeperApiConfigId: stateValues.yoloGatekeeperApiConfigId, // kade_change: AI gatekeeper for YOLO mode
       codebaseIndexModels:
         stateValues.codebaseIndexModels ?? EMBEDDING_MODEL_PROFILES,
       codebaseIndexConfig: {
@@ -3877,14 +3877,14 @@ ${prompt}
         codebaseIndexEmbedderProvider:
           stateValues.codebaseIndexConfig?.codebaseIndexEmbedderProvider ??
           "openai",
-        // kilocode_change start
+        // kade_change start
         codebaseIndexVectorStoreProvider:
           stateValues.codebaseIndexConfig?.codebaseIndexVectorStoreProvider ??
           "qdrant",
         codebaseIndexLancedbVectorStoreDirectory:
           stateValues.codebaseIndexConfig
             ?.codebaseIndexLancedbVectorStoreDirectory,
-        // kilocode_change end
+        // kade_change end
         codebaseIndexEmbedderBaseUrl:
           stateValues.codebaseIndexConfig?.codebaseIndexEmbedderBaseUrl ?? "",
         codebaseIndexEmbedderModelId:
@@ -3897,12 +3897,12 @@ ${prompt}
           stateValues.codebaseIndexConfig?.codebaseIndexSearchMaxResults,
         codebaseIndexSearchMinScore:
           stateValues.codebaseIndexConfig?.codebaseIndexSearchMinScore,
-        // kilocode_change start
+        // kade_change start
         codebaseIndexEmbeddingBatchSize:
           stateValues.codebaseIndexConfig?.codebaseIndexEmbeddingBatchSize,
         codebaseIndexScannerMaxBatchRetries:
           stateValues.codebaseIndexConfig?.codebaseIndexScannerMaxBatchRetries,
-        // kilocode_change end
+        // kade_change end
         codebaseIndexBedrockRegion:
           stateValues.codebaseIndexConfig?.codebaseIndexBedrockRegion,
         codebaseIndexBedrockProfile:
@@ -3998,7 +3998,7 @@ ${prompt}
   }
 
   async updateTaskHistory(item: HistoryItem): Promise<HistoryItem[]> {
-    // kilocode_change: Wait for storage to be ready before using it
+    // kade_change: Wait for storage to be ready before using it
     await this.taskHistoryStorageReady;
 
     // Use disk-based storage if available
@@ -4390,7 +4390,7 @@ ${prompt}
       remoteControlEnabled,
     } = state;
 
-    // kilocode_change: If a specific configuration was provided (like from RunSubAgentTool),
+    // kade_change: If a specific configuration was provided (like from RunSubAgentTool),
     // use it as an override for the new task's apiConfiguration.
     // We cast to any to bypass the strict ProviderSettings vs RooCodeSettings mapping.
     const apiConfiguration: ProviderSettings = {
@@ -4399,15 +4399,15 @@ ${prompt}
     };
 
     // Single-open-task invariant: always enforce for user-initiated top-level tasks
-    let previousApiConversationHistory: any[] | undefined; // kilocode_change
+    let previousApiConversationHistory: any[] | undefined; // kade_change
 
     if (!parentTask && !options.background) {
-      // kilocode_change start: Capture previous conversation history
+      // kade_change start: Capture previous conversation history
       const currentTask = this.getCurrentTask();
       if (currentTask) {
         previousApiConversationHistory = currentTask.apiConversationHistory;
       }
-      // kilocode_change end
+      // kade_change end
 
       try {
         await this.removeClineFromStack();
@@ -4429,7 +4429,7 @@ ${prompt}
 
     const task = new Task({
       provider: this,
-      context: this.context, // kilocode_change
+      context: this.context, // kade_change
       apiConfiguration,
       enableDiff,
       enableCheckpoints,
@@ -4448,7 +4448,7 @@ ${prompt}
         remoteControlEnabled,
       ),
       initialTodos: options.initialTodos,
-      previousApiConversationHistory, // kilocode_change
+      previousApiConversationHistory, // kade_change
       ...options,
     });
 
@@ -4547,7 +4547,7 @@ ${prompt}
     // this.log(`[PERSISTENCE_DEBUG][clearTask] BEFORE clear - Global apiProvider: ${beforeState.apiConfiguration?.apiProvider}`)
     // this.log(`[PERSISTENCE_DEBUG][clearTask] BEFORE clear - Global model: ${beforeState.apiConfiguration?.apiModelId || beforeState.apiConfiguration?.openRouterModelId || (beforeState.apiConfiguration as any)?.kilocodeModel || "NONE"}`)
 
-    // kilocode_change: Restore the home page profile that was stashed before entering the chat.
+    // kade_change: Restore the home page profile that was stashed before entering the chat.
     // This prevents the "Shared Provider Leak" where the chat's profile sticks on the home page.
     if (this.savedHomeProfileName && this.clineStack.length === 0) {
       // this.log(`[PERSISTENCE_DEBUG][clearTask] >>> RESTORING HOME PROFILE: "${this.savedHomeProfileName}" <<<`)
@@ -4627,7 +4627,7 @@ ${prompt}
   private getAppProperties(): StaticAppProperties {
     if (!this._appProperties) {
       const packageJSON = this.context.extension?.packageJSON;
-      // kilocode_change start
+      // kade_change start
       const {
         kiloCodeWrapped,
         kiloCodeWrapper,
@@ -4635,14 +4635,14 @@ ${prompt}
         kiloCodeWrapperVersion,
         kiloCodeWrapperTitle,
       } = getKiloCodeWrapperProperties();
-      // kilocode_change end
+      // kade_change end
 
       this._appProperties = {
         appName: packageJSON?.name ?? Package.name,
         appVersion: packageJSON?.version ?? Package.version,
         vscodeVersion: vscode.version,
-        platform: isWsl ? "wsl" /* kilocode_change */ : process.platform,
-        // kilocode_change start
+        platform: isWsl ? "wsl" /* kade_change */ : process.platform,
+        // kade_change start
         editorName: kiloCodeWrapperTitle
           ? kiloCodeWrapperTitle
           : vscode.env.appName,
@@ -4652,7 +4652,7 @@ ${prompt}
         wrapperVersion: kiloCodeWrapperVersion,
         wrapperTitle: kiloCodeWrapperTitle,
         machineId: vscode.env.machineId,
-        // kilocode_change end
+        // kade_change end
       };
     }
 
@@ -4718,7 +4718,7 @@ ${prompt}
       diffStrategy: task?.diffStrategy?.getName(),
       isSubtask: task ? !!task.parentTaskId : undefined,
       ...(todos && { todos }),
-      // kilocode_change start
+      // kade_change start
       currentTaskSize: task?.clineMessages.length,
       taskHistorySize:
         this.kiloCodeTaskHistorySizeForTelemetryOnly || undefined,
@@ -4726,7 +4726,7 @@ ${prompt}
         apiConfiguration,
         task?.api?.getModel().info,
       ),
-      // kilocode_change end
+      // kade_change end
     };
   }
 
@@ -4742,7 +4742,7 @@ ${prompt}
     return this._gitProperties;
   }
 
-  // kilocode_change start
+  // kade_change start
   private _kiloConfig: KilocodeConfig | null = null;
   public async getKiloConfig(): Promise<KilocodeConfig | null> {
     if (this._kiloConfig === null) {
@@ -4752,10 +4752,10 @@ ${prompt}
     }
     return this._kiloConfig;
   }
-  // kilocode_change end
+  // kade_change end
 
   public async getTelemetryProperties(): Promise<TelemetryProperties> {
-    // kilocode_change start
+    // kade_change start
     const state = await this.getState();
     const { apiConfiguration, experiments } = state;
     const task = this.getCurrentTask();
@@ -4839,7 +4839,7 @@ ${prompt}
             alwaysAllowWriteOutsideWorkspace:
               !!state.alwaysAllowWriteOutsideWorkspace,
             alwaysAllowWriteProtected: !!state.alwaysAllowWriteProtected,
-            alwaysAllowDelete: !!state.alwaysAllowDelete, // kilocode_change
+            alwaysAllowDelete: !!state.alwaysAllowDelete, // kade_change
             alwaysApproveResubmit: !!state.alwaysApproveResubmit,
             yoloMode: !!state.yoloMode,
           },
@@ -4850,12 +4850,12 @@ ${prompt}
         };
       }
     };
-    // kilocode_change end
+    // kade_change end
 
     return {
       ...this.getAppProperties(),
-      // ...this.getCloudProperties(), kilocode_change: disable
-      // kilocode_change start
+      // ...this.getCloudProperties(), kade_change: disable
+      // kade_change start
       ...(await getModelId()),
       ...getMemory(),
       ...getFastApply(),
@@ -4865,13 +4865,13 @@ ${prompt}
       ...(apiConfiguration.kilocodeOrganizationId && {
         kilocodeOrganizationId: apiConfiguration.kilocodeOrganizationId,
       }),
-      // kilocode_change end
+      // kade_change end
       ...(await this.getTaskProperties()),
       ...(await this.getGitProperties()),
     };
   }
 
-  // kilocode_change:
+  // kade_change:
   // MCP Marketplace
   private async fetchMcpMarketplaceFromApi(
     silent: boolean = false,
@@ -5053,9 +5053,9 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
       });
     }
   }
-  // end kilocode_change
+  // end kade_change
 
-  // kilocode_change start
+  // kade_change start
   // Add new methods for favorite functionality
   async toggleTaskFavorite(id: string) {
     const history = this.getTaskHistory();
@@ -5102,7 +5102,7 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
   private cachedTaskHistoryLength = 0;
   private cachedTaskHistoryVersion = -1;
 
-  // kilocode_change start: Initialize task history storage eagerly
+  // kade_change start: Initialize task history storage eagerly
   private async initializeTaskHistoryStorage() {
     try {
       this.taskHistoryStorage = await TaskHistoryStorage.getInstance(
@@ -5115,13 +5115,13 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
   }
 
   public getTaskHistory(): HistoryItem[] {
-    // kilocode_change: Use disk-based storage if available, fallback to globalState during migration
+    // kade_change: Use disk-based storage if available, fallback to globalState during migration
     if (this.taskHistoryStorage) {
       return this.taskHistoryStorage.getAll();
     }
     return this.getGlobalState("taskHistory") || [];
   }
-  // kilocode_change end
+  // kade_change end
 
   public get cwd() {
     return this.currentWorkspacePath || getWorkspacePath();

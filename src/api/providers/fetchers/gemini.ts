@@ -1,4 +1,4 @@
-// kilocode_change - file added
+// kade_change - file added
 
 import { GoogleGenAI } from "@google/genai"
 
@@ -10,11 +10,11 @@ const STATIC_MODELS: Record<string, ModelInfo> = geminiModels as Record<string, 
 
 const SUPPORTED_MODEL_PREFIXES = ["gemini-", "learnlm-"]
 
-// kilocode_change start
+// kade_change start
 const MODEL_ALIASES: ReadonlyArray<{ alias: string; base: string }> = [
 	{ alias: "gemini-3.1-pro-preview-customtools", base: "gemini-3.1-pro-preview" },
 ]
-// kilocode_change end
+// kade_change end
 
 interface GeminiFetcherOptions {
 	apiKey?: string
@@ -139,7 +139,7 @@ export const getGeminiModels = async ({ apiKey, baseUrl }: GeminiFetcherOptions 
 			}
 		}
 
-		// kilocode_change start
+		// kade_change start
 		// Include static aliases (e.g. *-customtools) when their base model is available.
 		for (const { alias, base } of MODEL_ALIASES) {
 			const staticInfo = STATIC_MODELS[alias]
@@ -157,7 +157,7 @@ export const getGeminiModels = async ({ apiKey, baseUrl }: GeminiFetcherOptions 
 				})
 			}
 		}
-		// kilocode_change end
+		// kade_change end
 
 		if (!Object.keys(models).length) {
 			console.debug("[getGeminiModels] No models returned from API, falling back to static list")

@@ -5,9 +5,9 @@ import { kiloLanguages } from "./kilocode/kiloLanguages.js"
  * CodeAction
  */
 
-export const kiloCodeActionIds = ["addToContextAndFocus"] as const // kilocode_change
+export const kiloCodeActionIds = ["addToContextAndFocus"] as const // kade_change
 export const codeActionIds = [
-	...kiloCodeActionIds, // kilocode_change
+	...kiloCodeActionIds, // kade_change
 	"explainCode",
 	"fixCode",
 	"improveCode",
@@ -49,8 +49,8 @@ export const commandIds = [
 	"settingsButtonClicked",
 
 	"openInNewTab",
-	"agentManagerOpen", // kilocode_change
-	"groupChatOpen", // kilocode_change
+	"agentManagerOpen", // kade_change
+	"groupChatOpen", // kade_change
 
 	"showHumanRelayDialog",
 	"registerHumanRelayCallback",
@@ -62,15 +62,15 @@ export const commandIds = [
 	"setCustomStoragePath",
 	"importSettings",
 
-	// "focusInput", // kilocode_change
+	// "focusInput", // kade_change
 	"acceptInput",
-	"profileButtonClicked", // kilocode_change
-	"helpButtonClicked", // kilocode_change
-	"focusChatInput", // kilocode_change
-	"importSettings", // kilocode_change
-	"exportSettings", // kilocode_change
-	"generateTerminalCommand", // kilocode_change
-	"handleExternalUri", // kilocode_change - for JetBrains plugin URL forwarding
+	"profileButtonClicked", // kade_change
+	"helpButtonClicked", // kade_change
+	"focusChatInput", // kade_change
+	"importSettings", // kade_change
+	"exportSettings", // kade_change
+	"generateTerminalCommand", // kade_change
+	"handleExternalUri", // kade_change - for JetBrains plugin URL forwarding
 	"focusPanel",
 	"toggleAutoApprove",
 	"requestMicrophonePermission",

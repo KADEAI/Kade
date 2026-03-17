@@ -20,7 +20,7 @@ vi.mock("@/i18n/TranslationContext", () => ({
 	}),
 }))
 
-// kilocode_change start: add mocks
+// kade_change start: add mocks
 vi.mock("@/kilocode/hooks/useTaskHistory", () => ({
 	useTaskWithId: () => ({
 		data: [
@@ -31,7 +31,7 @@ vi.mock("@/kilocode/hooks/useTaskHistory", () => ({
 		],
 	}),
 }))
-// kilocode_change end
+// kade_change end
 
 vi.mock("react-use", () => ({
 	useKeyPress: vi.fn(),

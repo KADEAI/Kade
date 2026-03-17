@@ -11,7 +11,7 @@ import { useAppTranslation } from "@/i18n/TranslationContext"
 import { useStateManager } from "./useStateManager"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { IssueFooter } from "./IssueFooter"
-import { Trans } from "react-i18next" // kilocode_change
+import { Trans } from "react-i18next" // kade_change
 import { cn } from "@/lib/utils"
 
 export interface MarketplaceListViewProps {
@@ -19,12 +19,12 @@ export interface MarketplaceListViewProps {
 	allTags: string[]
 	filteredTags: string[]
 	filterByType?: "mcp" | "mode"
-	// kilocode_change start
+	// kade_change start
 	headerMessage?: {
 		translationKey: string
 		onLinkClick: () => void
 	}
-	// kilocode_change end
+	// kade_change end
 }
 
 export function MarketplaceListView({
@@ -32,7 +32,7 @@ export function MarketplaceListView({
 	allTags,
 	filteredTags,
 	filterByType,
-	headerMessage, // kilocode_change start
+	headerMessage, // kade_change start
 }: MarketplaceListViewProps) {
 	const [state, manager] = useStateManager(stateManager)
 	const { t } = useAppTranslation()
@@ -67,7 +67,7 @@ export function MarketplaceListView({
 
 	return (
 		<>
-			{/* kilocode_change start - headerMessage */}
+			{/* kade_change start - headerMessage */}
 			{headerMessage && (
 				<div className="mb-6 p-4 rounded-xl bg-vscode-textBlock-background/30 border border-vscode-panel-border/50 backdrop-blur-sm relative overflow-hidden group">
 					<div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-primary/10 transition-colors" />
@@ -91,7 +91,7 @@ export function MarketplaceListView({
 					</div>
 				</div>
 			)}
-			{/* kilocode_change end - headerMessage */}
+			{/* kade_change end - headerMessage */}
 
 			<div className="mb-6 space-y-3">
 				<div className="relative flex gap-2">

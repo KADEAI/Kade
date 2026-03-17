@@ -1,4 +1,4 @@
-import { useExtensionState } from "../../context/ExtensionStateContext"; // kilocode_change
+import { useExtensionState } from "../../context/ExtensionStateContext"; // kade_change
 import React, { useEffect, useRef, useState } from 'react';
 import { useTaskSearch } from './useTaskSearch';
 import { vscode } from '@/utils/vscode';
@@ -16,7 +16,7 @@ interface HistoryDropdownProps {
 
 const HistoryDropdown: React.FC<HistoryDropdownProps> = ({ onClose }) => {
     const { t } = useAppTranslation();
-    const { activeTaskIds, currentTaskItem } = useExtensionState(); // kilocode_change
+    const { activeTaskIds, currentTaskItem } = useExtensionState(); // kade_change
     const {
         tasks: fetchedTasks,
         searchQuery,
@@ -81,7 +81,7 @@ const HistoryDropdown: React.FC<HistoryDropdownProps> = ({ onClose }) => {
         setIsLoadingMore(false);
     }, [fetchedTasks, pageIndex]);
 
-    // kilocode_change: Sync local list with current task updates (Live Heartbeat)
+    // kade_change: Sync local list with current task updates (Live Heartbeat)
     useEffect(() => {
         if (!currentTaskItem) return;
         setAllTasks(prev => prev.map(task =>

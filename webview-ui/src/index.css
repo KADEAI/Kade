@@ -101,7 +101,7 @@
   --color-vscode-input-border: var(--vscode-input-border, transparent);
   /* Some themes don't have a border color, so we can fallback to transparent */
 
-  /* kilocode_change: subtle focus ring instead of harsh border */
+  /* kade_change: subtle focus ring instead of harsh border */
   --color-vscode-focusBorder: color-mix(
     in srgb,
     var(--primary) 50%,
@@ -341,12 +341,12 @@
     --vscode-input-border: var(--border);
   }
 
-  /* kilocode_change start */
+  /* kade_change start */
   a {
     color: var(--vscode-textLink-foreground);
   }
 
-  /* kilocode_change end */
+  /* kade_change end */
 }
 
 @layer components {
@@ -394,7 +394,7 @@
   }
 }
 
-/* kilocode_change start: Cursor blink animation for voice recording */
+/* kade_change start: Cursor blink animation for voice recording */
 @keyframes blink {
   0%,
   100% {
@@ -406,9 +406,9 @@
   }
 }
 
-/* kilocode_change end */
+/* kade_change end */
 
-/* kilocode_change start - Rounded inputs */
+/* kade_change start - Rounded inputs */
 vscode-text-field::part(control),
 vscode-text-area::part(control),
 vscode-dropdown::part(control),
@@ -435,9 +435,9 @@ vscode-text-area textarea {
   border-radius: 24px !important;
 }
 
-/* kilocode_change end */
-/* kilocode_change end */
-/* kilocode_change end */
+/* kade_change end */
+/* kade_change end */
+/* kade_change end */
 
 /* Form Element Focus States */
 
@@ -1049,16 +1049,16 @@ input[cmdk-input]:focus {
   );
 }
 
-/* kilocode_change start - STT preview text styling */
+/* kade_change start - STT preview text styling */
 .stt-preview-text {
   color: var(--vscode-descriptionForeground);
   font-style: italic;
   opacity: 0.7;
 }
 
-/* kilocode_change end - STT preview text styling */
+/* kade_change end - STT preview text styling */
 
-/* kilocode_change start - Animated Gradient */
+/* kade_change start - Animated Gradient */
 @keyframes rainbow-move {
   0% {
     background-position: 0% 50%;
@@ -1096,7 +1096,7 @@ input[cmdk-input]:focus {
   z-index: 10;
 }
 
-/* kilocode_change end - Animated Gradient */
+/* kade_change end - Animated Gradient */
 
 /* ========================================
    Advanced Thinking Indicator Animations
@@ -1607,9 +1607,9 @@ input[cmdk-input]:focus {
   );
 }
 
-/* kilocode_change: Removed experimental anchored scroll classes that caused visual artifacts */
+/* kade_change: Removed experimental anchored scroll classes that caused visual artifacts */
 
-/* kilocode_change start - Button Shimmer */
+/* kade_change start - Button Shimmer */
 .shimmer-btn {
   position: relative;
   overflow: hidden;
@@ -1648,7 +1648,7 @@ input[cmdk-input]:focus {
   }
 }
 
-/* kilocode_change end */
+/* kade_change end */
 
 .dot-pattern {
   background-image: radial-gradient(

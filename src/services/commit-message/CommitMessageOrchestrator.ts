@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import * as path from "path"
 import { CommitMessageRequest, CommitMessageResult } from "./types/core"
 import { GitExtensionService, GitChange } from "./GitExtensionService"

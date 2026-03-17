@@ -1153,7 +1153,7 @@ export interface EditToolProps {
   toolResult?: any;
   isLastMessage?: boolean;
   shouldAnimate?: boolean;
-  autoApprovalEnabled?: boolean; // kilocode_change: accept auto-approval setting
+  autoApprovalEnabled?: boolean; // kade_change: accept auto-approval setting
 }
 
 const EditToolComponent: React.FC<EditToolProps> = ({
@@ -1166,7 +1166,7 @@ const EditToolComponent: React.FC<EditToolProps> = ({
   const { collapseCodeToolsByDefault = false } = useExtensionState();
   const { isUndone, handleUndo, handleRedo } = useUndo(tool?.id);
 
-  // kilocode_change: Handlers for manual permission buttons
+  // kade_change: Handlers for manual permission buttons
   const [actionPending, setActionPending] = useState(false);
   const [showPartialSuccessDetails, setShowPartialSuccessDetails] =
     useState(false);
@@ -1194,7 +1194,7 @@ const EditToolComponent: React.FC<EditToolProps> = ({
   const shouldAnimateOnceRef = useRef(isLastMessage && shouldAnimate);
   const didAnimate = shouldAnimateOnceRef.current;
 
-  // kilocode_change: Hide permission buttons if auto-approved
+  // kade_change: Hide permission buttons if auto-approved
   // Treat undefined as true (the default) to prevent button flash during initial render
   const isPermissionRequest =
     !toolResult && isLastMessage && autoApprovalEnabled === false;

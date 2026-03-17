@@ -6,7 +6,7 @@ import { TodoItem, TodoStatus } from "@roo-code/types"
 export function formatReminderSection(
 	todoList?: TodoItem[],
 	systemReminders?: string[],
-	activeFileReads?: Map<string, { start: number, end: number }[] | undefined> | Set<string>, // kilocode_change: Accept Map
+	activeFileReads?: Map<string, { start: number, end: number }[] | undefined> | Set<string>, // kade_change: Accept Map
 	todoListEnabled?: boolean
 ): string {
 	const lines: string[] = ["====", ""]

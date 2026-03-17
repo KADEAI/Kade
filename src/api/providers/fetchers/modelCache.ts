@@ -19,7 +19,7 @@ import { fileExistsAtPath } from "../../../utils/fs"
 import { getOpenRouterModels } from "./openrouter"
 import { getVercelAiGatewayModels } from "./vercel-ai-gateway"
 import { getRequestyModels } from "./requesty"
-import { getGlamaModels } from "./glama" // kilocode_change
+import { getGlamaModels } from "./glama" // kade_change
 import { getUnboundModels } from "./unbound"
 import { getLiteLLMModels } from "./litellm"
 import { GetModelsOptions } from "../../../shared/api"
@@ -27,20 +27,20 @@ import { getKiloUrlFromToken } from "@roo-code/types"
 import { getOllamaModels } from "./ollama"
 import { getLMStudioModels } from "./lmstudio"
 import { getIOIntelligenceModels } from "./io-intelligence"
-// kilocode_change start
+// kade_change start
 import { getOvhCloudAiEndpointsModels } from "./ovhcloud"
 import { getGeminiModels } from "./gemini"
 import { getInceptionModels } from "./inception"
 import { getSyntheticModels } from "./synthetic"
 import { getSapAiCoreModels } from "./sap-ai-core"
-// kilocode_change end
+// kade_change end
 
 import { getDeepInfraModels } from "./deepinfra"
 import { getHuggingFaceModels } from "./huggingface"
 import { getRooModels } from "./roo"
 import { getChutesModels } from "./chutes"
-import { getNanoGptModels } from "./nano-gpt" //kilocode_change
-import { getOpenCodeModels } from "./opencode" // kilocode_change
+import { getNanoGptModels } from "./nano-gpt" //kade_change
+import { getOpenCodeModels } from "./opencode" // kade_change
 
 import { getApertisModels } from "./apertis"
 import { getPoeModels } from "./poe"
@@ -122,13 +122,13 @@ const modelRecordSchema = z.record(z.string(), modelInfoSchema)
 // This prevents race conditions where multiple calls might overwrite each other's results
 const inFlightRefresh = new Map<RouterName, Promise<ModelRecord>>()
 
-export /*kilocode_change*/ async function writeModels(router: RouterName, data: ModelRecord) {
+export /*kade_change*/ async function writeModels(router: RouterName, data: ModelRecord) {
 	const filename = `${router}_models.json`
 	const cacheDir = await getCacheDirectoryPath(ContextProxy.instance.globalStorageUri.fsPath)
 	await safeWriteJson(path.join(cacheDir, filename), data)
 }
 
-export /*kilocode_change*/ async function readModels(router: RouterName): Promise<ModelRecord | undefined> {
+export /*kade_change*/ async function readModels(router: RouterName): Promise<ModelRecord | undefined> {
 	const filename = `${router}_models.json`
 	const cacheDir = await getCacheDirectoryPath(ContextProxy.instance.globalStorageUri.fsPath)
 	const filePath = path.join(cacheDir, filename)
@@ -165,25 +165,25 @@ async function fetchModelsFromProvider(options: GetModelsOptions): Promise<Model
 
 	switch (provider) {
 		case "openrouter":
-			// kilocode_change start: base url and bearer token
+			// kade_change start: base url and bearer token
 			models = await getOpenRouterModels({
 				openRouterBaseUrl: options.baseUrl,
 				headers: options.apiKey ? { Authorization: `Bearer ${options.apiKey}` } : undefined,
 			})
-			// kilocode_change end
+			// kade_change end
 			break
 		case "requesty":
 			// Requesty models endpoint requires an API key for per-user custom policies.
 			models = await getRequestyModels(options.baseUrl, options.apiKey)
 			break
-		// kilocode_change start
+		// kade_change start
 		case "glama":
 			models = await getGlamaModels()
 			break
 		case "opencode":
 			models = await getOpenCodeModels()
 			break
-		// kilocode_change end
+		// kade_change end
 		case "unbound":
 			// Unbound models endpoint requires an API key to fetch application specific models.
 			models = await getUnboundModels(options.apiKey)
@@ -192,7 +192,7 @@ async function fetchModelsFromProvider(options: GetModelsOptions): Promise<Model
 			// Type safety ensures apiKey and baseUrl are always provided for LiteLLM.
 			models = await getLiteLLMModels(options.apiKey, options.baseUrl)
 			break
-		// kilocode_change start
+		// kade_change start
 		case "kilocode": {
 			const backendUrl = options.kilocodeOrganizationId
 				? `https://api.kilo.ai/api/organizations/${options.kilocodeOrganizationId}`
@@ -213,9 +213,9 @@ async function fetchModelsFromProvider(options: GetModelsOptions): Promise<Model
 				baseUrl: options.baseUrl,
 			})
 			break
-		// kilocode_change end
+		// kade_change end
 		case "ollama":
-			models = await getOllamaModels(options.baseUrl, options.apiKey, options.numCtx /*kilocode_change*/)
+			models = await getOllamaModels(options.baseUrl, options.apiKey, options.numCtx /*kade_change*/)
 			break
 		case "lmstudio":
 			models = await getLMStudioModels(options.baseUrl)
@@ -232,7 +232,7 @@ async function fetchModelsFromProvider(options: GetModelsOptions): Promise<Model
 		case "huggingface":
 			models = await getHuggingFaceModels()
 			break
-		// kilocode_change start
+		// kade_change start
 		case "sap-ai-core":
 			models = await getSapAiCoreModels(
 				options.sapAiCoreServiceKey,
@@ -246,7 +246,7 @@ async function fetchModelsFromProvider(options: GetModelsOptions): Promise<Model
 		case "ovhcloud":
 			models = await getOvhCloudAiEndpointsModels()
 			break
-		// kilocode_change end
+		// kade_change end
 		case "roo": {
 			// Roo Code Cloud provider requires baseUrl and optional apiKey
 			const rooBaseUrl = options.baseUrl ?? process.env.ROO_CODE_PROVIDER_URL ?? "https://api.roocode.com/proxy"
@@ -256,14 +256,14 @@ async function fetchModelsFromProvider(options: GetModelsOptions): Promise<Model
 		case "chutes":
 			models = await getChutesModels(options.apiKey)
 			break
-		//kilocode_change start
+		//kade_change start
 		case "nano-gpt":
 			models = await getNanoGptModels({
 				nanoGptModelList: options.nanoGptModelList,
 				apiKey: options.apiKey,
 			})
 			break
-		//kilocode_change end
+		//kade_change end
 		case "cli-proxy":
 			// cli-proxy models are fetched via webview message to the proxy process
 			// We return empty here as actual population happens in the UI
@@ -333,13 +333,13 @@ export const getModels = async (options: GetModelsOptions): Promise<ModelRecord>
 		if (modelCount > 0) {
 			memoryCache.set(provider, models)
 
-			// kilocode_change start: prevent eternal caching of kilocode models
+			// kade_change start: prevent eternal caching of kilocode models
 			if (provider !== "kilocode") {
 				await writeModels(provider, models).catch((err) =>
 					console.error(`[MODEL_CACHE] Error writing ${provider} models to file cache:`, err),
 				)
 			}
-			// kilocode_change end
+			// kade_change end
 		} else {
 			TelemetryService.instance.captureEvent(TelemetryEventName.MODEL_CACHE_EMPTY_RESPONSE, {
 				provider,
@@ -438,8 +438,8 @@ export async function initializeModelCacheRefresh(): Promise<void> {
 		// Providers that work without API keys
 		const publicProviders: Array<{ provider: RouterName; options: GetModelsOptions }> = [
 			{ provider: "openrouter", options: { provider: "openrouter" } },
-			{ provider: "glama", options: { provider: "glama" } }, // kilocode_change
-			{ provider: "opencode", options: { provider: "opencode" } }, // kilocode_change
+			{ provider: "glama", options: { provider: "glama" } }, // kade_change
+			{ provider: "opencode", options: { provider: "opencode" } }, // kade_change
 			{ provider: "vercel-ai-gateway", options: { provider: "vercel-ai-gateway" } },
 			{ provider: "chutes", options: { provider: "chutes" } },
 		]
@@ -491,11 +491,11 @@ export function getModelsFromCache(provider: ProviderName): ModelRecord | undefi
 		return memoryModels
 	}
 
-	// kilocode_change start: prevent eternal caching of kilocode models
+	// kade_change start: prevent eternal caching of kilocode models
 	if (provider === "kilocode") {
 		return undefined
 	}
-	// kilocode_change end
+	// kade_change end
 
 	// Memory cache miss - try to load from disk synchronously
 	// This is acceptable because it only happens on cold start or after cache expiry

@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import { Anthropic } from "@anthropic-ai/sdk"
 import { z } from "zod"
 import * as vscode from "vscode"

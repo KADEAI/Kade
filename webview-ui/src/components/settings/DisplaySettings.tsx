@@ -3,7 +3,7 @@ import { useAppTranslation } from "@/i18n/TranslationContext"
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { Monitor, Info, Layout, Layers, DollarSign } from "lucide-react"
 import { telemetryClient } from "@/utils/TelemetryClient"
-import { HistoryViewType } from "@/App" // kilocode_change
+import { HistoryViewType } from "@/App" // kade_change
 import { useToolTheme } from "@/context/ToolThemeContext"
 
 import { SetCachedStateField } from "./types"
@@ -24,7 +24,7 @@ import { useRegisterSetting } from "./useSettingsSearch"
 
 type DisplaySettingsProps = HTMLAttributes<HTMLDivElement> & {
 	showTaskTimeline?: boolean
-	sendMessageOnEnter?: boolean // kilocode_change
+	sendMessageOnEnter?: boolean // kade_change
 	showTimestamps?: boolean
 	collapseCodeToolsByDefault?: boolean
 	reasoningBlockCollapsed: boolean
@@ -40,8 +40,8 @@ type DisplaySettingsProps = HTMLAttributes<HTMLDivElement> & {
 		| "showSubAgentBanner"
 			>
 	hideCostBelowThreshold?: number
-		historyViewType?: HistoryViewType // kilocode_change
-	setHistoryViewType?: (value: HistoryViewType) => void // kilocode_change
+		historyViewType?: HistoryViewType // kade_change
+	setHistoryViewType?: (value: HistoryViewType) => void // kade_change
 }
 
 export const DisplaySettings = ({
@@ -53,8 +53,8 @@ export const DisplaySettings = ({
 	reasoningBlockCollapsed,
 	showSubAgentBanner,
 	hideCostBelowThreshold,
-	historyViewType, // kilocode_change
-	setHistoryViewType, // kilocode_change
+	historyViewType, // kade_change
+	setHistoryViewType, // kade_change
 	...props
 }: DisplaySettingsProps) => {
 	const { t } = useAppTranslation()

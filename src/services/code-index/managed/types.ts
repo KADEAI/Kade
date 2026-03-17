@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 /**
  * Type definitions for Managed Codebase Indexing
  *

@@ -1,4 +1,4 @@
-// kilocode_change - new file: React hook for STT (Speech-to-Text) functionality
+// kade_change - new file: React hook for STT (Speech-to-Text) functionality
 import { useState, useEffect, useCallback, useRef } from "react"
 import { vscode } from "../utils/vscode"
 import { STTSegment } from "../../../src/shared/sttContract"

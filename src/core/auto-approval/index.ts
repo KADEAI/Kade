@@ -7,11 +7,11 @@ import { isWriteToolAction, isReadOnlyToolAction } from "./tools"
 import { isMcpToolAlwaysAllowed } from "./mcp"
 import { getCommandDecision } from "./commands"
 
-// We have 11 different actions that can be auto-approved. // kilocode_change
+// We have 11 different actions that can be auto-approved. // kade_change
 export type AutoApprovalState =
 	| "alwaysAllowReadOnly"
 	| "alwaysAllowWrite"
-	| "alwaysAllowDelete" // kilocode_change
+	| "alwaysAllowDelete" // kade_change
 	| "alwaysAllowBrowser"
 	| "alwaysApproveResubmit"
 	| "alwaysAllowMcp"
@@ -20,7 +20,7 @@ export type AutoApprovalState =
 	| "alwaysAllowExecute"
 	| "alwaysAllowFollowupQuestions"
 	| "alwaysAllowUpdateTodoList"
-	| "alwaysAllowWeb" // kilocode_change
+	| "alwaysAllowWeb" // kade_change
 
 // Some of these actions have additional settings associated with them.
 export type AutoApprovalStateOptions =
@@ -188,11 +188,11 @@ export async function checkAutoApproval({
 			return state.alwaysAllowBrowser === true ? { decision: "approve" } : { decision: "ask" }
 		}
 
-		// kilocode_change start
+		// kade_change start
 		if (tool.tool === "deleteFile") {
 			return state.alwaysAllowDelete === true ? { decision: "approve" } : { decision: "ask" }
 		}
-		// kilocode_change end
+		// kade_change end
 	}
 
 	return { decision: "ask" }

@@ -29,14 +29,14 @@ describe("TaskChannel", () => {
 		vscodeVersion: "1.0.0",
 		platform: "darwin",
 		editorName: "Roo Code",
-		// kilocode_change start
+		// kade_change start
 		wrapped: false,
 		wrapper: null,
 		wrapperTitle: null,
 		wrapperCode: null,
 		wrapperVersion: null,
 		machineId: null,
-		// kilocode_change end
+		// kade_change end
 		hostname: "test-host",
 	}
 

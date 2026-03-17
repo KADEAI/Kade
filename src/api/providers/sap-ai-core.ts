@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import { Anthropic } from "@anthropic-ai/sdk"
 import type { ApiHandlerOptions, ModelRecord } from "../../shared/api"
 import { convertToOpenAiMessages } from "../transform/openai-format"

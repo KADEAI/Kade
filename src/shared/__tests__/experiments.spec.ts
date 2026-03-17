@@ -35,10 +35,10 @@ describe("experiments", () => {
 	describe("isEnabled", () => {
 		it("returns false when POWER_STEERING experiment is not enabled", () => {
 			const experiments: Record<ExperimentId, boolean> = {
-				morphFastApply: false, // kilocode_change
-				speechToText: false, // kilocode_change
-				enableSubAgents: false, // kilocode_change
-				yoloMode: false, // kilocode_change
+				morphFastApply: false, // kade_change
+				speechToText: false, // kade_change
+				enableSubAgents: false, // kade_change
+				yoloMode: false, // kade_change
 				powerSteering: false,
 				multiFileApplyDiff: false,
 				preventFocusDisruption: false,
@@ -51,10 +51,10 @@ describe("experiments", () => {
 
 		it("returns true when experiment POWER_STEERING is enabled", () => {
 			const experiments: Record<ExperimentId, boolean> = {
-				morphFastApply: false, // kilocode_change
-				speechToText: false, // kilocode_change
-				enableSubAgents: false, // kilocode_change
-				yoloMode: false, // kilocode_change
+				morphFastApply: false, // kade_change
+				speechToText: false, // kade_change
+				enableSubAgents: false, // kade_change
+				yoloMode: false, // kade_change
 				powerSteering: true,
 				multiFileApplyDiff: false,
 				preventFocusDisruption: false,
@@ -67,10 +67,10 @@ describe("experiments", () => {
 
 		it("returns false when experiment is not present", () => {
 			const experiments: Record<ExperimentId, boolean> = {
-				morphFastApply: false, // kilocode_change
-				speechToText: false, // kilocode_change
-				enableSubAgents: false, // kilocode_change
-				yoloMode: false, // kilocode_change
+				morphFastApply: false, // kade_change
+				speechToText: false, // kade_change
+				enableSubAgents: false, // kade_change
+				yoloMode: false, // kade_change
 				powerSteering: false,
 				multiFileApplyDiff: false,
 				preventFocusDisruption: false,

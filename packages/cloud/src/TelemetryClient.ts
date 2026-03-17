@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */ /* kilocode_change this file is meant to be a stub */
+/* eslint-disable @typescript-eslint/no-unused-vars */ /* kade_change this file is meant to be a stub */
 import {
 	type TelemetryClient,
 	type TelemetryEvent,
@@ -102,7 +102,7 @@ export class CloudTelemetryClient extends BaseTelemetryClient {
 		this.retryQueue = retryQueue || null
 	}
 
-	// kilocode_change
+	// kade_change
 	private async fetch(path: string, options: RequestInit, allowQueueing = true) {
 		if (!this.authService.isAuthenticated()) {
 			return
@@ -115,7 +115,7 @@ export class CloudTelemetryClient extends BaseTelemetryClient {
 			return
 		}
 
-		/* kilocode_change
+		/* kade_change
 		const response = await fetch(`${getRooCodeApiUrl()}/api/${path}`, {
 			...options,
 			headers: {
@@ -160,7 +160,7 @@ export class CloudTelemetryClient extends BaseTelemetryClient {
 	}
 
 	public override async capture(event: TelemetryEvent) {
-		/* kilocode_change
+		/* kade_change
 
 		if (!this.isTelemetryEnabled() || !this.isEventCapturable(event.event)) {
 			if (this.debug) {
@@ -202,7 +202,7 @@ export class CloudTelemetryClient extends BaseTelemetryClient {
 	}
 
 	public async backfillMessages(messages: ClineMessage[], taskId: string): Promise<void> {
-		/* kilocode_change
+		/* kade_change
 		if (!this.authService.isAuthenticated()) {
 			if (this.debug) {
 				console.info(`[TelemetryClient#backfillMessages] Skipping: Not authenticated`)
@@ -288,9 +288,9 @@ export class CloudTelemetryClient extends BaseTelemetryClient {
 		return true
 	}
 
-	public override captureException(error: Error, properties?: Record<string | number, unknown>): void {} // kilocode_change
+	public override captureException(error: Error, properties?: Record<string | number, unknown>): void {} // kade_change
 
-	public override async updateIdentity(kilocodeToken: string): Promise<void> {} // kilocode_change
+	public override async updateIdentity(kilocodeToken: string): Promise<void> {} // kade_change
 
 	public override async shutdown() {}
 }

@@ -66,7 +66,7 @@ export class CodeIndexStateManager {
 			}
 
 			// Reset progress counters if moving to a non-indexing/non-error state or starting fresh
-			// kilocode_change: Keep progress for Error state so we know where it failed
+			// kade_change: Keep progress for Error state so we know where it failed
 			if (newState !== "Indexing" && newState !== "Error") {
 				this._processedItems = 0
 				this._totalItems = 0

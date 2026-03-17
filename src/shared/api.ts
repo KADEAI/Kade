@@ -7,7 +7,7 @@ import {
 	CLAUDE_CODE_DEFAULT_MAX_OUTPUT_TOKENS,
 	isDynamicProvider,
 	isLocalProvider,
-	ToolProtocol, // kilocode_change
+	ToolProtocol, // kade_change
 } from "@roo-code/types"
 
 // ApiHandlerOptions
@@ -136,7 +136,7 @@ export const getModelMaxOutputTokens = ({
 		(format === "openrouter" && modelId.startsWith("anthropic/"))
 
 	// For "Hybrid" reasoning models, discard the model's actual maxTokens for Anthropic contexts
-	/* kilocode_change: don't limit Anthropic model output, no idea why this was done before
+	/* kade_change: don't limit Anthropic model output, no idea why this was done before
 	if (model.supportsReasoningBudget && isAnthropicContext) {
 		return ANTHROPIC_DEFAULT_MAX_TOKENS
 	}*/
@@ -183,7 +183,7 @@ type CommonFetchParams = {
 // If a new dynamic provider is added in packages/types, this will fail to compile
 // until a corresponding entry is added here.
 const dynamicProviderExtras = {
-	gemini: {} as { apiKey?: string; baseUrl?: string }, // kilocode_change
+	gemini: {} as { apiKey?: string; baseUrl?: string }, // kade_change
 	antigravity: {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
 	openrouter: {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
 	kiro: {} as { kiroApiKey?: string; kiroBaseUrl?: string },
@@ -191,30 +191,30 @@ const dynamicProviderExtras = {
 	"vercel-ai-gateway": {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
 	huggingface: {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
 	litellm: {} as { apiKey: string; baseUrl: string },
-	kilocode: {} as { kilocodeToken?: string; kilocodeOrganizationId?: string }, // kilocode_change
+	kilocode: {} as { kilocodeToken?: string; kilocodeOrganizationId?: string }, // kade_change
 	deepinfra: {} as { apiKey?: string; baseUrl?: string },
 	"io-intelligence": {} as { apiKey: string },
 	requesty: {} as { apiKey?: string; baseUrl?: string },
 	unbound: {} as { apiKey?: string },
-	// kilocode_change start
+	// kade_change start
 	glama: {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
-	// kilocode_change end
-	"nano-gpt": {} as { nanoGptModelList?: "all" | "personalized" | "subscription" }, // kilocode_change
-	ollama: {} as { numCtx?: number }, // kilocode_change
+	// kade_change end
+	"nano-gpt": {} as { nanoGptModelList?: "all" | "personalized" | "subscription" }, // kade_change
+	ollama: {} as { numCtx?: number }, // kade_change
 	lmstudio: {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
-	ovhcloud: {} as { apiKey?: string }, // kilocode_change
-	inception: {} as { apiKey?: string; baseUrl?: string }, // kilocode_change
-	synthetic: {} as { apiKey?: string }, // kilocode_change
+	ovhcloud: {} as { apiKey?: string }, // kade_change
+	inception: {} as { apiKey?: string; baseUrl?: string }, // kade_change
+	synthetic: {} as { apiKey?: string }, // kade_change
 	roo: {} as { apiKey?: string; baseUrl?: string },
 	chutes: {} as { apiKey?: string },
-	// kilocode_change start
+	// kade_change start
 	"sap-ai-core": {} as {
 		sapAiCoreServiceKey?: string
 		sapAiCoreResourceGroup?: string
 		sapAiCoreUseOrchestration?: boolean
 	},
 	opencode: {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
-	// kilocode_change end
+	// kade_change end
 	"cli-proxy": {} as { cliProxyPath?: string; cliProxyPort?: number },
 	apertis: {} as { apiKey?: string; baseUrl?: string },
 	poe: {} as { apiKey?: string },

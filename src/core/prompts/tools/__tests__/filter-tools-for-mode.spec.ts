@@ -4,7 +4,7 @@ import type { ModeConfig, ModelInfo } from "@roo-code/types"
 import { filterNativeToolsForMode, filterMcpToolsForMode, applyModelToolCustomization } from "../filter-tools-for-mode"
 import * as toolsModule from "../../../../shared/tools"
 
-// kilocode_change start
+// kade_change start
 vi.mock("../../../../services/code-index/managed/ManagedIndexer", () => ({
 	ManagedIndexer: {
 		getInstance: () => ({
@@ -12,7 +12,7 @@ vi.mock("../../../../services/code-index/managed/ManagedIndexer", () => ({
 		}),
 	},
 }))
-// kilocode_change end
+// kade_change end
 
 describe("filterNativeToolsForMode", () => {
 	const mockNativeTools: OpenAI.Chat.ChatCompletionTool[] = [
@@ -277,7 +277,7 @@ describe("filterNativeToolsForMode", () => {
 			{},
 			undefined,
 			{},
-			undefined, // kilocode_change
+			undefined, // kade_change
 			mockMcpHub,
 		)
 		const toolNames = filtered.map((t) => ("function" in t ? t.function.name : ""))
@@ -320,7 +320,7 @@ describe("filterNativeToolsForMode", () => {
 			{},
 			undefined,
 			{},
-			undefined, // kilocode_change
+			undefined, // kade_change
 			mockMcpHub,
 		)
 		const toolNames = filtered.map((t) => ("function" in t ? t.function.name : ""))

@@ -56,10 +56,10 @@ import {
 	deepInfraDefaultModelId,
 	cerebrasModels,
 	cerebrasDefaultModelId,
-	nanoGptDefaultModelId, //kilocode_change
-	poeDefaultModelId, //kilocode_change
-	apertisDefaultModelId, // kilocode_change
-	aihubmixDefaultModelId, // kilocode_change
+	nanoGptDefaultModelId, //kade_change
+	poeDefaultModelId, //kade_change
+	apertisDefaultModelId, // kade_change
+	aihubmixDefaultModelId, // kade_change
 	ovhCloudAiEndpointsDefaultModelId,
 	inceptionDefaultModelId,
 	minimaxModels,
@@ -109,14 +109,14 @@ export const getModelsByProvider = ({
 				defaultModel: glamaDefaultModelId,
 			}
 		}
-		// kilocode_change start
+		// kade_change start
 		case "apertis": {
 			return {
 				models: routerModels.apertis,
 				defaultModel: apertisDefaultModelId,
 			}
 		}
-		// kilocode_change end
+		// kade_change end
 		case "unbound": {
 			return {
 				models: routerModels.unbound,
@@ -143,7 +143,7 @@ export const getModelsByProvider = ({
 		}
 		case "chutes": {
 			return {
-				models: routerModels.chutes, // kilocode_change
+				models: routerModels.chutes, // kade_change
 				defaultModel: chutesDefaultModelId,
 			}
 		}
@@ -259,7 +259,7 @@ export const getModelsByProvider = ({
 				defaultModel: fireworksDefaultModelId,
 			}
 		}
-		// kilocode_change start
+		// kade_change start
 		case "antigravity": {
 			return {
 				models: antigravityModels,
@@ -302,7 +302,7 @@ export const getModelsByProvider = ({
 				defaultModel: "",
 			}
 		}
-		// kilocode_change end
+		// kade_change end
 		case "io-intelligence": {
 			return {
 				models: routerModels["io-intelligence"],
@@ -333,7 +333,7 @@ export const getModelsByProvider = ({
 				defaultModel: deepInfraDefaultModelId,
 			}
 		}
-		//kilocode_change start
+		//kade_change start
 		case "nano-gpt": {
 			return {
 				models: routerModels["nano-gpt"],
@@ -346,7 +346,7 @@ export const getModelsByProvider = ({
 				defaultModel: aihubmixDefaultModelId,
 			}
 		}
-		//kilocode_change end
+		//kade_change end
 		case "minimax": {
 			return {
 				models: minimaxModels,
@@ -396,12 +396,12 @@ export const getOptionsForProvider = (provider: ProviderName, apiConfiguration?:
 	switch (provider) {
 		case "zai":
 			// Determine which Z.AI model set to use based on the API line configuration
-			// kilocode_change start
+			// kade_change start
 			return {
 				isChina:
 					apiConfiguration?.zaiApiLine === "china_coding" || apiConfiguration?.zaiApiLine === "china_api",
 			}
-		// kilocode_change end
+		// kade_change end
 		default:
 			return {}
 	}
@@ -419,11 +419,11 @@ export const useProviderModels = (apiConfiguration?: ProviderSettings) => {
 		chutesApiKey: apiConfiguration?.chutesApiKey,
 		geminiApiKey: apiConfiguration?.geminiApiKey,
 		googleGeminiBaseUrl: apiConfiguration?.googleGeminiBaseUrl,
-		//kilocode_change start
+		//kade_change start
 		nanoGptApiKey: apiConfiguration?.nanoGptApiKey,
 		nanoGptModelList: apiConfiguration?.nanoGptModelList,
-		//kilocode_change end
-		syntheticApiKey: apiConfiguration?.syntheticApiKey, // kilocode_change
+		//kade_change end
+		syntheticApiKey: apiConfiguration?.syntheticApiKey, // kade_change
 	})
 
 	const options = getOptionsForProvider(provider, apiConfiguration)

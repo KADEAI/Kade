@@ -76,12 +76,12 @@ export const VSCodeLM = ({ apiConfiguration, setApiConfigurationField }: VSCodeL
 						</SelectContent>
 					</Select>
 				) : (
-					/* kilocode_change start */
+					/* kade_change start */
 					<div className="text-sm text-vscode-descriptionForeground">
 						<p>{t("settings:providers.vscodeLmUnavailable")}</p>
 						<p className="mt-2">{t("settings:providers.vscodeLmUnavailableInstructions")}</p>
 					</div>
-					/* kilocode_change end */
+					/* kade_change end */
 				)}
 			</div>
 			<div className="text-sm text-vscode-errorForeground">{t("settings:providers.vscodeLmWarning")}</div>

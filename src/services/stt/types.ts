@@ -1,4 +1,4 @@
-// kilocode_change - new file: STT service type definitions
+// kade_change - new file: STT service type definitions
 import { STTSegment } from "../../shared/sttContract"
 
 /**

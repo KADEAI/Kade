@@ -145,7 +145,7 @@ export async function summarizeConversation(
 
 	const response: SummarizeResponse = { messages, cost: 0, summary: "" }
 
-	// kilocode_change: DON'T always preserve the first message.
+	// kade_change: DON'T always preserve the first message.
 	// Allowing the first message to be condensed is critical for breaking the "moth-to-lamp" anchor.
 	// If the user's focus has moved on, the initial task shouldn't take up permanent context space.
 
@@ -162,9 +162,9 @@ export async function summarizeConversation(
 	const messagesBeforeKeep = summarySliceEnd > 0 ? messages.slice(0, summarySliceEnd) : []
 
 	// Get messages to summarize, including the first message and excluding the last N messages
-	let messagesToSummarize = getMessagesSinceLastSummary(messagesBeforeKeep) // kilocode_change: const=>let
+	let messagesToSummarize = getMessagesSinceLastSummary(messagesBeforeKeep) // kade_change: const=>let
 
-	// kilocode_change start
+	// kade_change start
 	// discard tool_use, because it won't have a result
 	const lastMessageToSummarizeContent = messagesToSummarize.at(-1)?.content
 	if (
@@ -174,10 +174,10 @@ export async function summarizeConversation(
 		console.debug("[summarizeConversation] discarding tool_use", lastMessageToSummarizeContent)
 		messagesToSummarize = messagesToSummarize.slice(0, -1)
 	}
-	// kilocode_change end
+	// kade_change end
 
 	if (messagesToSummarize.length <= 1) {
-		// kilocode_change start
+		// kade_change start
 		const error =
 			messages.length <= N_MESSAGES_TO_KEEP + 1
 				? t("common:errors.condense_not_enough_messages", {
@@ -186,7 +186,7 @@ export async function summarizeConversation(
 					minimumMessageCount: N_MESSAGES_TO_KEEP + 2,
 				})
 				: t("common:errors.condensed_recently")
-		// kilocode_change end
+		// kade_change end
 		return { ...response, error }
 	}
 
@@ -276,7 +276,7 @@ export async function summarizeConversation(
 	const firstKeptTs = keepMessages[0]?.ts ?? Date.now()
 
 	const summaryMessage: ApiMessage = {
-		role: "user", // kilocode_change: summary should be role "user" so it can be the first message in the history
+		role: "user", // kade_change: summary should be role "user" so it can be the first message in the history
 		content: `[CONVERSATION SUMMARY]\n\n${summary}`,
 		ts: firstKeptTs - 1, // Unique timestamp before first kept message to avoid collision
 		isSummary: true,
@@ -326,7 +326,7 @@ export async function summarizeConversation(
 
 	const newContextTokens = outputTokens + (await apiHandler.countTokens(contextBlocks))
 	if (newContextTokens >= prevContextTokens) {
-		// kilocode_change add numbers
+		// kade_change add numbers
 		const error = t("common:errors.condense_context_grew", { prevContextTokens, newContextTokens })
 		return { ...response, cost, error }
 	}

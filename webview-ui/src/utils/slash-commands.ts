@@ -1,5 +1,5 @@
 /* eslint no-misleading-character-class: 0 */
-// kilocode_change: this file was pulled from Cline and adjusted for us
+// kade_change: this file was pulled from Cline and adjusted for us
 
 import { getAllModes } from "@roo/modes"
 import { getBasename } from "./kilocode/path-webview"
@@ -29,7 +29,7 @@ export function getSupportedSlashCommands(
 		},
 		{ name: "reportbug", description: "Create a KiloCode GitHub issue" },
 		{ name: "smol", description: "Condenses your current context window" },
-		{ name: "session", description: "Session management <fork|share>" }, // kilocode_change
+		{ name: "session", description: "Session management <fork|share>" }, // kade_change
 	]
 
 	// Add mode-switching commands dynamically

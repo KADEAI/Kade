@@ -3,7 +3,7 @@ import { Checkbox } from "vscrui"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
 import type {
-	OrganizationAllowList, // kilocode_change
+	OrganizationAllowList, // kade_change
 	ProviderSettings,
 } from "@roo-code/types"
 
@@ -13,21 +13,21 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@src/compon
 
 import { inputEventTransform } from "../transforms"
 
-// kilocode_change start
+// kade_change start
 import { geminiDefaultModelId } from "@roo-code/types"
 import type { RouterModels } from "@roo/api"
 import { ModelPicker } from "../ModelPicker"
-// kilocode_change end
+// kade_change end
 
 type GeminiProps = {
 	apiConfiguration: ProviderSettings
 	setApiConfigurationField: (field: keyof ProviderSettings, value: ProviderSettings[keyof ProviderSettings]) => void
 	fromWelcomeView?: boolean
-	// kilocode_change start
+	// kade_change start
 	routerModels?: RouterModels
 	organizationAllowList?: OrganizationAllowList
 	modelValidationError?: string
-	// kilocode_change end
+	// kade_change end
 	simplifySettings?: boolean
 }
 
@@ -35,11 +35,11 @@ export const Gemini = ({
 	apiConfiguration,
 	setApiConfigurationField,
 	simplifySettings,
-	// kilocode_change start
+	// kade_change start
 	routerModels,
 	organizationAllowList,
 	modelValidationError,
-	// kilocode_change end
+	// kade_change end
 }: GeminiProps) => {
 	const { t } = useAppTranslation()
 
@@ -58,7 +58,7 @@ export const Gemini = ({
 		[setApiConfigurationField],
 	)
 
-	const allowList = organizationAllowList ?? { allowAll: true, providers: {} } // kilocode_change
+	const allowList = organizationAllowList ?? { allowAll: true, providers: {} } // kade_change
 
 	return (
 		<>

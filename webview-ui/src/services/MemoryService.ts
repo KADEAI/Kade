@@ -1,4 +1,4 @@
-// kilocode_change - new file
+// kade_change - new file
 import { telemetryClient } from "../utils/TelemetryClient"
 import { TelemetryEventName } from "@roo-code/types"
 import { createSampledFunction } from "../utils/sampling"

@@ -29,15 +29,15 @@ import { getResearchWebDescription } from "./research-web"
 import { getGlobDescription } from "./glob"
 import { getFastContextDescription } from "./fast-context"
 import { getRunSlashCommandDescription } from "./run-slash-command"
-import { getDeleteFileDescription } from "./delete-file" // kilocode_change
+import { getDeleteFileDescription } from "./delete-file" // kade_change
 import { CodeIndexManager } from "../../../services/code-index/manager"
 
-// kilocode_change start: Morph fast apply
+// kade_change start: Morph fast apply
 import { isFastApplyAvailable } from "../../tools/kilocode/editFileTool"
 import { getEditFileDescription } from "./edit-file"
 import { type ClineProviderState } from "../../webview/ClineProvider"
 import { ManagedIndexer } from "../../../services/code-index/managed/ManagedIndexer"
-// kilocode_change end
+// kade_change end
 
 // Map of tool names to their description functions
 const toolDescriptionMap: Record<string, (args: ToolArgs) => string | undefined> = {
@@ -79,8 +79,8 @@ New:
 ...
 </edit>
 </edit_file>`
-	}, // kilocode_change: Strategic Search/Replace
-	delete_file: (args) => getDeleteFileDescription(args), // kilocode_change
+	}, // kade_change: Strategic Search/Replace
+	delete_file: (args) => getDeleteFileDescription(args), // kade_change
 	apply_diff: (args) =>
 		args.diffStrategy ? args.diffStrategy.getToolDescription({ cwd: args.cwd, toolOptions: args.toolOptions }) : "",
 	update_todo_list: (args) => getUpdateTodoListDescription(args),
@@ -106,7 +106,7 @@ export function getToolDescriptionsForMode(
 	settings?: Record<string, any>,
 	enableMcpServerCreation?: boolean,
 	modelId?: string,
-	clineProviderState?: ClineProviderState, // kilocode_change
+	clineProviderState?: ClineProviderState, // kade_change
 	compact?: boolean,
 ): string {
 	const config = getModeConfig(mode, customModes)
@@ -154,13 +154,13 @@ export function getToolDescriptionsForMode(
 	ALWAYS_AVAILABLE_TOOLS.forEach((tool) => tools.add(tool))
 
 	// Conditionally exclude codebase_search if feature is disabled or not configured
-	// kilocode_change start
-	// kilocode_change start
+	// kade_change start
+	// kade_change start
 	// We now always include codebase_search because it uses the JIT engine which requires no index.
 	// The original check for ManagedIndexer or codeIndexManager is no longer needed to gate the tool itself.
-	// kilocode_change end
+	// kade_change end
 
-	// kilocode_change: Remove Morph Fast Apply logic, force Traditional Edit via edit_file
+	// kade_change: Remove Morph Fast Apply logic, force Traditional Edit via edit_file
 	tools.delete("edit") // Use edit_file instead
 	tools.delete("apply_diff")
 
@@ -216,7 +216,7 @@ export {
 	getUseMcpToolDescription,
 	getAccessMcpResourceDescription,
 	getSwitchModeDescription,
-	getEditFileDescription, // kilocode_change: Morph fast apply
+	getEditFileDescription, // kade_change: Morph fast apply
 	getCodebaseSearchDescription,
 	getRunSlashCommandDescription,
 	getGenerateImageDescription,

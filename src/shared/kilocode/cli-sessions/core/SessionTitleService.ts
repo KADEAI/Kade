@@ -83,7 +83,7 @@ export class SessionTitleService {
 	 * @returns The first message text, or null if no text is found
 	 */
 	getFirstMessageText(uiMessages: ClineMessage[], truncate = false): string | null {
-	// kilocode_change: Prefer assistant heartbeat over first user message
+	// kade_change: Prefer assistant heartbeat over first user message
 	const assistantMessages = uiMessages.filter(m => m.type === "say" && m.text);
 	const latestAssistant = assistantMessages[assistantMessages.length - 1];
 	

@@ -1,4 +1,4 @@
-//kilocode_change new file
+//kade_change new file
 import { describe, it, expect } from "vitest"
 import { Fzf } from "../word-boundary-fzf"
 

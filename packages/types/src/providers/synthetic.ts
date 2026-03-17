@@ -1,4 +1,4 @@
-// kilocode_change: provider added - dynamic models only
+// kade_change: provider added - dynamic models only
 
 import type { ModelInfo } from "../model.js"
 

@@ -1,9 +1,9 @@
 import type { AssertEqual, Equals, Keys, Values, ExperimentId, Experiments } from "@roo-code/types"
 
 export const EXPERIMENT_IDS = {
-	MORPH_FAST_APPLY: "morphFastApply", // kilocode_change
-	SPEECH_TO_TEXT: "speechToText", // kilocode_change
-	YOLO_MODE: "yoloMode", // kilocode_change - REMOVED
+	MORPH_FAST_APPLY: "morphFastApply", // kade_change
+	SPEECH_TO_TEXT: "speechToText", // kade_change
+	YOLO_MODE: "yoloMode", // kade_change - REMOVED
 	MULTI_FILE_APPLY_DIFF: "multiFileApplyDiff",
 	POWER_STEERING: "powerSteering",
 	PREVENT_FOCUS_DISRUPTION: "preventFocusDisruption",
@@ -21,9 +21,9 @@ interface ExperimentConfig {
 }
 
 export const experimentConfigsMap: Record<ExperimentKey, ExperimentConfig> = {
-	MORPH_FAST_APPLY: { enabled: false }, // kilocode_change
-	SPEECH_TO_TEXT: { enabled: false }, // kilocode_change
-	YOLO_MODE: { enabled: false }, // kilocode_change - REMOVED (hidden from UI)
+	MORPH_FAST_APPLY: { enabled: false }, // kade_change
+	SPEECH_TO_TEXT: { enabled: false }, // kade_change
+	YOLO_MODE: { enabled: false }, // kade_change - REMOVED (hidden from UI)
 	MULTI_FILE_APPLY_DIFF: { enabled: true },
 	POWER_STEERING: { enabled: false },
 	PREVENT_FOCUS_DISRUPTION: { enabled: true },

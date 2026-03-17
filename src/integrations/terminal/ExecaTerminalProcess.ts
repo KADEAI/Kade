@@ -5,7 +5,7 @@ import process from "process"
 import type { RooTerminal } from "./types"
 import { BaseTerminalProcess } from "./BaseTerminalProcess"
 
-// kilocode_change start
+// kade_change start
 /**
  * Get child process IDs for a given parent PID
  */
@@ -18,7 +18,7 @@ async function getChildPids(parentPid: number): Promise<number[]> {
 		return []
 	}
 }
-// kilocode_change end
+// kade_change end
 
 export class ExecaTerminalProcess extends BaseTerminalProcess {
 	private terminalRef: WeakRef<RooTerminal>
@@ -73,7 +73,7 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 			// Find the actual command PID after a small delay
 			if (this.pid) {
 				this.pidUpdatePromise = new Promise<void>((resolve) => {
-					// kilocode_change start
+					// kade_change start
 					setTimeout(async () => {
 						try {
 							const childPids = await getChildPids(this.pid!)
@@ -86,7 +86,7 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 						}
 						resolve()
 					}, 100)
-					// kilocode_change end
+					// kade_change end
 				})
 			}
 
@@ -217,7 +217,7 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 		// Continue with the rest of the abort logic
 		if (this.pid) {
 			// Also check for any child processes
-			// kilocode_change start
+			// kade_change start
 			;(async () => {
 				try {
 					const childPids = await getChildPids(this.pid!)
@@ -240,7 +240,7 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 					)
 				}
 			})()
-			// kilocode_change end
+			// kade_change end
 		}
 	}
 

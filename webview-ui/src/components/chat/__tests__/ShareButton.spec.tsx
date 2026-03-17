@@ -40,7 +40,7 @@ const mockUseTranslation = vi.mocked(useTranslation)
 const mockVscode = vi.mocked(vscode)
 
 describe.skip("ShareButton", () => {
-	// kilocode_change skip
+	// kade_change skip
 	const mockT = vi.fn((key: string) => key)
 	const mockItem = {
 		id: "test-task-id",

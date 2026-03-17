@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from "react"
 import { AlertTriangle, Users2, Plus, Edit2, Trash2, Check, X } from "lucide-react"
 
-import type { ProviderSettingsEntry, OrganizationAllowList, ProfileType } from "@roo-code/types" // kilocode_change - autocomplete profile type system
+import type { ProviderSettingsEntry, OrganizationAllowList, ProfileType } from "@roo-code/types" // kade_change - autocomplete profile type system
 import { MODEL_SELECTION_ENABLED } from "@roo-code/types"
 
 import { useAppTranslation } from "@/i18n/TranslationContext"
@@ -14,35 +14,35 @@ import {
 	DialogTitle,
 	StandardTooltip,
 	SearchableSelect,
-	// kilocode_change start - autocomplete profile type system
+	// kade_change start - autocomplete profile type system
 	Select,
 	SelectTrigger,
 	SelectValue,
 	SelectContent,
 	SelectItem,
-	// kilocode_change end
+	// kade_change end
 } from "@/components/ui"
 import { getProviderIcon } from "./providerIcons"
 
 interface ApiConfigManagerProps {
 	currentApiConfigName?: string
-	activeApiConfigName?: string // kilocode_change: Track which profile is actually active
+	activeApiConfigName?: string // kade_change: Track which profile is actually active
 	listApiConfigMeta?: ProviderSettingsEntry[]
 	organizationAllowList?: OrganizationAllowList
 	onSelectConfig: (configName: string) => void
-	onActivateConfig?: (configName: string) => void // kilocode_change: Explicit activation handler
+	onActivateConfig?: (configName: string) => void // kade_change: Explicit activation handler
 	onDeleteConfig: (configName: string) => void
 	onRenameConfig: (oldName: string, newName: string) => void
-	onUpsertConfig: (configName: string, profileType?: ProfileType) => void // kilocode_change - autocomplete profile type system
+	onUpsertConfig: (configName: string, profileType?: ProfileType) => void // kade_change - autocomplete profile type system
 }
 
 const ApiConfigManager = ({
 	currentApiConfigName = "",
-	activeApiConfigName, // kilocode_change: Track which profile is actually active
+	activeApiConfigName, // kade_change: Track which profile is actually active
 	listApiConfigMeta = [],
 	organizationAllowList,
 	onSelectConfig,
-	onActivateConfig, // kilocode_change: Explicit activation handler
+	onActivateConfig, // kade_change: Explicit activation handler
 	onDeleteConfig,
 	onRenameConfig,
 	onUpsertConfig,
@@ -53,7 +53,7 @@ const ApiConfigManager = ({
 	const [isCreating, setIsCreating] = useState(false)
 	const [inputValue, setInputValue] = useState("")
 	const [newProfileName, setNewProfileName] = useState("")
-	const [newProfileType, setNewProfileType] = useState<ProfileType>("chat") // kilocode_change - autocomplete profile type system
+	const [newProfileType, setNewProfileType] = useState<ProfileType>("chat") // kade_change - autocomplete profile type system
 	const [error, setError] = useState<string | null>(null)
 	const inputRef = useRef<any>(null)
 	const newProfileInputRef = useRef<any>(null)
@@ -100,7 +100,7 @@ const ApiConfigManager = ({
 	const resetCreateState = () => {
 		setIsCreating(false)
 		setNewProfileName("")
-		setNewProfileType("chat") // kilocode_change - autocomplete profile type system
+		setNewProfileType("chat") // kade_change - autocomplete profile type system
 		setError(null)
 	}
 
@@ -181,7 +181,7 @@ const ApiConfigManager = ({
 			return
 		}
 
-		onUpsertConfig(trimmedValue, newProfileType) // kilocode_change - autocomplete profile type system
+		onUpsertConfig(trimmedValue, newProfileType) // kade_change - autocomplete profile type system
 		resetCreateState()
 	}
 
@@ -193,7 +193,7 @@ const ApiConfigManager = ({
 	}
 
 	const isOnlyProfile = listApiConfigMeta?.length === 1
-	const isEditingDifferentProfile = activeApiConfigName && currentApiConfigName !== activeApiConfigName // kilocode_change: Check if we're editing a different profile than the active one
+	const isEditingDifferentProfile = activeApiConfigName && currentApiConfigName !== activeApiConfigName // kade_change: Check if we're editing a different profile than the active one
 
 	return (
 		<div className="group relative flex flex-col gap-3 rounded-xl border border-white/[0.04] bg-[#282828] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all hover:border-white/[0.08] overflow-hidden font-sans">

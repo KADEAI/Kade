@@ -3,7 +3,7 @@ import path from "path"
 
 import { hasAnyToggles, loadEnabledRules } from "./kilo"
 
-// kilocode_change start
+// kade_change start
 let vscodeAPI: typeof import("vscode") | undefined
 try {
 	vscodeAPI = require("vscode")
@@ -14,7 +14,7 @@ try {
 }
 
 let hasShownNonKilocodeRulesMessage = false
-// kilocode_change end
+// kade_change end
 
 import { Dirent } from "fs"
 
@@ -24,7 +24,7 @@ import type { SystemPromptSettings } from "../types"
 import { getEffectiveProtocol, isNativeProtocol } from "@roo-code/types"
 
 import { LANGUAGES } from "../../../shared/language"
-import { ClineRulesToggles } from "../../../shared/cline-rules" // kilocode_change
+import { ClineRulesToggles } from "../../../shared/cline-rules" // kade_change
 
 async function getRooDirectoriesForCwd(cwd: string): Promise<string[]> {
 	try {
@@ -150,7 +150,7 @@ async function readTextFilesFromDirectory(dirPath: string): Promise<Array<{ file
 		// Wait for all asynchronous operations (including recursive ones) to complete
 		await Promise.all(initialPromises)
 
-		// kilocode_change, must be imported at submodule level because the module is imported in the webview-ui
+		// kade_change, must be imported at submodule level because the module is imported in the webview-ui
 		const { isBinaryFile } = await import("isbinaryfile")
 
 		const fileContents = await Promise.all(
@@ -164,11 +164,11 @@ async function readTextFilesFromDirectory(dirPath: string): Promise<Array<{ file
 							return null
 						}
 
-						// kilocode_change start
+						// kade_change start
 						if (stats.size > 0 && (await isBinaryFile(resolvedPath))) {
 							return null
 						}
-						// kilocode_change end
+						// kade_change end
 
 						const content = await safeReadFile(resolvedPath)
 						// Use resolvedPath for display to maintain existing behavior
@@ -245,12 +245,12 @@ export async function loadRuleFiles(cwd: string): Promise<string> {
 		const content = await safeReadFile(path.join(cwd, file))
 		if (content) {
 			if (file !== ".kilocoderules" && vscodeAPI && !hasShownNonKilocodeRulesMessage) {
-				// kilocode_change: show message to move to .kilocode/rules/
+				// kade_change: show message to move to .kilocode/rules/
 				vscodeAPI.window.showWarningMessage(
 					`Loading non-Kilocode rules from ${file}, consider moving to .kilocode/rules/`,
 				)
 				hasShownNonKilocodeRulesMessage = true
-			} // kilocode_change end
+			} // kade_change end
 			return `\n# Rules from ${file}:\n${content}\n`
 		}
 	}
@@ -282,9 +282,9 @@ async function loadAgentRulesFile(cwd: string): Promise<string> {
 					await resolveSymLink(agentPath, fileInfo, 0)
 
 					// Extract the resolved path from fileInfo
-					// kilocode_change start - add null check for fileInfo[0]
+					// kade_change start - add null check for fileInfo[0]
 					if (fileInfo.length > 0 && fileInfo[0]) {
-						// kilocode_change end
+						// kade_change end
 						resolvedPath = fileInfo[0].resolvedPath
 					}
 				}
@@ -310,7 +310,7 @@ export async function addCustomInstructions(
 	globalCustomInstructions: string,
 	cwd: string,
 	mode: string,
-	// kilocode_change begin: rule toggles
+	// kade_change begin: rule toggles
 	options: {
 		language?: string
 		rooIgnoreInstructions?: string
@@ -318,7 +318,7 @@ export async function addCustomInstructions(
 		globalRulesToggleState?: ClineRulesToggles
 		settings?: SystemPromptSettings
 	} = {},
-	// kilocode_change end
+	// kade_change end
 ): Promise<string> {
 	const sections = []
 
@@ -398,7 +398,7 @@ export async function addCustomInstructions(
 		}
 	}
 
-	// kilocode_change start: rule toggles
+	// kade_change start: rule toggles
 	if (hasAnyToggles(options.localRulesToggleState) || hasAnyToggles(options.globalRulesToggleState)) {
 		const genericRuleContent =
 			(
@@ -420,7 +420,7 @@ export async function addCustomInstructions(
 			rules.push(genericRuleContent)
 		}
 	}
-	// kilocode_change end
+	// kade_change end
 
 	if (rules.length > 0) {
 		sections.push(`Rules:\n\n${rules.join("\n\n")}`)

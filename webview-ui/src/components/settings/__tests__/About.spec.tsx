@@ -25,7 +25,7 @@ vi.mock("@roo/package", () => ({
 	},
 }))
 
-// kilocode_change: our about screen is very different
+// kade_change: our about screen is very different
 describe.skip("About", () => {
 	const defaultProps = {
 		telemetrySetting: "enabled" as const,

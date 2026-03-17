@@ -19,14 +19,14 @@ import {
 import { WebviewMessage } from "@roo/WebviewMessage";
 import { Mode, getAllModes } from "@roo/modes";
 import { ExtensionMessage } from "@roo/ExtensionMessage";
-import type { ProfileType, ClineMessage } from "@roo-code/types"; // kilocode_change - autocomplete profile type system
+import type { ProfileType, ClineMessage } from "@roo-code/types"; // kade_change - autocomplete profile type system
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"; // kilocode_change
-import { useRooPortal } from "@/components/ui/hooks/useRooPortal"; // kilocode_change
-import KiloTaskHeader from "../kilocode/KiloTaskHeader"; // kilocode_change
+} from "@/components/ui/popover"; // kade_change
+import { useRooPortal } from "@/components/ui/hooks/useRooPortal"; // kade_change
+import KiloTaskHeader from "../kilocode/KiloTaskHeader"; // kade_change
 
 import { vscode } from "@/utils/vscode";
 import { useExtensionState } from "../../context/ExtensionStateContext";
@@ -40,8 +40,8 @@ import {
   SearchResult,
 } from "@src/utils/context-mentions";
 import { convertToMentionPath } from "@/utils/path-mentions";
-import { escapeHtml } from "@/utils/highlight"; // kilocode_change - FIM autocomplete
-import { useChatGhostText } from "./hooks/useChatGhostText"; // kilocode_change: FIM autocomplete
+import { escapeHtml } from "@/utils/highlight"; // kade_change - FIM autocomplete
+import { useChatGhostText } from "./hooks/useChatGhostText"; // kade_change: FIM autocomplete
 import { DropdownOptionType, Button, StandardTooltip } from "@/components/ui";
 
 import Thumbnails from "../common/Thumbnails";
@@ -70,15 +70,15 @@ import {
   Play,
 } from "lucide-react";
 import { IndexingStatusBadge } from "./IndexingStatusBadge";
-import { MicrophoneButton } from "./MicrophoneButton"; // kilocode_change: STT microphone button
-import { VolumeVisualizer } from "./VolumeVisualizer"; // kilocode_change: STT volume level visual
-import { VoiceRecordingCursor } from "./VoiceRecordingCursor"; // kilocode_change: STT recording cursor
+import { MicrophoneButton } from "./MicrophoneButton"; // kade_change: STT microphone button
+import { VolumeVisualizer } from "./VolumeVisualizer"; // kade_change: STT volume level visual
+import { VoiceRecordingCursor } from "./VoiceRecordingCursor"; // kade_change: STT recording cursor
 import { cn } from "@/lib/utils";
 import { usePromptHistory } from "./hooks/usePromptHistory";
-import { useSTT } from "@/hooks/useSTT"; // kilocode_change: STT hook
+import { useSTT } from "@/hooks/useSTT"; // kade_change: STT hook
 import { formatLargeNumber } from "@/utils/format";
 
-// kilocode_change start: pull slash commands from Cline
+// kade_change start: pull slash commands from Cline
 import SlashCommandMenu from "@/components/chat/SlashCommandMenu";
 import {
   SlashCommand,
@@ -87,10 +87,10 @@ import {
   insertSlashCommand,
   validateSlashCommand,
 } from "@/utils/slash-commands";
-import { ModelSelector } from "../kilocode/chat/ModelSelector"; // kilocode_change: Move model selector here
-import { useSelectedModel } from "@/components/ui/hooks/useSelectedModel"; // kilocode_change: for ModelSelector
+import { ModelSelector } from "../kilocode/chat/ModelSelector"; // kade_change: Move model selector here
+import { useSelectedModel } from "@/components/ui/hooks/useSelectedModel"; // kade_change: for ModelSelector
 import { AutoApproveDropdown } from "./AutoApproveDropdown";
-// kilocode_change end
+// kade_change end
 
 interface ChatTextAreaProps {
   inputValue: string;
@@ -111,9 +111,9 @@ interface ChatTextAreaProps {
   isEditMode?: boolean;
   onCancel?: () => void;
   onDelete?: () => void;
-  sendMessageOnEnter?: boolean; // kilocode_change
+  sendMessageOnEnter?: boolean; // kade_change
   showBrowserDockToggle?: boolean;
-  // kilocode_change start: Task header props
+  // kade_change start: Task header props
   task?: ClineMessage;
   tokensIn?: number;
   tokensOut?: number;
@@ -129,20 +129,20 @@ interface ChatTextAreaProps {
   todos?: any[];
   isStreaming?: boolean;
   onStop?: () => void;
-  onOpenImage?: (image: string) => void; // kilocode_change
-  enableSubAgents?: boolean; // kilocode_change
-  setEnableSubAgents?: (value: boolean) => void; // kilocode_change
-  // kilocode_change: Action buttons
+  onOpenImage?: (image: string) => void; // kade_change
+  enableSubAgents?: boolean; // kade_change
+  setEnableSubAgents?: (value: boolean) => void; // kade_change
+  // kade_change: Action buttons
   primaryButtonText?: string;
   secondaryButtonText?: string;
   enableButtons?: boolean;
   primaryButtonVariant?: "default" | "minimal";
   onPrimaryButtonClick?: (text?: string, images?: string[]) => void;
   onSecondaryButtonClick?: (text?: string, images?: string[]) => void;
-  // kilocode_change end
+  // kade_change end
 }
 
-// kilocode_change start
+// kade_change start
 function handleSessionCommand(
   trimmedInput: string,
   setInputValue: (value: string) => void,
@@ -191,7 +191,7 @@ function handleSessionCommand(
 
   return false;
 }
-// kilocode_change end
+// kade_change end
 
 export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
   (
@@ -214,7 +214,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       onCancel,
       onDelete,
       sendMessageOnEnter = true,
-      // kilocode_change start
+      // kade_change start
       task,
       tokensIn,
       tokensOut,
@@ -239,7 +239,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       primaryButtonVariant = "default",
       onPrimaryButtonClick,
       onSecondaryButtonClick,
-      // kilocode_change end
+      // kade_change end
     },
     ref,
   ) => {
@@ -254,21 +254,21 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       cwd,
       pinnedApiConfigs,
       togglePinnedApiConfig,
-      localWorkflows, // kilocode_change
-      globalWorkflows, // kilocode_change
-      taskHistoryVersion, // kilocode_change
+      localWorkflows, // kade_change
+      globalWorkflows, // kade_change
+      taskHistoryVersion, // kade_change
       clineMessages,
-      ghostServiceSettings, // kilocode_change
+      ghostServiceSettings, // kade_change
       language, // User's VSCode display language
-      experiments, // kilocode_change: For speechToText experiment flag
-      speechToTextStatus, // kilocode_change: Speech-to-text availability status with failure reason
-      sttProvider, // kilocode_change: STT provider choice
-      apiConfiguration, // kilocode_change: for ModelSelector
-      virtualQuotaActiveModel, // kilocode_change: for ModelSelector
-      showAutoApproveMenu, // kilocode_change: for AutoApproveDropdown
+      experiments, // kade_change: For speechToText experiment flag
+      speechToTextStatus, // kade_change: Speech-to-text availability status with failure reason
+      sttProvider, // kade_change: STT provider choice
+      apiConfiguration, // kade_change: for ModelSelector
+      virtualQuotaActiveModel, // kade_change: for ModelSelector
+      showAutoApproveMenu, // kade_change: for AutoApproveDropdown
     } = useExtensionState();
 
-    // kilocode_change start - autocomplete profile type system
+    // kade_change start - autocomplete profile type system
     // Filter out autocomplete profiles - only show chat profiles in the chat interface
     const listApiConfigMeta = useMemo(() => {
       if (!listApiConfigMeta_unfilteredByKiloCodeProfileType) {
@@ -282,7 +282,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         },
       );
     }, [listApiConfigMeta_unfilteredByKiloCodeProfileType]);
-    // kilocode_change end
+    // kade_change end
 
     const { id: selectedModelId, provider: selectedProvider } =
       useSelectedModel(apiConfiguration);
@@ -312,7 +312,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       [],
     );
 
-    // kilocode_change begin: remove button from chat when it gets to small
+    // kade_change begin: remove button from chat when it gets to small
     const [containerWidth, setContainerWidth] = useState(0);
     const safeContextTokens = Math.max(0, contextTokens ?? 0);
     const safeContextWindow = Math.max(0, contextWindow ?? 0);
@@ -340,7 +340,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       };
     }, [contextUsagePercent]);
 
-    const portalContainer = useRooPortal("roo-portal"); // kilocode_change
+    const portalContainer = useRooPortal("roo-portal"); // kade_change
 
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -363,7 +363,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         resizeObserver.disconnect();
       };
     }, []);
-    // kilocode_change end: Container width tracking for responsive UI
+    // kade_change end: Container width tracking for responsive UI
 
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchRequestId, setSearchRequestId] = useState<string>("");
@@ -425,7 +425,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             setFileSearchResults(message.results || []);
           }
         } else if (message.type === "insertTextToChatArea") {
-          // kilocode_change
+          // kade_change
           if (message.text) {
             setInputValue(message.text);
             setTimeout(() => {
@@ -441,13 +441,13 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       return () => window.removeEventListener("message", messageHandler);
     }, [setInputValue, searchRequestId, inputValue, onSend]);
     const [isDraggingOver, setIsDraggingOver] = useState(false);
-    // kilocode_change start: Slash commands state
+    // kade_change start: Slash commands state
     const [showSlashCommandsMenu, setShowSlashCommandsMenu] = useState(false);
     const [selectedSlashCommandsIndex, setSelectedSlashCommandsIndex] =
       useState(0);
     const [slashCommandsQuery, setSlashCommandsQuery] = useState("");
     const slashCommandsMenuContainerRef = useRef<HTMLDivElement>(null);
-    // kilocode_change end: Slash commands state
+    // kade_change end: Slash commands state
     const [textAreaBaseHeight, setTextAreaBaseHeight] = useState<
       number | undefined
     >(undefined);
@@ -457,7 +457,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
     const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
     const [isMouseDownOnMenu, setIsMouseDownOnMenu] = useState(false);
 
-    // kilocode_change: Use STT (Speech-to-Text) hook
+    // kade_change: Use STT (Speech-to-Text) hook
     // Track input state when recording starts
     const recordingStartStateRef = useRef<{
       beforeCursor: string;
@@ -555,8 +555,8 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             : 0)
         : 0;
     const highlightLayerRef = useRef<HTMLDivElement>(null);
-    const shouldAutoScrollToCaretRef = useRef(false); // kilocode_change
-    // kilocode_change start: Plus Menu State
+    const shouldAutoScrollToCaretRef = useRef(false); // kade_change
+    // kade_change start: Plus Menu State
     const [isPlusMenuVisible, setIsPlusMenuVisible] = useState(false);
 
     const [selectedMenuIndex, setSelectedMenuIndex] = useState(-1);
@@ -569,8 +569,8 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
     >(null);
     const contextMenuContainerRef = useRef<HTMLDivElement>(null);
     const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
-    // const [isFocused, setIsFocused] = useState(false) // kilocode_change - not needed
-    // kilocode_change start: FIM autocomplete ghost text
+    // const [isFocused, setIsFocused] = useState(false) // kade_change - not needed
+    // kade_change start: FIM autocomplete ghost text
     const {
       ghostText,
       handleKeyDown: handleGhostTextKeyDown,
@@ -580,8 +580,8 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       enableChatAutocomplete:
         ghostServiceSettings?.enableChatAutocomplete ?? false,
     });
-    // kilocode_change end: FIM autocomplete ghost text
-    const [imageWarning, setImageWarning] = useState<string | null>(null); // kilocode_change
+    // kade_change end: FIM autocomplete ghost text
+    const [imageWarning, setImageWarning] = useState<string | null>(null); // kade_change
 
     // Use custom hook for prompt history navigation
     const {
@@ -591,7 +591,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
     } = usePromptHistory({
       clineMessages,
       taskHistoryVersion,
-      cwd, // kilocode_change
+      cwd, // kade_change
       inputValue,
       setInputValue,
     });
@@ -624,7 +624,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       }
     }, [inputValue, setInputValue, t]);
 
-    // kilocode_change start: Image and speech handlers
+    // kade_change start: Image and speech handlers
     const showImageWarning = useCallback(
       (messageKey: string) => {
         setImageWarning(messageKey);
@@ -644,7 +644,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       }
     }, [isRecording, startSTT, stopSTT, language]);
 
-    // kilocode_change start: Auto-clear images when model changes to non-image-supporting
+    // kade_change start: Auto-clear images when model changes to non-image-supporting
     const prevShouldDisableImages = useRef<boolean>(shouldDisableImages);
     useEffect(() => {
       if (
@@ -662,7 +662,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       setSelectedImages,
       showImageWarning,
     ]);
-    // kilocode_change end: Auto-clear images when model changes to non-image-supporting
+    // kade_change end: Auto-clear images when model changes to non-image-supporting
 
     const allModes = useMemo(() => getAllModes(customModes), [customModes]);
 
@@ -722,7 +722,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
           return;
         }
         if (type === ContextMenuOptionType.Image) {
-          // kilocode_change start: Image selection handling
+          // kade_change start: Image selection handling
           // Close the context menu and remove the @character in this case
           setShowContextMenu(false);
           setSelectedType(null);
@@ -744,7 +744,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
           // Call the image selection function
           onSelectImages();
           return;
-        } // kilocode_change end: Image selection handling
+        } // kade_change end: Image selection handling
 
         if (type === ContextMenuOptionType.NoResults) {
           return;
@@ -819,7 +819,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
     );
 
     const handleSlashCommandsSelect = useCallback(
-      // kilocode_change start: Slash command selection
+      // kade_change start: Slash command selection
       (command: SlashCommand) => {
         setShowSlashCommandsMenu(false);
 
@@ -857,13 +857,13 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         }
       },
       [setInputValue, setMode, customModes],
-    ); // kilocode_change end: Slash command selection
+    ); // kade_change end: Slash command selection
 
     const handleKeyDown = useCallback(
       (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        // kilocode_change start: pull slash commands from Cline
+        // kade_change start: pull slash commands from Cline
         if (showSlashCommandsMenu) {
-          // kilocode_change start: Slash command menu navigation
+          // kade_change start: Slash command menu navigation
           if (event.key === "Escape") {
             setShowSlashCommandsMenu(false);
             return;
@@ -878,7 +878,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                 customModes,
                 localWorkflows,
                 globalWorkflows,
-              ); // kilocode_change
+              ); // kade_change
 
               if (commands.length === 0) {
                 return prevIndex;
@@ -907,7 +907,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             }
             return;
           }
-        } // kilocode_change end: Slash command menu navigation
+        } // kade_change end: Slash command menu navigation
         if (showContextMenu) {
           if (event.key === "Escape") {
             setShowContextMenu(false);
@@ -981,15 +981,15 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
           }
         }
 
-        // kilocode_change start: FIM autocomplete - Tab to accept ghost text
+        // kade_change start: FIM autocomplete - Tab to accept ghost text
         if (handleGhostTextKeyDown(event)) {
           return; // Event was handled by ghost text hook, stop here
         }
-        // kilocode_change end: FIM autocomplete
+        // kade_change end: FIM autocomplete
 
         const isComposing = event.nativeEvent?.isComposing ?? false;
 
-        const shouldSendMessage = // kilocode_change start: Send message handling
+        const shouldSendMessage = // kade_change start: Send message handling
           !isComposing &&
           event.key === "Enter" &&
           ((sendMessageOnEnter && !event.shiftKey) ||
@@ -1013,7 +1013,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         // Handle prompt history navigation using custom hook
         if (handleHistoryNavigation(event, showContextMenu, isComposing)) {
           return;
-        } // kilocode_change end: Send message handling
+        } // kade_change end: Send message handling
 
         if (event.key === "Backspace" && !isComposing) {
           const charBeforeCursor = inputValue[cursorPosition - 1];
@@ -1072,15 +1072,15 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         }
       },
       [
-        showSlashCommandsMenu, // kilocode_change start
+        showSlashCommandsMenu, // kade_change start
         localWorkflows,
         globalWorkflows,
         customModes,
         handleSlashCommandsSelect,
         selectedSlashCommandsIndex,
         slashCommandsQuery,
-        handleGhostTextKeyDown, // kilocode_change: FIM autocomplete
-        // kilocode_change end
+        handleGhostTextKeyDown, // kade_change: FIM autocomplete
+        // kade_change end
         onSend,
         showContextMenu,
         searchQuery,
@@ -1115,26 +1115,26 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 
     const handleInputChange = useCallback(
       (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        // kilocode_change start
+        // kade_change start
         const target = e.target;
         const newValue = target.value;
         const cursorAtEnd =
           target.selectionStart === target.selectionEnd &&
           target.selectionEnd === newValue.length;
         shouldAutoScrollToCaretRef.current = cursorAtEnd;
-        // kilocode_change end
+        // kade_change end
 
         setInputValue(newValue);
 
         // Reset history navigation when user types
         resetOnInputChange();
 
-        handleGhostTextInputChange(e); // kilocode_change - FIM autocomplete
+        handleGhostTextInputChange(e); // kade_change - FIM autocomplete
 
         const newCursorPosition = target.selectionStart; // Use target for consistency
         setCursorPosition(newCursorPosition);
 
-        let showMenu = shouldShowContextMenu(newValue, newCursorPosition); // kilocode_change start: Slash command menu logic
+        let showMenu = shouldShowContextMenu(newValue, newCursorPosition); // kade_change start: Slash command menu logic
         const showSlashCommandsMenu = shouldShowSlashCommandsMenu(
           newValue,
           newCursorPosition,
@@ -1146,12 +1146,12 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
           showMenu = false;
         }
 
-        setShowSlashCommandsMenu(showSlashCommandsMenu); // kilocode_change end: Slash command menu logic
+        setShowSlashCommandsMenu(showSlashCommandsMenu); // kade_change end: Slash command menu logic
 
         setShowContextMenu(showMenu);
 
         if (showSlashCommandsMenu) {
-          // kilocode_change start: Slash command query handling
+          // kade_change start: Slash command query handling
           const slashIndex = newValue.indexOf("/");
           const query = newValue.slice(slashIndex + 1, newCursorPosition);
           setSlashCommandsQuery(query);
@@ -1159,13 +1159,13 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         } else {
           setSlashCommandsQuery("");
           setSelectedSlashCommandsIndex(0);
-        } // kilocode_change end: Slash command query handling
+        } // kade_change end: Slash command query handling
 
         if (showMenu) {
           const lastAtIndex = newValue.lastIndexOf("@", newCursorPosition - 1);
 
           if (newValue.startsWith("/") && lastAtIndex === -1) {
-            // kilocode_change: Prevent slash command conflict with mentions
+            // kade_change: Prevent slash command conflict with mentions
             // Handle slash command.
             const query = newValue;
             setSearchQuery(query);
@@ -1217,7 +1217,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         setFileSearchResults,
         setSearchLoading,
         resetOnInputChange,
-        handleGhostTextInputChange, // kilocode_change: FIM autocomplete
+        handleGhostTextInputChange, // kade_change: FIM autocomplete
       ],
     );
 
@@ -1233,7 +1233,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         if (!isMouseDownOnMenu) {
           setShowContextMenu(false);
           setShowSlashCommandsMenu(false);
-        } // kilocode_change
+        } // kade_change
 
         if (
           isEditMode &&
@@ -1244,7 +1244,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
           onCancel();
         }
 
-        // setIsFocused(false) // kilocode_change - not needed
+        // setIsFocused(false) // kade_change - not needed
       },
       [isMouseDownOnMenu, isEditMode, onCancel],
     );
@@ -1290,7 +1290,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         });
 
         if (imageItems.length > 0) {
-          // kilocode_change start: Image paste validation
+          // kade_change start: Image paste validation
           e.preventDefault();
 
           if (shouldDisableImages) {
@@ -1300,7 +1300,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
           if (selectedImages.length >= MAX_IMAGES_PER_MESSAGE) {
             showImageWarning(`kilocode:imageWarnings.maxImagesReached`);
             return;
-          } // kilocode_change end: Image paste validation
+          } // kade_change end: Image paste validation
 
           const imagePromises = imageItems.map((item) => {
             return new Promise<string | null>((resolve) => {
@@ -1349,7 +1349,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         inputValue,
         t,
         selectedImages.length,
-        showImageWarning, // kilocode_change
+        showImageWarning, // kade_change
       ],
     );
 
@@ -1360,7 +1360,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
     const updateHighlights = useCallback(() => {
       if (!textAreaRef.current || !highlightLayerRef.current) return;
 
-      let processedText = textAreaRef.current.value; // kilocode_change start: Slash command highlighting
+      let processedText = textAreaRef.current.value; // kade_change start: Slash command highlighting
 
       processedText = processedText
         .replace(/\n$/, "\n\n")
@@ -1396,7 +1396,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         }
       }
 
-      // kilocode_change start - STT preview text highlighting
+      // kade_change start - STT preview text highlighting
       if (
         isRecording &&
         previewRanges.length > 0 &&
@@ -1421,22 +1421,22 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             after;
         }
       }
-      // kilocode_change end - STT preview text highlighting
-      // kilocode_change start - autocomplete ghost text display
+      // kade_change end - STT preview text highlighting
+      // kade_change start - autocomplete ghost text display
       if (inputValue && ghostText) {
         processedText += `<span class="text-vscode-editor-foreground opacity-60 pointer-events-none">${escapeHtml(ghostText)}</span>`;
       }
-      // kilocode_change end - autocomplete ghost text display
+      // kade_change end - autocomplete ghost text display
 
       highlightLayerRef.current.innerHTML = processedText;
       highlightLayerRef.current.scrollTop = textAreaRef.current.scrollTop;
       highlightLayerRef.current.scrollLeft = textAreaRef.current.scrollLeft;
-    }, [customModes, ghostText, inputValue, isRecording, previewRanges]); // kilocode_change - merged dependencies
+    }, [customModes, ghostText, inputValue, isRecording, previewRanges]); // kade_change - merged dependencies
 
     useLayoutEffect(() => {
       updateHighlights();
 
-      // kilocode_change start
+      // kade_change start
       if (!shouldAutoScrollToCaretRef.current) {
         return;
       }
@@ -1457,7 +1457,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       });
 
       return () => cancelAnimationFrame(rafId);
-      // kilocode_change end
+      // kade_change end
     }, [inputValue, liveTranscript, updateHighlights]);
 
     const updateCursorPosition = useCallback(() => {
@@ -1544,7 +1544,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             return type === "image" && acceptedTypes.includes(subtype);
           });
 
-          // kilocode_change start: Image validation with warning messages for drag and drop
+          // kade_change start: Image validation with warning messages for drag and drop
           if (imageFiles.length > 0) {
             if (shouldDisableImages) {
               showImageWarning("kilocode:imageWarnings.modelNoImageSupport");
@@ -1554,7 +1554,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
               showImageWarning("kilocode:imageWarnings.maxImagesReached");
               return;
             }
-            // kilocode_change end: Image validation with warning messages for drag and drop
+            // kade_change end: Image validation with warning messages for drag and drop
 
             const imagePromises = imageFiles.map((file) => {
               return new Promise<string | null>((resolve) => {
@@ -1606,8 +1606,8 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         shouldDisableImages,
         setSelectedImages,
         t,
-        selectedImages.length, // kilocode_change - added selectedImages.length
-        showImageWarning, // kilocode_change - added showImageWarning
+        selectedImages.length, // kade_change - added selectedImages.length
+        showImageWarning, // kade_change - added showImageWarning
       ],
     );
 
@@ -1635,7 +1635,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
     );
 
     // Helper function to render mode
-    // kilocode_change: unused
+    // kade_change: unused
     const _renderModeSelector = () => (
       <ModeSelector
         value={mode}
@@ -1649,7 +1649,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
     );
 
     // Helper function to get API config dropdown options
-    // kilocode_change: unused
+    // kade_change: unused
     const _getApiConfigOptions = useMemo(() => {
       const pinnedConfigs = (listApiConfigMeta || [])
         .filter((config) => pinnedApiConfigs && pinnedApiConfigs[config.id])
@@ -1702,7 +1702,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
     }, [listApiConfigMeta, pinnedApiConfigs, t]);
 
     // Helper function to handle API config change
-    // kilocode_change: unused
+    // kade_change: unused
     const _handleApiConfigChange = useCallback((value: string) => {
       if (value === "settingsButtonClicked") {
         vscode.postMessage({
@@ -1716,7 +1716,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
     }, []);
 
     // Helper function to render API config item
-    // kilocode_change: unused
+    // kade_change: unused
     const _renderApiConfigItem = useCallback(
       ({ type, value, label, pinned }: any) => {
         if (type !== DropdownOptionType.ITEM) {
@@ -1785,7 +1785,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             ) {
               let text = target.textContent?.substring(1).trim(); // remove @ and trim whitespace
               if (text) {
-                // kilocode_change: Strip leading slash for workspace-relative paths to fix Mac compatibility
+                // kade_change: Strip leading slash for workspace-relative paths to fix Mac compatibility
                 if (text.startsWith("/")) {
                   text = text.substring(1);
                 }
@@ -1807,7 +1807,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             isDraggingOver
               ? "border-2 border-dashed border-vscode-focusBorder"
               : "border border-transparent",
-            "py-2 px-3", // kilocode_change: reduce vertical padding
+            "py-2 px-3", // kade_change: reduce vertical padding
             "z-10",
             "forced-color-adjust-none",
           )}
@@ -1860,7 +1860,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 
             onHeightChange?.(height);
           }}
-          placeholder={`${placeholderText}`} // kilocode_change: single line placeholder to keep size small
+          placeholder={`${placeholderText}`} // kade_change: single line placeholder to keep size small
           minRows={1}
           maxRows={15}
           autoFocus={true}
@@ -1878,7 +1878,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             "text-vscode-editor-font-size",
             "leading-vscode-editor-line-height",
             "cursor-text",
-            "py-2 px-3", // kilocode_change: reduce vertical padding
+            "py-2 px-3", // kade_change: reduce vertical padding
             "focus:outline-none focus:ring-0 focus:border-transparent",
             isDraggingOver
               ? "bg-[color-mix(in_srgb,var(--vscode-input-background)_95%,var(--vscode-focusBorder))]"
@@ -1896,7 +1896,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
           onScroll={() => updateHighlights()}
         />
 
-        {/* kilocode_change: Visual cursor indicator during voice recording */}
+        {/* kade_change: Visual cursor indicator during voice recording */}
         <VoiceRecordingCursor
           textAreaRef={textAreaRef}
           cursorPosition={recordingCursorPosition}
@@ -1935,7 +1935,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
               "right-0",
               "z-[1000]",
               "mb-2",
-              // kilocode_change: Remove filter/drop-shadow which breaks backdrop-blur in children
+              // kade_change: Remove filter/drop-shadow which breaks backdrop-blur in children
               !isEditMode && "px-4",
             )}
           >
@@ -1975,7 +1975,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
               "outline-none",
               "px-1",
               "pt-0",
-            )} // kilocode_change: reduced padding
+            )} // kade_change: reduced padding
             onDrop={handleDrop}
             onDragOver={(e) => {
               // Only allowed to drop images/files on shift key pressed.
@@ -2002,14 +2002,14 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
               }
             }}
           >
-            {/* kilocode_change start: ImageWarningBanner integration */}
+            {/* kade_change start: ImageWarningBanner integration */}
             <ImageWarningBanner
               messageKey={imageWarning ?? ""}
               onDismiss={dismissImageWarning}
               isVisible={!!imageWarning}
             />
-            {/* kilocode_change end: ImageWarningBanner integration */}
-            {/* kilocode_change start: pull slash commands from Cline */}
+            {/* kade_change end: ImageWarningBanner integration */}
+            {/* kade_change start: pull slash commands from Cline */}
             {showSlashCommandsMenu && (
               <div ref={slashCommandsMenuContainerRef}>
                 <SlashCommandMenu
@@ -2022,7 +2022,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                 />
               </div>
             )}
-            {/* kilocode_change end: pull slash commands from Cline */}
+            {/* kade_change end: pull slash commands from Cline */}
 
             {renderTextAreaSection()}
           </div>
@@ -2031,20 +2031,20 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             {/* Left: Selectors */}
             <div className="flex items-center gap-2 flex-wrap min-w-0">
               <div className="flex items-center gap-0 min-w-0">
-                {/* kilocode_change start: Plus Menu */}
+                {/* kade_change start: Plus Menu */}
 
-                {/* kilocode_change end */}
+                {/* kade_change end */}
 
-                {/* kilocode_change start: KiloModeSelector instead of ModeSelector */}
+                {/* kade_change start: KiloModeSelector instead of ModeSelector */}
                 <KiloModeSelector
                   value={mode}
                   onChange={setMode}
                   modeShortcutText={modeShortcutText}
                   customModes={customModes}
                 />
-                {/* kilocode_change end */}
+                {/* kade_change end */}
 
-                {/* kilocode_change: Move ModelSelector here */}
+                {/* kade_change: Move ModelSelector here */}
                 {apiConfiguration && (
                   <div
                     className="flex min-w-0 mt-[-0.1px]"
@@ -2067,7 +2067,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                   </div>
                 )}
 
-                {/* kilocode_change start: Plus Menu (Moved to right of ModelSelector) */}
+                {/* kade_change start: Plus Menu (Moved to right of ModelSelector) */}
                 <Popover
                   open={isPlusMenuVisible}
                   onOpenChange={setIsPlusMenuVisible}
@@ -2136,9 +2136,9 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                     </div>
                   </PopoverContent>
                 </Popover>
-                {/* kilocode_change end */}
+                {/* kade_change end */}
 
-                {/* kilocode_change: Action Buttons Pill */}
+                {/* kade_change: Action Buttons Pill */}
                 {(primaryButtonText || secondaryButtonText) && (
                   <div
                     className={cn(
@@ -2193,7 +2193,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                     )}
                   </div>
                 )}
-                {/* kilocode_change end */}
+                {/* kade_change end */}
               </div>
             </div>
 
@@ -2270,7 +2270,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                 <VolumeVisualizer volume={volumeLevel} isActive={isRecording} />
               )}
 
-              {/* kilocode_change start: Task Popover */}
+              {/* kade_change start: Task Popover */}
               {task &&
                 handleCondenseContext &&
                 onCloseTask &&
@@ -2323,7 +2323,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                     </PopoverContent>
                   </Popover>
                 )}
-              {/* kilocode_change end */}
+              {/* kade_change end */}
 
               <StandardTooltip content={t("chat:addImages")}>
                 <button
@@ -2351,9 +2351,9 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                   />
                 </button>
               </StandardTooltip>
-              {/* kilocode_change end */}
+              {/* kade_change end */}
 
-              {/* kilocode_change start: Show microphone button only if experiment enabled */}
+              {/* kade_change start: Show microphone button only if experiment enabled */}
               {experiments?.speechToText && (
                 <div className="flex items-center gap-1">
                   {isModelLoading && modelLoadingProgress && (
@@ -2387,7 +2387,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                   />
                 </div>
               )}
-              {/* kilocode_change end */}
+              {/* kade_change end */}
 
               <div className="relative w-5 h-5">
                 <AnimatePresence initial={false}>

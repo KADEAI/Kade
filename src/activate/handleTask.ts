@@ -5,7 +5,7 @@ import { ClineProvider } from "../core/webview/ClineProvider"
 import { t } from "../i18n"
 
 export const handleNewTask = async (
-	// kilocode_change start: Add profile and mode switching support
+	// kade_change start: Add profile and mode switching support
 	params: { prompt?: string; profile?: string; mode?: string } | null | undefined,
 ) => {
 	let prompt = params?.prompt
@@ -22,7 +22,7 @@ export const handleNewTask = async (
 		return
 	}
 
-	// kilocode_change start: Handle profile and mode switching if provided
+	// kade_change start: Handle profile and mode switching if provided
 	if (params?.profile || params?.mode) {
 		try {
 			const visibleProvider = await ClineProvider.getInstance()
@@ -37,7 +37,7 @@ export const handleNewTask = async (
 			return
 		}
 	}
-	// kilocode_change end: Add profile and mode switching support
+	// kade_change end: Add profile and mode switching support
 
 	await ClineProvider.handleCodeAction("newTask", "NEW_TASK", { userInput: prompt })
 }
