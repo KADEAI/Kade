@@ -47,6 +47,25 @@ describe("parseStructuredEditBlocks compact DSL", () => {
       '<body>\n    <a href="#" class="btn">Get Started →</a>\n</body>',
     );
   });
+
+  it("accepts canonical old/new structured edit headers", () => {
+    const blocks = parseStructuredEditBlocks(`old[44-51]: <body>
+    <a href="#" class="btn">Click Me</a>
+</body>
+new: <body>
+    <a href="#" class="btn">Get Started →</a>
+</body>`);
+
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].start_line).toBe(44);
+    expect(blocks[0].end_line).toBe(51);
+    expect(blocks[0].oldText).toBe(
+      '<body>\n    <a href="#" class="btn">Click Me</a>\n</body>',
+    );
+    expect(blocks[0].newText).toBe(
+      '<body>\n    <a href="#" class="btn">Get Started →</a>\n</body>',
+    );
+  });
 });
 
 describe("parseLineRangeFromString", () => {

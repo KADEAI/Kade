@@ -88,12 +88,63 @@ export function extractParamsFromXml(text: string): Record<string, string> {
   return params;
 }
 
+function parseStringifiedFileTargetArray(value: unknown): unknown[] | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function normalizeFileEntryInputs(files: any[]): any[] {
+  const expandTargets = (value: any): any[] => {
+    const parsedStringArray = parseStringifiedFileTargetArray(value);
+    if (parsedStringArray) {
+      return parsedStringArray.flatMap((item) => expandTargets(item));
+    }
+
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return [value];
+    }
+
+    const parsedPathArray = parseStringifiedFileTargetArray(value.path);
+    if (!parsedPathArray) {
+      return [value];
+    }
+
+    const { path: _ignoredPath, ...rest } = value;
+    return parsedPathArray.flatMap((item) => {
+      if (typeof item === "string") {
+        return [{ ...rest, path: item }];
+      }
+
+      if (item && typeof item === "object" && !Array.isArray(item)) {
+        return [{ ...rest, ...item }];
+      }
+
+      return [];
+    });
+  };
+
+  return files.flatMap((file) => expandTargets(file));
+}
+
 /**
  * Unified File Entry Conversion
  * Standardizes various line range formats into { path, lineRanges }
  */
 export function convertFileEntries(files: any[]): FileEntry[] {
-  return files.map((file: any) => {
+  return normalizeFileEntryInputs(files).map((file: any) => {
     const parseInlineTarget = (target: string): FileEntry | null => {
       const trimmed = target.trim();
       const colonIndex = trimmed.lastIndexOf(":");
@@ -106,10 +157,7 @@ export function convertFileEntries(files: any[]): FileEntry[] {
           .filter(Boolean);
 
         if (path && modifiers.length > 0) {
-          const entry: FileEntry = {
-            path,
-            lineRanges: [],
-          };
+          const entry: FileEntry = { path };
 
           for (const modifier of modifiers) {
             const headMatch = modifier.match(/^H(\d+)$/i);

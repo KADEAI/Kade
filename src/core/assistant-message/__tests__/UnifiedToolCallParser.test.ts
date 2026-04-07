@@ -491,25 +491,44 @@ New content what about this?`);
     });
   });
 
-  it("parses oldtxt/newtxt and otxt/ntxt aliases", () => {
-    const edits = (parser as any).parseEditBlocks(`oldtxt 3-4: alpha
+  it("parses old/new, oldtxt/newtxt, and otxt/ntxt aliases", () => {
+    const edits = (parser as any).parseEditBlocks(`old 1-2: before
+alpha
+new: after
+beta
+oldtxt 3-4: alpha
 beta
 newtxt: gamma
 delta
 otxt: left
 ntxt: right`);
 
-    expect(edits).toHaveLength(2);
+    expect(edits).toHaveLength(3);
     expect(edits[0]).toMatchObject({
+      start_line: 1,
+      end_line: 2,
+      oldText: ["before", "alpha"].join("\n"),
+      newText: ["after", "beta"].join("\n"),
+    });
+    expect(edits[1]).toMatchObject({
       start_line: 3,
       end_line: 4,
       oldText: ["alpha", "beta"].join("\n"),
       newText: ["gamma", "delta"].join("\n"),
     });
-    expect(edits[1]).toMatchObject({
+    expect(edits[2]).toMatchObject({
       oldText: "left",
       newText: "right",
     });
+  });
+
+  it("serializes inline compact edits back to canonical old/new blocks", () => {
+    const { blocks } = parser.processChunk(`@edit: "sample.txt" "left->right"`);
+    const toolBlock = blocks.find((block) => block.type === "tool_use") as any;
+
+    expect(toolBlock).toBeDefined();
+    expect(toolBlock.name).toBe("edit");
+    expect(toolBlock.params.edit).toBe(["old:", "left", "new:", "right"].join("\n"));
   });
 
   it("parses bracketed OTXT/NTXT ranges", () => {

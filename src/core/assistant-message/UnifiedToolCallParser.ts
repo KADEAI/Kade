@@ -2155,11 +2155,13 @@ export class UnifiedToolCallParser {
     const createIndexedAtToolUse = (
       command: string,
       args: string[],
+      rawArgs: string,
       partial: boolean = false,
     ) => {
       const toolUse = this.createAtToolUse(
         command,
         args,
+        rawArgs,
         partial,
         nextToolIndex,
       );
@@ -2219,7 +2221,7 @@ export class UnifiedToolCallParser {
       if (command === "read") {
         blocks.push(
           parsedAction.syntax === "at"
-            ? createIndexedAtToolUse(command, atArgs, false)
+            ? createIndexedAtToolUse(command, atArgs, rest, false)
             : createIndexedToolUse(originalCommand, rest, !isClosed),
         );
         continue;
@@ -2228,7 +2230,7 @@ export class UnifiedToolCallParser {
       if (command === "grep") {
         blocks.push(
           parsedAction.syntax === "at"
-            ? createIndexedAtToolUse(command, atArgs, false)
+            ? createIndexedAtToolUse(command, atArgs, rest, false)
             : createIndexedToolUse(
                 originalCommand,
                 this.convertNaturalSearchArgs(rest),
@@ -2241,7 +2243,7 @@ export class UnifiedToolCallParser {
       if (command === "find") {
         blocks.push(
           parsedAction.syntax === "at"
-            ? createIndexedAtToolUse(command, atArgs, false)
+            ? createIndexedAtToolUse(command, atArgs, rest, false)
             : createIndexedToolUse(
                 originalCommand,
                 this.convertNaturalFindArgs(rest),
@@ -2254,7 +2256,7 @@ export class UnifiedToolCallParser {
       if (command === "list") {
         blocks.push(
           parsedAction.syntax === "at"
-            ? createIndexedAtToolUse(command, atArgs, false)
+            ? createIndexedAtToolUse(command, atArgs, rest, false)
             : createIndexedToolUse(
                 originalCommand,
                 this.convertNaturalListArgs(rest),
@@ -2267,7 +2269,7 @@ export class UnifiedToolCallParser {
       if (command === "mkdir") {
         blocks.push(
           parsedAction.syntax === "at"
-            ? createIndexedAtToolUse(command, atArgs, false)
+            ? createIndexedAtToolUse(command, atArgs, rest, false)
             : createIndexedToolUse(originalCommand, rest, !isClosed),
         );
         continue;
@@ -2275,7 +2277,7 @@ export class UnifiedToolCallParser {
 
       if (command === "bash") {
         if (parsedAction.syntax === "at") {
-          blocks.push(createIndexedAtToolUse(command, atArgs, false));
+          blocks.push(createIndexedAtToolUse(command, atArgs, rest, false));
         } else {
           blocks.push(
             this.createActionsBashToolUse(
@@ -2293,7 +2295,7 @@ export class UnifiedToolCallParser {
       if (command === "web") {
         blocks.push(
           parsedAction.syntax === "at"
-            ? createIndexedAtToolUse(command, atArgs, false)
+            ? createIndexedAtToolUse(command, atArgs, rest, false)
             : createIndexedToolUse(originalCommand, rest, !isClosed),
         );
         continue;
@@ -2302,7 +2304,7 @@ export class UnifiedToolCallParser {
       if (command === "fetch") {
         blocks.push(
           parsedAction.syntax === "at"
-            ? createIndexedAtToolUse(command, atArgs, false)
+            ? createIndexedAtToolUse(command, atArgs, rest, false)
             : createIndexedToolUse(originalCommand, rest, !isClosed),
         );
         continue;
@@ -2311,7 +2313,7 @@ export class UnifiedToolCallParser {
       if (command === "ask") {
         blocks.push(
           parsedAction.syntax === "at"
-            ? createIndexedAtToolUse(command, atArgs, false)
+            ? createIndexedAtToolUse(command, atArgs, rest, false)
             : createIndexedToolUse(originalCommand, rest, !isClosed),
         );
         continue;
@@ -2335,7 +2337,7 @@ export class UnifiedToolCallParser {
         const editIsPartial = hasInlineEditArgs ? false : !isClosed || !sawCloser;
         const editTool =
           parsedAction.syntax === "at"
-            ? createIndexedAtToolUse(command, atArgs, editIsPartial)
+            ? createIndexedAtToolUse(command, atArgs, rest, editIsPartial)
             : createIndexedToolUse(
                 originalCommand,
                 rest,
@@ -2373,7 +2375,7 @@ export class UnifiedToolCallParser {
         const writeIsPartial = hasInlineWriteArgs ? false : !isClosed || !sawCloser;
         const writeTool =
           parsedAction.syntax === "at"
-            ? createIndexedAtToolUse(command, atArgs, writeIsPartial)
+            ? createIndexedAtToolUse(command, atArgs, rest, writeIsPartial)
             : createIndexedToolUse(
                 originalCommand,
                 rest,
@@ -2422,7 +2424,7 @@ export class UnifiedToolCallParser {
         }
         const todoTool =
           parsedAction.syntax === "at"
-            ? createIndexedAtToolUse(command, atArgs, !isClosed || !sawCloser)
+            ? createIndexedAtToolUse(command, atArgs, rest, !isClosed || !sawCloser)
             : createIndexedToolUse(
                 originalCommand,
                 "",
@@ -2440,7 +2442,7 @@ export class UnifiedToolCallParser {
       if (command === "agent") {
         blocks.push(
           parsedAction.syntax === "at"
-            ? createIndexedAtToolUse(command, atArgs, false)
+            ? createIndexedAtToolUse(command, atArgs, rest, false)
             : createIndexedToolUse(originalCommand, rest, !isClosed),
         );
         continue;
@@ -2449,7 +2451,7 @@ export class UnifiedToolCallParser {
       if (command === "desktop" || command === "computer_action") {
         blocks.push(
           parsedAction.syntax === "at"
-            ? createIndexedAtToolUse(command, atArgs, false)
+            ? createIndexedAtToolUse(command, atArgs, rest, false)
             : createIndexedToolUse(originalCommand, rest, !isClosed),
         );
         continue;
@@ -2815,9 +2817,9 @@ export class UnifiedToolCallParser {
         const hasRange =
           typeof edit.start_line === "number" && typeof edit.end_line === "number";
         const rangeHeader = hasRange
-          ? `otxt[${edit.start_line}${edit.end_line !== edit.start_line ? `-${edit.end_line}` : ""}]:`
-          : "otxt:";
-        return [rangeHeader, edit.oldText, "ntxt:", edit.newText].join("\n");
+          ? `old[${edit.start_line}${edit.end_line !== edit.start_line ? `-${edit.end_line}` : ""}]:`
+          : "old:";
+        return [rangeHeader, edit.oldText, "new:", edit.newText].join("\n");
       })
       .join("\n");
   }
@@ -3494,6 +3496,7 @@ export class UnifiedToolCallParser {
   private createAtToolUse(
     command: string,
     args: string[],
+    rawArgs: string,
     partial: boolean = false,
     toolIndex?: number,
   ): any {
@@ -3516,6 +3519,8 @@ export class UnifiedToolCallParser {
 
     const firstArg = args[0] ?? "";
     const secondArg = args[1] ?? "";
+    const trimmedRawArgs = rawArgs.trim();
+    const normalizedRawArgs = this.stripMatchingOuterQuotes(trimmedRawArgs);
     const setPath = (path: string, options?: { targetFile?: boolean }) => {
       toolUse.params.path = path;
       toolUse.nativeArgs.path = path;
@@ -3681,20 +3686,33 @@ export class UnifiedToolCallParser {
         break;
       }
       case "grep": {
-        const scopedGrepArg = !secondArg
-          ? this.parseScopedInlineArg(firstArg)
+        const scopedGrepArg = !secondArg && normalizedRawArgs
+          ? this.parseScopedInlineArg(normalizedRawArgs)
           : null;
-        const queryArg = scopedGrepArg?.payload ?? firstArg;
         const { value: pathArg, remaining } = this.consumeNamedOrInAtArgument(
           args.slice(1),
           ["path"],
         );
-        const positionalTarget = remaining[0];
+        const legacyPositionalTarget =
+          !pathArg && args.length === 2 ? remaining[0] : undefined;
+        const positionalTarget = pathArg || legacyPositionalTarget;
         const includeMatch = positionalTarget?.match(/^include\s*=\s*(.+)$/i);
         const parsedScope = scopedGrepArg
           ? this.parseGrepScopeArg(scopedGrepArg.scope)
           : {};
-        toolUse.params.query = this.splitPipe(queryArg);
+        const queryTail = includeMatch ? remaining.slice(0, -1) : remaining;
+        const querySegments = scopedGrepArg
+          ? [scopedGrepArg.payload]
+          : pathArg || includeMatch
+            ? [firstArg, ...queryTail]
+            : legacyPositionalTarget
+              ? [firstArg]
+              : args;
+        toolUse.params.query = this.splitPipe(
+          querySegments
+            .filter((segment) => typeof segment === "string" && segment.length > 0)
+            .join(" "),
+        );
         toolUse.nativeArgs.query = toolUse.params.query;
         if (parsedScope.include) {
           toolUse.params.include = parsedScope.include;
@@ -3707,32 +3725,42 @@ export class UnifiedToolCallParser {
           ? parsedScope.path
           : includeMatch
             ? "."
-            : pathArg || positionalTarget || ".";
+            : positionalTarget || ".";
         toolUse.nativeArgs.path = toolUse.params.path;
         break;
       }
       case "find": {
-        const scopedFindArg = !secondArg
-          ? this.parseScopedInlineArg(firstArg)
+        const scopedFindArg = !secondArg && normalizedRawArgs
+          ? this.parseScopedInlineArg(normalizedRawArgs)
           : null;
         const { value: pathArg, remaining } = this.consumeNamedOrInAtArgument(
           args.slice(1),
           ["path"],
         );
+        const legacyPositionalPath =
+          !pathArg && args.length === 2 ? remaining[0] : undefined;
         toolUse.params.pattern = this.splitGlobPatterns(
-          scopedFindArg?.payload ?? firstArg,
+          scopedFindArg?.payload ??
+            (pathArg
+              ? [firstArg, ...remaining].join(" ")
+              : legacyPositionalPath
+                ? firstArg
+                : args.join(" ")),
         );
         toolUse.nativeArgs.pattern = toolUse.params.pattern;
-        toolUse.params.path = scopedFindArg?.scope || pathArg || remaining[0] || ".";
+        toolUse.params.path =
+          scopedFindArg?.scope || pathArg || legacyPositionalPath || ".";
         toolUse.nativeArgs.path = toolUse.params.path;
         break;
       }
       case "list":
-        setPath(firstArg || ".");
+        setPath(normalizedRawArgs || firstArg || ".");
         break;
       case "bash": {
-        const scopedBashArg = !secondArg
-          ? this.parseScopedInlineArg(firstArg)
+        const scopedBashArg = normalizedRawArgs
+          ? this.parseScopedInlineArg(normalizedRawArgs, {
+              allowWhitespaceScope: false,
+            })
           : null;
         const { value: cwdArg, remaining } = this.consumeNamedOrInAtArgument(
           args.slice(1),
@@ -3767,18 +3795,18 @@ export class UnifiedToolCallParser {
       }
       case "web":
       case "ask":
-        toolUse.params.query = firstArg;
-        toolUse.nativeArgs.query = firstArg;
+        toolUse.params.query = normalizedRawArgs || firstArg;
+        toolUse.nativeArgs.query = toolUse.params.query;
         break;
       case "fetch":
-        toolUse.params.url = firstArg;
-        toolUse.nativeArgs.url = firstArg;
+        toolUse.params.url = normalizedRawArgs || firstArg;
+        toolUse.nativeArgs.url = toolUse.params.url;
         break;
       case "agent":
-        toolUse.params.prompt = firstArg;
-        toolUse.nativeArgs.prompt = firstArg;
-        toolUse.params.instructions = firstArg;
-        toolUse.nativeArgs.instructions = firstArg;
+        toolUse.params.prompt = normalizedRawArgs || firstArg;
+        toolUse.nativeArgs.prompt = toolUse.params.prompt;
+        toolUse.params.instructions = toolUse.params.prompt;
+        toolUse.nativeArgs.instructions = toolUse.params.instructions;
         break;
       case "edit":
         setPath(firstArg);
@@ -3795,14 +3823,14 @@ export class UnifiedToolCallParser {
         break;
       case "todo":
         toolUse.isArgBased = false;
-        if (firstArg) {
-          toolUse.params.todos = firstArg;
-          toolUse.nativeArgs.todos = firstArg;
+        if (normalizedRawArgs || firstArg) {
+          toolUse.params.todos = normalizedRawArgs || firstArg;
+          toolUse.nativeArgs.todos = toolUse.params.todos;
         }
         break;
       case "desktop":
       case "computer_action":
-        this.applyDesktopAtArgs(toolUse, args);
+        this.applyDesktopAtArgs(toolUse, args, rawArgs);
         break;
       default:
         this.populateToolArgs(command, args.join(" "), toolUse);
@@ -3894,8 +3922,14 @@ export class UnifiedToolCallParser {
     return { value, remaining };
   }
 
-  private applyDesktopAtArgs(toolUse: any, args: string[]): void {
-    const rawFirstArg = (args[0] ?? "").trim();
+  private applyDesktopAtArgs(
+    toolUse: any,
+    args: string[],
+    rawArgs?: string,
+  ): void {
+    const rawFirstArg = this.stripMatchingOuterQuotes(
+      (rawArgs?.trim() || args[0] || "").trim(),
+    );
     const parseActionAndInlineValue = (
       input: string,
     ): { action: string; inlineValue?: string } => {
@@ -6118,10 +6152,10 @@ export class UnifiedToolCallParser {
     const normalizedOldNewBlocks = normalizeLegacyInlineHeader(
       normalizeLegacyInlineHeader(
         diffContent,
-        ["oldText", "oldtxt", "otxt"],
+        ["old", "oldText", "oldtxt", "otxt"],
         "SEARCH",
       ),
-      ["newText", "newtxt", "ntxt"],
+      ["new", "newText", "newtxt", "ntxt"],
       "REPLACE",
     );
     const sanitized = normalizedOldNewBlocks.replace(

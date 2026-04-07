@@ -43,7 +43,7 @@ describe("translateApiMessagesForUnifiedHistory", () => {
       content: [
         {
           type: "text",
-          text: '@list: "zed"',
+          text: "@list: zed",
         },
       ],
     });
@@ -89,9 +89,9 @@ describe("translateApiMessagesForUnifiedHistory", () => {
 
     expect((translated[0] as any).content[0].text).toBe(
       [
-        '@read: "zed/zed-agent-issues.md"',
-        '@read: "src/app.ts:1-20"',
-        '@grep: "agent|edit" "zed"',
+        "@read: zed/zed-agent-issues.md",
+        "@read: src/app.ts:1-20",
+        "@grep: agent|edit zed",
       ].join("\n"),
     );
   });
@@ -147,7 +147,11 @@ describe("translateApiMessagesForUnifiedHistory", () => {
     );
 
     expect((translated[0] as any).content[0].text).toBe(
-      `@write: "src/app.ts|${formatWriteHistoryPlaceholderBody("const a = 1\nconst b = 2")}"`,
+      [
+        "@write: src/app.ts",
+        formatWriteHistoryPlaceholderBody("const a = 1\nconst b = 2"),
+        "EOF",
+      ].join("\n"),
     );
   });
 
@@ -183,9 +187,15 @@ describe("translateApiMessagesForUnifiedHistory", () => {
 
     expect((translated[0] as any).content[0].text).toBe(
       [
-        '@edit: "src/app.ts"',
-        '"10-12|const a...→const a..."',
-        '"20|const b...→const b..."',
+        "@edit: src/app.ts",
+        "old[10-12]:",
+        "const a...",
+        "new:",
+        "const a...",
+        "old[20]:",
+        "const b...",
+        "new:",
+        "const b...",
       ].join("\n"),
     );
   });
@@ -223,7 +233,12 @@ describe("translateApiMessagesForUnifiedHistory", () => {
     );
 
     expect((translated[0] as any).content[0].text).toBe(
-      '@write: "src/app.ts|const a = 1\\nconst b = 2"',
+      [
+        "@write: src/app.ts",
+        "const a = 1",
+        "const b = 2",
+        "EOF",
+      ].join("\n"),
     );
   });
 
@@ -294,7 +309,7 @@ describe("translateApiMessagesForUnifiedHistory", () => {
     );
 
     expect((translated[0] as any).content[0].text).toBe(
-      ['@desktop: "get_screenshot"', '@desktop: "left_click:500,500"'].join(
+      ["@desktop: get_screenshot", "@desktop: left_click:500,500"].join(
         "\n",
       ),
     );
@@ -367,7 +382,7 @@ describe("translateApiMessagesForUnifiedHistory", () => {
       TOOL_PROTOCOL.UNIFIED,
     );
 
-    expect(text).toBe('@list: "."');
+    expect(text).toBe("@list: .");
   });
 
   it("serializes parsed wrapped tool_call blocks into canonical markdown history", () => {
@@ -460,7 +475,11 @@ describe("translateApiMessagesForUnifiedHistory", () => {
     );
 
     expect(text).toBe(
-      `@write: "src/app.ts|${formatWriteHistoryPlaceholderBody("const a = 1\nconst b = 2")}"`,
+      [
+        "@write: src/app.ts",
+        formatWriteHistoryPlaceholderBody("const a = 1\nconst b = 2"),
+        "EOF",
+      ].join("\n"),
     );
   });
 
@@ -498,8 +517,11 @@ describe("translateApiMessagesForUnifiedHistory", () => {
 
     expect(text).toBe(
       [
-        '@edit: "src/app.ts"',
-        '"10-12|const a...→const a..."',
+        "@edit: src/app.ts",
+        "old[10-12]:",
+        "const a...",
+        "new:",
+        "const a...",
       ].join("\n"),
     );
   });
@@ -538,7 +560,12 @@ describe("translateApiMessagesForUnifiedHistory", () => {
     );
 
     expect(text).toBe(
-      '@write: "src/app.ts|const a = 1\\nconst b = 2"',
+      [
+        "@write: src/app.ts",
+        "const a = 1",
+        "const b = 2",
+        "EOF",
+      ].join("\n"),
     );
   });
 

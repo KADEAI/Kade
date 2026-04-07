@@ -512,8 +512,8 @@ describe("NativeToolCallParser", () => {
                         arguments: {
                             path: "game.py",
                             edit: [
-                                { lines: "1-3", old: "oldText", new: "Edited line" },
-                                { lines: "4-7", old: "otherOld", new: "Other line" },
+                                { lineRange: "1-3", oldText: "oldText", newText: "Edited line" },
+                                { lineRange: "4-7", oldText: "otherOld", newText: "Other line" },
                             ],
                         },
                     },
@@ -1658,8 +1658,8 @@ describe("NativeToolCallParser", () => {
 		)
 		expect(compacted.commands[2]).toContain("edit:src/app.ts")
 		expect(compacted.commands[2]).toContain(HISTORY_CONTENT_PLACEMENT_PLACEHOLDER)
-		expect(compacted.commands[2]).toContain("oldText:")
-		expect(compacted.commands[2]).toContain("newText:")
+		expect(compacted.commands[2]).toContain("old:")
+		expect(compacted.commands[2]).toContain("new:")
 	})
 
 	it("compacts grouped tool call string history without dropping preserved calls", () => {
@@ -1706,14 +1706,14 @@ describe("NativeToolCallParser", () => {
 				{
 					start_line: 10,
 					end_line: 12,
-					oldText: "before",
-					newText: "after",
+					old: "before",
+					new: "after",
 				},
 				{
 					start_line: 20,
 					end_line: 20,
-					oldText: "left",
-					newText: "right",
+					old: "left",
+					new: "right",
 				},
 			],
 		})
@@ -1730,8 +1730,8 @@ describe("NativeToolCallParser", () => {
 		).toEqual({
 			path: "sample.txt",
 			lineRange: "1-4",
-			oldText: "before",
-			newText: "after",
+			old: "before",
+			new: "after",
 		})
 	})
 

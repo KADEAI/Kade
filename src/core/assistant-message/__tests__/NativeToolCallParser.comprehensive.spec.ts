@@ -117,6 +117,23 @@ const parserExtraCases: ParseCase[] = [
         },
     },
     {
+        name: "read",
+        args: {
+            files: [
+                {
+                    path: '["dope-react-app/src/App.jsx","dope-react-app/src/App.css","dope-react-app/src/index.css"]',
+                },
+            ],
+        },
+        expectedNativeArgs: {
+            files: [
+                { path: "dope-react-app/src/App.jsx" },
+                { path: "dope-react-app/src/App.css" },
+                { path: "dope-react-app/src/index.css" },
+            ],
+        },
+    },
+    {
         name: "list_files",
         args: {
             path: "src",
@@ -167,6 +184,17 @@ const partialCases: Array<{
         chunk: '{"path":"fifty_lines.txt:L1-5"',
         expectedNativeArgs: {
             files: [{ path: "fifty_lines.txt", lineRanges: [{ start: 1, end: 5 }] }],
+        },
+    },
+    {
+        name: "read",
+        chunk: '{"files":[{"path":"[\\"dope-react-app/src/App.jsx\\",\\"dope-react-app/src/App.css\\",\\"dope-react-app/src/index.css\\"]"}]',
+        expectedNativeArgs: {
+            files: [
+                { path: "dope-react-app/src/App.jsx" },
+                { path: "dope-react-app/src/App.css" },
+                { path: "dope-react-app/src/index.css" },
+            ],
         },
     },
     {

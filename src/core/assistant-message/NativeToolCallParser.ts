@@ -19,7 +19,11 @@ import {
   MCP_TOOL_SEPARATOR,
   parseMcpToolName,
 } from "../../utils/mcp-name";
-import { convertFileEntries, extractParamsFromXml } from "./XmlToolParser";
+import {
+  convertFileEntries,
+  extractParamsFromXml,
+  normalizeFileEntryInputs,
+} from "./XmlToolParser";
 import { parseStructuredEditBlocks } from "../tools/EditTool";
 import {
   HISTORY_CONTENT_PLACEMENT_PLACEHOLDER,
@@ -334,6 +338,14 @@ export class NativeToolCallParser {
     return this.normalizeNativeEditTextValue(
       args.new ?? args.ntxt ?? args.newText ?? args.new_text ?? args.new_string ?? args.replace,
     );
+  }
+
+  private static canonicalizeRedactedEditHistoryBody(
+    editBody: string,
+  ): string {
+    return redactEditHistoryBody(editBody)
+      .replace(/^\s*(search|oldText|oldtxt|otxt)\b(.*)$/gim, "old$2")
+      .replace(/^\s*(replace|newText|newtxt|ntxt)\b(.*)$/gim, "new$2");
   }
 
   private static readonly IGNORED_META_ARGUMENT_KEYS = new Set([
@@ -1028,9 +1040,9 @@ export class NativeToolCallParser {
                 ? this.getNativeEditLineRange(nestedArgs) !== undefined
                   ? `${this.getNativeEditLineRange(nestedArgs)}|${this.getNativeEditOldText(nestedArgs) ?? ""}->${this.getNativeEditNewText(nestedArgs) ?? ""}`
                   : [
-                      "oldText:",
+                      "old:",
                       this.getNativeEditOldText(nestedArgs) ?? "",
-                      "newText:",
+                      "new:",
                       this.getNativeEditNewText(nestedArgs) ?? "",
                     ].join("\n")
                 : undefined;
@@ -1174,7 +1186,7 @@ export class NativeToolCallParser {
           delete compacted.edits;
         }
       } else {
-        const redacted = redactEditHistoryBody(rawEdit);
+        const redacted = this.canonicalizeRedactedEditHistoryBody(rawEdit);
         if ("edit" in compacted) {
           compacted.edit = redacted;
         }
@@ -1193,7 +1205,23 @@ export class NativeToolCallParser {
 
     const compactBlock = (block: Record<string, any>) => {
       const nextBlock = { ...block };
-      let didReplaceText = false;
+      const oldText = this.getNativeEditOldText(nextBlock);
+      const newText = this.getNativeEditNewText(nextBlock);
+      const hasAnyCanonicalizableEditText = [
+        "old",
+        "new",
+        "otxt",
+        "ntxt",
+        "oldText",
+        "newText",
+        "old_text",
+        "new_text",
+        "old_string",
+        "new_string",
+        "search",
+        "replace",
+      ].some((key) => key in block);
+
       for (const key of [
         "old",
         "new",
@@ -1208,20 +1236,12 @@ export class NativeToolCallParser {
         "search",
         "replace",
       ]) {
-        if (typeof nextBlock[key] === "string") {
-          if (forModel) {
-            delete nextBlock[key];
-          } else {
-            nextBlock[key] = formatEditHistoryPreview(nextBlock[key]);
-          }
-          didReplaceText = true;
-        }
+        delete nextBlock[key];
       }
-      if (!didReplaceText && !forModel) {
-        nextBlock.old = formatEditHistoryPreview(nextBlock.old);
-        nextBlock.new = formatEditHistoryPreview(nextBlock.new);
-        nextBlock.oldText = formatEditHistoryPreview(nextBlock.oldText);
-        nextBlock.newText = formatEditHistoryPreview(nextBlock.newText);
+
+      if (!forModel && hasAnyCanonicalizableEditText) {
+        nextBlock.old = formatEditHistoryPreview(oldText);
+        nextBlock.new = formatEditHistoryPreview(newText);
       }
       return nextBlock;
     };
@@ -1962,6 +1982,25 @@ export class NativeToolCallParser {
     ) {
       normalizedArgs.path = normalizedArgs.file;
       delete normalizedArgs.file;
+    }
+
+    if (resolvedName === "read") {
+      if (Array.isArray(normalizedArgs.files)) {
+        normalizedArgs.files = normalizeFileEntryInputs(normalizedArgs.files);
+      }
+
+      if (typeof normalizedArgs.path === "string") {
+        const normalizedPathTargets = normalizeFileEntryInputs([
+          normalizedArgs.path,
+        ]);
+        if (
+          normalizedPathTargets.length > 1 ||
+          normalizedPathTargets[0] !== normalizedArgs.path
+        ) {
+          normalizedArgs.files = normalizedPathTargets;
+          delete normalizedArgs.path;
+        }
+      }
     }
 
     if (resolvedName === "edit") {

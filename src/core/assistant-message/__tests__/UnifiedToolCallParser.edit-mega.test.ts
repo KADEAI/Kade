@@ -292,11 +292,15 @@ describe("UnifiedToolCallParser — unified @edit schema mega spec", () => {
     ]);
   });
 
-  it("parses oldtxt/newtxt and otxt/ntxt aliases inside an @edit block", () => {
+  it("parses old/new, oldtxt/newtxt, and otxt/ntxt aliases inside an @edit block", () => {
     const tools = editTools(
       finalizeParse(
         [
           '@edit: "sample.txt"',
+          "old 1-2: before",
+          "alpha",
+          "new: after",
+          "beta",
           "oldtxt 7-8: alpha",
           "beta",
           "newtxt: gamma",
@@ -310,11 +314,30 @@ describe("UnifiedToolCallParser — unified @edit schema mega spec", () => {
     expect(tools).toHaveLength(1);
     expect(tools[0].nativeArgs.edits).toEqual([
       {
+        oldText: ["before", "alpha"].join("\n"),
+        newText: ["after", "beta"].join("\n"),
+        start_line: 1,
+        end_line: 2,
+      },
+      {
         oldText: ["alpha", "beta"].join("\n"),
         newText: ["gamma", "delta"].join("\n"),
         start_line: 7,
         end_line: 8,
       },
+      {
+        oldText: "left",
+        newText: "right",
+      },
+    ]);
+  });
+
+  it("canonicalizes inline compact edits inside an @edit call to old/new blocks", () => {
+    const tools = editTools(finalizeParse('@edit: "sample.txt" "left->right"'));
+
+    expect(tools).toHaveLength(1);
+    expect(tools[0].params.edit).toBe(["old:", "left", "new:", "right"].join("\n"));
+    expect(tools[0].nativeArgs.edits).toEqual([
       {
         oldText: "left",
         newText: "right",

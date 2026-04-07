@@ -34,66 +34,66 @@ Description:
 ===`,
     `Syntax:
     arguments with ? = optional
-@read: "path:ranges?"
-@grep: "scope?:query" (scope is optional; use path or include=*file_name,*.ext? or to use both, split with a | include=*file_name,*.ext?|path. Split on the first : only, so the rest of the query stays literal. Use include= when searching text/docs/non-code files or needing less noise in a grep search)
-@find: "path?:pattern,optional commas?"
-@ls: "path"
-@bash: "path?:command"
-@web: "query"
-@fetch: "url"${isIndexingEnabled ? '\n@ask: "query"' : ""}${isSubAgentEnabled ? '@agent: "prompt"' : ""}
-@edit: "path"
-otxt[range?]: Old content
-ntxt: New content
+@read: path:ranges?
+@grep: scope?:query (scope is optional; use path or include=*file_name,*.ext? or to use both, split with a | include=*file_name,*.ext?|path. Split on the first : only, so the rest of the query stays literal. Use include= when searching text/docs/non-code files or needing less noise in a grep search)
+@find: path?:pattern,optional commas?
+@ls: path
+@bash: path?:command
+@web: query
+@fetch: url${isIndexingEnabled ? '\n@ask: query' : ""}${isSubAgentEnabled ? '\n@agent: prompt' : ""}
+@edit: path
+old[range?]: Old content
+new: New content
 
-[More otxt/ntxt blocks?]
+[More old/new blocks?]
 EOF
-@write: "path"
+@write: path
 Content goes here
-EOF${isTodoEnabled ? '\n\n@todo: "title?"\n[ ] item\n[-] item\n[x] item\nETXT' : ""}${isComputerEnabled ? '\n@desktop: "action[:value]" "optional extra value?" (for pointer actions after @desktop: "get_screenshot", plain x,y means normalized 0-1000 grid coordinates)' : ""}
+EOF${isTodoEnabled ? '\n\n@todo: title?\n[ ] item\n[-] item\n[x] item\nETXT' : ""}${isComputerEnabled ? '\n@desktop: action[:value] optional extra value? (for pointer actions after @desktop: get_screenshot, plain x,y means normalized 0-1000 grid coordinates)' : ""}
 ===`,
 
     `Examples:
-@read: "sample.txt"    
-@read: "sample.txt:1-7,10-19,T20"
-@read: "sample.txt:1-100"
-@grep: "include=*.txt|sample.txt:dog|cats|pizza"
-@grep: "dogs|cats"
-@grep: "include=*.ts,*.tsx:AuthService|SessionManager"
-@grep: "include=*.tsx|webview-ui:readtool|edittool"
-@find: "sample.txt"
-@find: "src:*.ts,*.tsx"
-@find: "tsconfig.json,package.json"
-@ls: "."
-@ls: "src/components"
-@bash: "echo all your base are belong to us"
-@bash: "react-app:npm run build"
-@web: "best pizza in nyc"
-@fetch: "https://example.com"${isIndexingEnabled ? '\n\n@ask: "where does auth start"' : ""}${isSubAgentEnabled ? '\n\n@agent: "analyze the current project structure"' : ""}${isComputerEnabled ? '\n@desktop: "get_screenshot"\n@desktop: "mouse_move:500,500"\n@desktop: "left_click:500,500"\n@desktop: "double_click:500,500"\n@desktop: "key:Cmd+K"\n@desktop: "type:hello world"\n@desktop: "scroll:500,500:down:500"\n@desktop: "get_cursor_position"' : ""}
-@edit: "sample.txt"
-otxt[4-6]: Line 2
+@read: sample.txt    
+@read: sample.txt:1-7,10-19,T20
+@read: sample.txt:1-100
+@grep: include=*.txt|sample.txt:dog|cats|pizza
+@grep: dogs|cats
+@grep: include=*.ts,*.tsx:AuthService|SessionManager
+@grep: include=*.tsx|webview-ui:readtool|edittool
+@find: sample.txt
+@find: src:*.ts,*.tsx
+@find: tsconfig.json,package.json
+@ls: .
+@ls: src/components
+@bash: echo all your base are belong to us
+@bash: react-app:npm run build
+@web: best pizza in nyc
+@fetch: https://example.com${isIndexingEnabled ? '\n\n@ask: where does auth start' : ""}${isSubAgentEnabled ? '\n\n@agent: analyze the current project structure' : ""}${isComputerEnabled ? '\n@desktop: get_screenshot\n@desktop: mouse_move:500,500\n@desktop: left_click:500,500\n@desktop: double_click:500,500\n@desktop: key:Cmd+K\n@desktop: type:hello world\n@desktop: scroll:500,500:down:500\n@desktop: get_cursor_position' : ""}
+@edit: sample.txt
+old[4-6]: Line 2
 Line 3
-ntxt: Edited line 2
+new: Edited line 2
 Edited line 3
 Added line 4
 
-otxt: Bad line
-ntxt: Good line
+old: Bad line
+new: Good line
 
-otxt: the tenth and last line.
-ntxt: cool!
+old: the tenth and last line.
+new: cool!
 EOF
-@write: "sample.txt"
+@write: sample.txt
 This is a sample text file
 This is line 2 of this sample text file
-EOF${isTodoEnabled ? '\n\n@todo: "Implementation"\n[ ] Analyze requirements\n[-] Update parser\n[x] Add tests\nETXT' : ""}
+EOF${isTodoEnabled ? '\n\n@todo: Implementation\n[ ] Analyze requirements\n[-] Update parser\n[x] Add tests\nETXT' : ""}
 
 Simple independent batch example:
-@read: "README.md:1-40"
-@grep: "src:TODO|FIXME"
-@write: "sample.txt"
+@read: README.md:1-40
+@grep: src:TODO|FIXME
+@write: sample.txt
 this is a sample text file
 EOF
-@write: "notes.txt"
+@write: notes.txt
 Investigation notes
 - README intro captured separately
 - TODO/FIXME scan requested separately
@@ -104,27 +104,28 @@ EOF
 - @grep uses scope?:query. If scope is present, split on the first : only. Scope may be path or include=...|path.
 - @find uses path?:pattern. If a path is present, split on the first : only.
 - @bash uses path?:command. If a path is present, split on the first : only.
-- Escape a literal top-level tool line in prose or content with a leading /, such as /@read: "file.ts" or /@server_tool: {"key":"value"}.
+- Escape a literal top-level tool line in prose or content with a leading /, such as /@read: file.ts or /@server_tool: {"key":"value"}.
 - Escape a literal EOF line in prose or content as /EOF.
 - Use prose when no tools are needed.
 - Use only tool calls when tools are needed.
 - Tool mode begins when the first non-whitespace line starts with @name:
 - Tool lines start at column 1 as @name:
 - Only a top-level line starting at column 1 as @name: is a tool call.
-Invald: Let me read this file @read: "file.ts"
+Invald: Let me read this file @read: file.ts
 Valid: Let me read this file
-@read: "file.ts"
+@read: file.ts
 === Escaping
 - Inline mentions like "use @read for files" inside a normal sentence are just text.
 - If you place a tool line on its own top-level line while discussing or demonstrating the tools, escape it with a leading / so it stays literal.
-- Escape literal top-level tool lines in prose or content with a leading /, such as /@read: "file.ts" or /@server_tool: {"key":"value"}.
+- Escape literal top-level tool lines in prose or content with a leading /, such as /@read: file.ts or /@server_tool: {"key":"value"}.
 - Escape a literal EOF or ETXT line in prose or content as /EOF or /ETXT.
 - If you are discussing, explaining, or showing the tool syntax itself, always escape those tool lines so they stay literal.
 === Using tools and closing
 - After tool mode begins, every top-level non-empty line must start with @, unless it is body content for the active block or the closing line for that active block.
-- For @edit, use otxt[1-3]: when you want a line range, or otxt: with no range.
-- For @edit, use ntxt: for replacement text.
-- otxt/ntxt blocks may replace a full block or just a substring within a line. You do not need to include the entire old line when the target text is unambiguous.
+- For @edit, use old[1-3]: when you want a line range, or old: with no range.
+- For @edit, use new: for replacement text.
+- old/new blocks may replace a full block or just a substring within a line. You do not need to include the entire old line when the target text is unambiguous.
+- Legacy aliases like otxt/ntxt and oldText/newText are still accepted, but old/new is preferred.
 - For @edit and @write, close the active block with EOF on its own line.
 - For @todo, close the active block with ETXT on its own line.
 - After EOF or ETXT, either start another top-level @tool line or end the response immediately.
@@ -140,7 +141,7 @@ Batching: ${batchingRule}.`,
 - Only the tool names listed here are valid top-level tool names.
 - Do not invent syntax.
 - Do not add unsupported values not shown in the syntax, and do not invent --flags; only use the argument shapes shown here. The only tool that flags are allowed in is the @bash tool.
-${isBrowserEnabled ? '- browser_action is outside this @tool DSL.' : ""}${isComputerEnabled ? '\n- When computer use is available, use @desktop for desktop automation in this DSL. After @desktop: "get_screenshot", plain x,y coordinates are normalized to a visible 0-1000 grid overlay across the screenshot. Prefer compact action-first forms consistently across desktop actions, such as "mouse_move:500,500", "left_click:500,500", "key:Cmd+K", "type:hello world", and "scroll:500,500:down:500".' : ""}
+${isBrowserEnabled ? '- browser_action is outside this @tool DSL.' : ""}${isComputerEnabled ? '\n- When computer use is available, use @desktop for desktop automation in this DSL. After @desktop: get_screenshot, plain x,y coordinates are normalized to a visible 0-1000 grid overlay across the screenshot. Prefer compact action-first forms consistently across desktop actions, such as mouse_move:500,500, left_click:500,500, key:Cmd+K, type:hello world, and scroll:500,500:down:500.' : ""}
 - Do not mix prose with tool calls.
 - The only thing allowed after a tool call, is another tool call or the end of the response.
 - If you include prose after a tool call, the response will be rejected.

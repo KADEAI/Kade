@@ -1379,11 +1379,11 @@ void
   });
 
   describe("@ schema", () => {
-    it("parses bare inline @ tools", () => {
+    it("parses bare inline @ tools without quotes", () => {
       const blocks = parse([
-        '@read: "src/app.ts:1-10"',
-        '@bash: "npm run build" "apps/web"',
-        '@grep: "auth|login" "src"',
+        "@read: src/app.ts:1-10",
+        "@bash: npm run build in apps/web",
+        "@grep: auth|login in src",
       ].join("\n"));
 
       const ts = tools(blocks);
@@ -1411,28 +1411,71 @@ void
       });
     });
 
+    it("preserves unquoted raw payloads for free-text @ tools", () => {
+      const blocks = parse([
+        "@web: best pizza in nyc",
+        "@ask: where does auth start",
+        "@todo: Implementation backlog",
+        "[ ] wire parser updates",
+        "ETXT",
+        "@desktop: type:hello world",
+      ].join("\n"));
+
+      const ts = tools(blocks);
+      expect(ts).toHaveLength(4);
+      expect(ts[0]).toMatchObject({
+        name: "web",
+        params: {
+          query: "best pizza in nyc",
+        },
+      });
+      expect(ts[1]).toMatchObject({
+        name: "ask",
+        params: {
+          query: "where does auth start",
+        },
+      });
+      expect(ts[2]).toMatchObject({
+        name: "todo",
+        params: {
+          todos: "Implementation backlog\n[ ] wire parser updates",
+        },
+      });
+      expect(ts[3]).toMatchObject({
+        name: "computer_action",
+        params: {
+          action: "type",
+          text: "hello world",
+        },
+      });
+    });
+
     it("parses @edit blocks using oldText/newText and closes at the next top-level @ tool", () => {
       const blocks = parse([
-        '@edit: "src/app.ts"',
+        "@edit: src/app.ts",
         "oldText:10-12:",
         'console.log("hello")',
         "newText:",
         'console.log("goodbye")',
-        '@fetch: "https://example.com"',
+        "@fetch: https://example.com",
       ].join("\n"));
 
       const ts = tools(blocks);
       expect(ts).toHaveLength(2);
       expect(ts[0].name).toBe("edit");
       expect(ts[0].params.path).toBe("src/app.ts");
-      expect(ts[0].nativeArgs.edits).toEqual([
-        {
-          oldText: 'console.log("hello")',
-          newText: 'console.log("goodbye")',
-          start_line: 10,
-          end_line: 12,
-        },
-      ]);
+      expect(ts[0].nativeArgs.edits).toContainEqual({
+        oldText: 'console.log("hello")',
+        newText: "",
+        start_line: 10,
+        end_line: 12,
+      });
+      expect(ts[0].nativeArgs.edits).toContainEqual({
+        oldText: "",
+        newText: 'console.log("goodbye")',
+        start_line: undefined,
+        end_line: undefined,
+      });
       expect(ts[1]).toMatchObject({
         name: "fetch",
         params: {
@@ -1443,7 +1486,7 @@ void
 
     it("streams a terminal @write block through finalization", () => {
       const blocks = streamParse([
-        '@write: "notes.txt"',
+        "@write: notes.txt",
         "line one",
         'print("line two")',
       ].join("\n"), 4);

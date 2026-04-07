@@ -380,11 +380,11 @@ const tryParseCompactEditBlocks = (
     }
 
     const hasSearchHeader =
-      /(^|\n)\s*(?:SEARCH|oldText|oldtxt|otxt)(?:[\t ]*(?:\[\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\]|\(\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\)|\d+(?:(?:[-]|,[\t ]*)\d+)?))?\s*:/i.test(
+      /(^|\n)\s*(?:SEARCH|old|oldText|oldtxt|otxt)(?:[\t ]*(?:\[\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\]|\(\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\)|\d+(?:(?:[-]|,[\t ]*)\d+)?))?\s*:/i.test(
         normalizedValue,
       );
     const hasReplaceHeader =
-      /(^|\n)\s*(?:REPLACE|newText|newtxt|ntxt)(?:[\t ]*(?:\[\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\]|\(\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\)|\d+(?:(?:[-]|,[\t ]*)\d+)?))?\s*:/i.test(
+      /(^|\n)\s*(?:REPLACE|new|newText|newtxt|ntxt)(?:[\t ]*(?:\[\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\]|\(\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\)|\d+(?:(?:[-]|,[\t ]*)\d+)?))?\s*:/i.test(
         normalizedValue,
       );
 
@@ -2018,11 +2018,11 @@ export const parseStructuredEditBlocks = (
       const decoded = decodeCompactEditContent(candidate);
       const normalizedDecoded = decoded.replace(/\r\n/g, "\n").trim();
       const hasSearchHeader =
-        /(^|\n)\s*(?:SEARCH|oldText|oldtxt|otxt)(?:[\t ]*(?:\[\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\]|\(\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\)|\d+(?:(?:[-]|,[\t ]*)\d+)?))?\s*:/i.test(
+        /(^|\n)\s*(?:SEARCH|old|oldText|oldtxt|otxt)(?:[\t ]*(?:\[\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\]|\(\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\)|\d+(?:(?:[-]|,[\t ]*)\d+)?))?\s*:/i.test(
           normalizedDecoded,
         );
       const hasReplaceHeader =
-        /(^|\n)\s*(?:REPLACE|newText|newtxt|ntxt)(?:[\t ]*(?:\[\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\]|\(\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\)|\d+(?:(?:[-]|,[\t ]*)\d+)?))?\s*:/i.test(
+        /(^|\n)\s*(?:REPLACE|new|newText|newtxt|ntxt)(?:[\t ]*(?:\[\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\]|\(\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\)|\d+(?:(?:[-]|,[\t ]*)\d+)?))?\s*:/i.test(
           normalizedDecoded,
         );
 
@@ -2061,7 +2061,7 @@ export const parseStructuredEditBlocks = (
     }
 
     const searchHeaderMatch = trimmed.match(
-      /^(SEARCH|oldText|oldtxt|otxt)(?:[\t ]*(?:\[\s*(\d+)(?:(?:[-]|,[\t ]*)(\d+))?\s*\]|\(\s*(\d+)(?:(?:[-]|,[\t ]*)(\d+))?\s*\)|(\d+)(?:(?:[-]|,[\t ]*)(\d+))?))?\s*:(?:[\t ]*(.*))?$/i,
+      /^(SEARCH|old|oldText|oldtxt|otxt)(?:[\t ]*(?:\[\s*(\d+)(?:(?:[-]|,[\t ]*)(\d+))?\s*\]|\(\s*(\d+)(?:(?:[-]|,[\t ]*)(\d+))?\s*\)|(\d+)(?:(?:[-]|,[\t ]*)(\d+))?))?\s*:(?:[\t ]*(.*))?$/i,
     );
     if (searchHeaderMatch) {
       return {
@@ -2095,7 +2095,7 @@ export const parseStructuredEditBlocks = (
 
     const replacementHeaderMatch =
       trimmed.match(
-        /^(REPLACE|newText|newtxt|ntxt)(?:[\t ]*(?:\[\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\]|\(\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\)|\d+(?:(?:[-]|,[\t ]*)\d+)?))?\s*:(?:[\t ]*(.*))?$/i,
+        /^(REPLACE|new|newText|newtxt|ntxt)(?:[\t ]*(?:\[\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\]|\(\s*\d+(?:(?:[-]|,[\t ]*)\d+)?\s*\)|\d+(?:(?:[-]|,[\t ]*)\d+)?))?\s*:(?:[\t ]*(.*))?$/i,
       ) || trimmed.match(/^(REPLACE|newText):(?:[\t ]+(.*))?$/i);
     if (replacementHeaderMatch) {
       return {
@@ -2157,7 +2157,7 @@ export const parseStructuredEditBlocks = (
     }[] = [];
 
     for (const block of rawBlocks) {
-      const isOld = /SEARCH|oldText|oldtxt|otxt/i.test(block.type);
+      const isOld = /SEARCH|old|oldText|oldtxt|otxt/i.test(block.type);
       const isDelete = /rm|remove|delete/i.test(block.type);
       const content = block.content;
 

@@ -259,6 +259,28 @@ describe("formatResponse.formatFilesList", () => {
 		)
 	})
 
+	it("preserves old/new headers when redacting canonical unified edit history", () => {
+		expect(
+			formatEditHistoryPlaceholder(
+				"src/app.ts",
+				[
+					"old[10-12]: const a = 1",
+					"const b = 2",
+					"new: const a = 2",
+					"const b = 3",
+				].join("\n"),
+			),
+		).toBe(
+			[
+				"Edit src/app.ts",
+				"Content placed in paired result below",
+				"old[10-12]:",
+				"new:",
+				"EOF",
+			].join("\n"),
+		)
+	})
+
 	it("detects stripped edit placeholders for defensive parsing", () => {
 		const placeholder = formatEditHistoryPlaceholder("src/app.ts")
 		const structuredPlaceholder = formatEditHistoryPlaceholder(

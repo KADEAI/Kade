@@ -83,10 +83,10 @@ function matchRedactableEditHeader(
 	if (bracketMatch) {
 		const token = bracketMatch[1]
 		const headerLine = `${token}[${bracketMatch[2]}${bracketMatch[3] ? `-${bracketMatch[3]}` : ""}]:`
-		if (/^(search|oldtext|oldtxt|otxt)$/i.test(token)) {
+		if (/^(search|old|oldtext|oldtxt|otxt)$/i.test(token)) {
 			return { kind: "old", headerLine, headerToken: token, rangeStyle: "bracket" }
 		}
-		if (/^(replace|newtext|newtxt|ntxt)$/i.test(token)) {
+		if (/^(replace|new|newtext|newtxt|ntxt)$/i.test(token)) {
 			return { kind: "new", headerLine: `${token}:`, headerToken: token }
 		}
 	}
@@ -95,10 +95,10 @@ function matchRedactableEditHeader(
 	if (parenMatch) {
 		const token = parenMatch[1]
 		const headerLine = `${token}(${parenMatch[2]}${parenMatch[3] ? `-${parenMatch[3]}` : ""}):`
-		if (/^(search|oldtext|oldtxt|otxt)$/i.test(token)) {
+		if (/^(search|old|oldtext|oldtxt|otxt)$/i.test(token)) {
 			return { kind: "old", headerLine, headerToken: token, rangeStyle: "paren" }
 		}
-		if (/^(replace|newtext|newtxt|ntxt)$/i.test(token)) {
+		if (/^(replace|new|newtext|newtxt|ntxt)$/i.test(token)) {
 			return { kind: "new", headerLine: `${token}:`, headerToken: token }
 		}
 	}
@@ -107,10 +107,10 @@ function matchRedactableEditHeader(
 	if (doubleColonMatch) {
 		const token = doubleColonMatch[1]
 		const headerLine = `${token}:${doubleColonMatch[2]}${doubleColonMatch[3] ? `-${doubleColonMatch[3]}` : ""}:`
-		if (/^(search|oldtext|oldtxt|otxt)$/i.test(token)) {
+		if (/^(search|old|oldtext|oldtxt|otxt)$/i.test(token)) {
 			return { kind: "old", headerLine, headerToken: token, rangeStyle: "double-colon" }
 		}
-		if (/^(replace|newtext|newtxt|ntxt)$/i.test(token)) {
+		if (/^(replace|new|newtext|newtxt|ntxt)$/i.test(token)) {
 			return { kind: "new", headerLine: `${token}:`, headerToken: token }
 		}
 	}
@@ -119,10 +119,10 @@ function matchRedactableEditHeader(
 	if (spacedMatch) {
 		const token = spacedMatch[1]
 		const headerLine = `${token} ${spacedMatch[2]}${spacedMatch[3] ? `-${spacedMatch[3]}` : ""}:`
-		if (/^(search|oldtext|oldtxt|otxt)$/i.test(token)) {
+		if (/^(search|old|oldtext|oldtxt|otxt)$/i.test(token)) {
 			return { kind: "old", headerLine, headerToken: token, rangeStyle: "space" }
 		}
-		if (/^(replace|newtext|newtxt|ntxt)$/i.test(token)) {
+		if (/^(replace|new|newtext|newtxt|ntxt)$/i.test(token)) {
 			return { kind: "new", headerLine: `${token}:`, headerToken: token }
 		}
 	}
@@ -133,10 +133,10 @@ function matchRedactableEditHeader(
 	}
 
 	const token = plainMatch[1]
-	if (/^(search|oldtext|oldtxt|otxt)$/i.test(token)) {
+	if (/^(search|old|oldtext|oldtxt|otxt)$/i.test(token)) {
 		return { kind: "old", headerLine: `${token}:`, headerToken: token, rangeStyle: "space" }
 	}
-	if (/^(replace|newtext|newtxt|ntxt)$/i.test(token)) {
+	if (/^(replace|new|newtext|newtxt|ntxt)$/i.test(token)) {
 		return { kind: "new", headerLine: `${token}:`, headerToken: token }
 	}
 
@@ -255,7 +255,7 @@ export function formatEditHistoryPlaceholderBody(
 	].join("\n")
 }
 
-const EDIT_HISTORY_HEADER_REGEX = /^\s*(search|replace|oldText|newText|oldtxt|newtxt|otxt|ntxt)\b.*$/i
+const EDIT_HISTORY_HEADER_REGEX = /^\s*(search|replace|old|new|oldText|newText|oldtxt|newtxt|otxt|ntxt)\b.*$/i
 
 function normalizeEditHistoryHeader(line: string): string {
 	return matchRedactableEditHeader(line)?.headerLine ?? line.trim()
@@ -396,10 +396,10 @@ function isRedactedEditHistoryBody(content: string): boolean {
 	for (let i = 0; i < headerIndexes.length; i++) {
 		const headerIndex = headerIndexes[i]
 		const headerLine = contentLines[headerIndex]
-		if (/^\s*(search|oldText|oldtxt|otxt)\b/i.test(headerLine)) {
+		if (/^\s*(search|old|oldText|oldtxt|otxt)\b/i.test(headerLine)) {
 			sawOldText = true
 		}
-		if (/^\s*(replace|newText|newtxt|ntxt)\b/i.test(headerLine)) {
+		if (/^\s*(replace|new|newText|newtxt|ntxt)\b/i.test(headerLine)) {
 			sawNewText = true
 		}
 

@@ -12,11 +12,11 @@
 }
 
 .history-dropdown-container {
-  --history-shell: rgba(22, 26, 32, 0.34);
+  --history-shell: rgba(28, 28, 28, 0.34);
   --history-surface: transparent;
   --history-surface-hover: rgba(255, 255, 255, 0.045);
   --history-border: rgba(255, 255, 255, 0.06);
-  --history-title: rgba(231, 235, 242, 0.9);
+  --history-title: rgba(231, 231, 231, 0.9);
   position: absolute;
   top: 46px;
   left: 0;

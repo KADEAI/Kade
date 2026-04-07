@@ -242,6 +242,7 @@ function buildExecuteDescription(enabledCanonicalTools: string[]): string {
       "Keep each item minimal: prefer canonical fields over aliases.",
       "Use path arrays for multi-read or multi-list actions.",
       "Use string arrays for multi-query fields when needed.",
+      "For edit, use only old/new/lines fields on output; do not emit oldText/newText.",
       "For edit, prefer flat old/new/lines fields for one replacement, or use edit: [{ old, new, lines? }] for structured multi-block edits.",
     ]),
     buildSection("Syntax", [
@@ -1154,12 +1155,12 @@ export const list: Tool = {
 export const read: Tool = {
   name: "read",
   description:
-    "Read one or more files from the workspace in a single call. Prefer the 'files' array with one string per target. Each item may be a plain path like 'src/app.ts', an inline line range like 'src/app.ts:L10-50', a head read like 'src/app.ts:H20', or a tail read like 'src/app.ts:T20'.",
+    "Read one or more files from the workspace in a single call. Prefer the 'files' array with one string per target. Each item may be a plain path like 'src/app.ts', an inline line range like 'src/app.ts:L10-50', a head read like 'src/app.ts:H20', or a tail read like 'src/app.ts:T20'. Do not JSON-stringify the whole list into one path and do not wrap plain targets inside objects like {\"path\":\"src/app.ts\"} unless the caller explicitly requires that compatibility shape.",
   params: {
     files: {
       type: "array",
       description:
-        "Files to read in one turn. Use one string per file. Supports plain paths, line ranges via 'path:Lstart-end', head reads via 'path:Hcount', and tail reads via 'path:Tcount'. Examples: ['package.json', 'src/app.ts:L1-80', 'src/app.ts:H40', 'src/routes.ts:T20'].",
+        "Files to read in one turn. Use one string per file target, not one string containing a JSON array. Supports plain paths, line ranges via 'path:Lstart-end', head reads via 'path:Hcount', and tail reads via 'path:Tcount'. Examples: ['package.json', 'src/app.ts:L1-80', 'src/app.ts:H40', 'src/routes.ts:T20'].",
       items: {
         type: "string",
         description:

@@ -149,6 +149,48 @@ describe("NativeToolCallParser JSON Edge Cases (Registry Tools Only)", () => {
 	})
 
 	describe("Recovery Path for Registry Tools", () => {
+		it("recovers stringified multi-read arrays embedded in compatibility path objects", () => {
+			const toolUse = NativeToolCallParser.parseToolCall({
+				id: "call_read_stringified_multi_read",
+				name: "read",
+				arguments: JSON.stringify({
+					files: [
+						{
+							path: '["dope-react-app/src/App.jsx","dope-react-app/src/App.css","dope-react-app/src/index.css"]',
+						},
+					],
+				}),
+			}) as any
+
+			expect(toolUse?.nativeArgs).toMatchObject({
+				files: [
+					{ path: "dope-react-app/src/App.jsx" },
+					{ path: "dope-react-app/src/App.css" },
+					{ path: "dope-react-app/src/index.css" },
+				],
+			})
+		})
+
+		it("recovers stringified multi-read arrays while streaming", () => {
+			NativeToolCallParser.clearAllStreamingToolCalls()
+			NativeToolCallParser.startStreamingToolCall("call_stream_read_stringified_multi_read", "read")
+
+			const chunk =
+				'{"files":[{"path":"[\\"dope-react-app/src/App.jsx\\",\\"dope-react-app/src/App.css\\",\\"dope-react-app/src/index.css\\"]"}]}'
+			const res = NativeToolCallParser.processStreamingChunk(
+				"call_stream_read_stringified_multi_read",
+				chunk,
+			) as any
+
+			expect(res?.nativeArgs).toMatchObject({
+				files: [
+					{ path: "dope-react-app/src/App.jsx" },
+					{ path: "dope-react-app/src/App.css" },
+					{ path: "dope-react-app/src/index.css" },
+				],
+			})
+		})
+
 		it("recovers from Unified Protocol 'edit' format", () => {
 			NativeToolCallParser.clearAllStreamingToolCalls()
 			NativeToolCallParser.startStreamingToolCall("call_recover_edit", "edit")

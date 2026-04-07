@@ -39,10 +39,6 @@ function quoteIfNeeded(value: string): string {
   return /\s/.test(value) ? JSON.stringify(value) : value;
 }
 
-function quoteUnified(value: string): string {
-  return JSON.stringify(value);
-}
-
 function formatUnifiedInvocation(
   name: string,
   ...args: Array<string | undefined>
@@ -51,23 +47,12 @@ function formatUnifiedInvocation(
     (value): value is string => typeof value === "string" && value.length > 0,
   );
   return filtered.length > 0
-    ? `@${name}: ${filtered.map((value) => quoteUnified(value)).join(" ")}`
+    ? `@${name}: ${filtered.map((value) => quoteIfNeeded(value)).join(" ")}`
     : `@${name}:`;
 }
 
-function escapeUnifiedCompactWriteValue(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
-}
-
-function escapeUnifiedCompactEditValue(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/→/g, "\\→");
-}
-
 function formatUnifiedWriteInvocation(path: string, content: string): string {
-  return formatUnifiedInvocation(
-    "write",
-    `${escapeUnifiedCompactWriteValue(path)}|${escapeUnifiedCompactWriteValue(content)}`,
-  );
+  return [`@write: ${path}`, content, "EOF"].join("\n");
 }
 
 function formatBrowserActionInvocation(
@@ -236,20 +221,23 @@ function normalizeHistoryEditBlocks(input: Record<string, any>): HistoryEditBloc
 function formatUnifiedEditInvocation(path: string, input: Record<string, any>): string {
   const blocks = normalizeHistoryEditBlocks(input);
   if (blocks.length === 0) {
-    return formatUnifiedInvocation("edit", path);
+    return `@edit: ${path}`;
   }
 
   return [
-    formatUnifiedInvocation("edit", path),
+    `@edit: ${path}`,
     ...blocks.map((block) => {
       const hasRange =
         typeof block.startLine === "number" && typeof block.endLine === "number";
-      const rangePrefix = hasRange
-        ? `${block.startLine}${block.endLine !== block.startLine ? `-${block.endLine}` : ""}|`
-        : "";
-      return quoteUnified(
-        `${rangePrefix}${escapeUnifiedCompactEditValue(block.oldText)}→${escapeUnifiedCompactEditValue(block.newText)}`,
-      );
+      const rangeHeader = hasRange
+        ? `old[${block.startLine}${block.endLine !== block.startLine ? `-${block.endLine}` : ""}]:`
+        : "old:";
+      return [
+        rangeHeader,
+        formatEditHistoryPreview(block.oldText),
+        "new:",
+        formatEditHistoryPreview(block.newText),
+      ].join("\n");
     }),
   ].join("\n");
 }
@@ -417,11 +405,11 @@ function formatEditBlocks(input: Record<string, any>): string {
         (startLine !== undefined && endLine !== undefined
           ? `${startLine}-${endLine}`
           : "");
-      const searchHeader = range ? `otxt[${range}]:` : "otxt:";
+      const searchHeader = range ? `old[${range}]:` : "old:";
       return [
         searchHeader,
         edit?.oldText ?? edit?.old_text ?? "",
-        "ntxt:",
+        "new:",
         edit?.newText ?? edit?.new_text ?? "",
       ]
         .join("\n")

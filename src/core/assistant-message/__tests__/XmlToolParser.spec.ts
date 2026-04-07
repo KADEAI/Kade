@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { convertFileEntries } from "../XmlToolParser"
+import { convertFileEntries, normalizeFileEntryInputs } from "../XmlToolParser"
 
 describe("convertFileEntries", () => {
 	it("parses string file targets with inline line ranges", () => {
@@ -73,6 +73,32 @@ describe("convertFileEntries", () => {
 				path: "tail.txt",
 				tail: 3,
 			},
+		])
+	})
+
+	it("expands JSON-stringified file arrays embedded in a compatibility path object", () => {
+		expect(
+			normalizeFileEntryInputs([
+				{
+					path: '["dope-react-app/src/App.jsx","dope-react-app/src/App.css","dope-react-app/src/index.css"]',
+				},
+			]),
+		).toEqual([
+			{ path: "dope-react-app/src/App.jsx" },
+			{ path: "dope-react-app/src/App.css" },
+			{ path: "dope-react-app/src/index.css" },
+		])
+
+		expect(
+			convertFileEntries([
+				{
+					path: '["dope-react-app/src/App.jsx","dope-react-app/src/App.css","dope-react-app/src/index.css"]',
+				},
+			]),
+		).toEqual([
+			{ path: "dope-react-app/src/App.jsx" },
+			{ path: "dope-react-app/src/App.css" },
+			{ path: "dope-react-app/src/index.css" },
 		])
 	})
 })
