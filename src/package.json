@@ -2,8 +2,8 @@
 	"name": "kade",
 	"displayName": "%extension.displayName%",
 	"description": "%extension.description%",
-	"publisher": "KADEAI",
-	"version": "4.0.1",
+	"publisher": "kade",
+	"version": "4.0.2",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/KADEAI/Kade"

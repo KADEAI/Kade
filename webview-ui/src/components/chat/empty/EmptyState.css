@@ -117,8 +117,9 @@
   display: block;
   object-fit: contain;
   filter: grayscale(1) brightness(0.36);
-  margin-bottom: -6px;
-  margin-left: 9.2px;
+  margin-bottom: -13px;
+  margin-left: 2px;
+  transform: translateY(5px);
 }
 
 .prompt-suggestion-container {
@@ -128,9 +129,10 @@
   align-items: center;
   justify-content: center;
   opacity: 0.5;
-  font-size: 12.7px;
-  font-weight: 400;
+  font-size: 12.5px;
+  font-weight: 420;
   padding: 12px 12px 0px 7px;
+  margin-left: 0.5px;
   text-align: center;
   overflow: visible;
   cursor: pointer;
@@ -139,7 +141,7 @@
   width: 100%;
   max-width: 500px;
   box-sizing: border-box;
-  transform: translateY(-64px);
+  transform: translateY(-54px);
 }
 
 .prompt-suggestion-container:hover {

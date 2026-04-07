@@ -147,8 +147,8 @@ const CardContainer = styled(motion.article)<{
   isolation: isolate;
   animation: ${cardFadeIn} 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
   box-shadow: none;
-  margin-top: 2px;
-  margin-bottom: -1px;
+  margin-top: -1.1px;
+  margin-bottom: -3.6px;
 
   &::before {
     content: "";
@@ -297,7 +297,7 @@ const CommandPreview = styled.span`
   line-height: 1.3;
   font-weight: 500;
   letter-spacing: -0.015em;
-  color: rgba(245, 245, 245, 0.92);
+  color: rgba(194, 194, 194, 0.92);
   font-family: "SF Mono", "Menlo", var(--vscode-editor-font-family, monospace);
 `;
 

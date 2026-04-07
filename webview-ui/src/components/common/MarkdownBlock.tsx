@@ -947,8 +947,8 @@ const StyledMarkdown = styled.div<{ $isStreaming?: boolean }>`
 
   ol > li > .markdown-li-content::after {
     content: counter(markdown-ol-item) ".";
-    left: -1.8em;
-    top: 0.08em;
+    left: -1.46em;
+    top: 0.087em;
     color: rgba(143, 143, 143, 0.76);
     font-size: 0.9em;
     font-weight: 620;
