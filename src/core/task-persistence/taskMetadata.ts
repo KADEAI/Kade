@@ -9,6 +9,9 @@ import { getApiMetrics } from "../../shared/getApiMetrics"
 import { findLastIndex } from "../../shared/array"
 import { getTaskDirectoryPath } from "../../utils/storage"
 import { t } from "../../i18n"
+import { deriveEditHistoryDiffTotals } from "../../shared/kilocode/editHistoryDiffTotals"
+import { createSessionTitlePreview } from "../../shared/kilocode/sanitizeSessionTitle"
+import type { EditMarkerBlock } from "../task/LuxurySpa"
 
 const taskSizeCache = new NodeCache({ stdTTL: 30, checkperiod: 5 * 60 })
 
@@ -24,6 +27,9 @@ export type TaskMetadataOptions = {
 	/** Initial status for the task (e.g., "active" for child tasks) */
 	initialStatus?: "active" | "delegated" | "completed"
 	fileEditCounts?: Map<string, number>
+	fileEditBlockCounts?: Map<string, number>
+	latestEditedLineRanges?: Map<string, { start: number; end: number }[]>
+	recentEditBlockHistory?: Map<string, EditMarkerBlock[][]>
 	activeFileReads?: Record<string, { start: number; end: number }[] | null | undefined> | string[]
 	systemPrompt?: string
 	apiConfiguration?: ProviderSettings
@@ -40,6 +46,9 @@ export async function taskMetadata({
 	mode,
 	initialStatus,
 	fileEditCounts,
+	fileEditBlockCounts,
+	latestEditedLineRanges,
+	recentEditBlockHistory,
 	activeFileReads,
 	systemPrompt,
 	apiConfiguration,
@@ -98,6 +107,8 @@ export async function taskMetadata({
 	// initialStatus is included when provided (e.g., "active" for child tasks)
 	// to ensure the status is set from the very first save, avoiding race conditions
 	// where attempt_completion might run before a separate status update.
+	const diffTotals = deriveEditHistoryDiffTotals(messages)
+
 	const historyItem: HistoryItem = {
 		id,
 		rootTaskId,
@@ -118,16 +129,16 @@ export async function taskMetadata({
 			const latestAssistant = assistantMessages[assistantMessages.length - 1];
 
 			if (latestAssistant?.text) {
-				let clean = latestAssistant.text
-					.replace(/```[\s\S]*?```/g, "")
-					.replace(/<tool_code>[\s\S]*?<\/tool_code>/g, "")
-					.replace(/[*_`~]/g, "") // Strip Markdown characters
-					.replace(/\s+/g, " ")
-					.trim();
-				if (clean.length > 5) {
-					return clean.substring(0, 40) + (clean.length > 40 ? "..." : "");
+					let clean = latestAssistant.text
+						.replace(/```[\s\S]*?```/g, "")
+						.replace(/<tool_code>[\s\S]*?<\/tool_code>/g, "")
+						.replace(/[*_`]/g, "") // Strip markdown formatting but preserve vibe markers for title sanitizing
+						.replace(/\s+/g, " ")
+						.trim();
+					if (clean.length > 5) {
+						return createSessionTitlePreview(clean);
+					}
 				}
-			}
 
 			return taskMessage!.text?.trim() || t("common:tasks.incomplete", { taskNumber });
 		})(),
@@ -139,12 +150,27 @@ export async function taskMetadata({
 		size: taskDirSize,
 		workspace,
 		mode,
+		diffAdditions: diffTotals.additions,
+		diffDeletions: diffTotals.deletions,
 		...(initialStatus && { status: initialStatus }),
 		...(fileEditCounts && { fileEditCounts: Object.fromEntries(fileEditCounts) }),
+		...(fileEditBlockCounts && { fileEditBlockCounts: Object.fromEntries(fileEditBlockCounts) }),
+		...(latestEditedLineRanges && {
+			latestEditedLineRanges: Object.fromEntries(latestEditedLineRanges),
+		}),
+		...(recentEditBlockHistory && {
+			recentEditBlockHistory: Object.fromEntries(recentEditBlockHistory),
+		}),
 		...(activeFileReads && { activeFileReads }),
 		...(systemPrompt && { systemPrompt }),
 		...(apiConfiguration && { apiConfiguration }),
-	} as HistoryItem & { fileEditCounts?: Record<string, number>; activeFileReads?: Record<string, { start: number; end: number }[] | null | undefined> | string[] }
+	} as HistoryItem & {
+		fileEditCounts?: Record<string, number>
+		fileEditBlockCounts?: Record<string, number>
+		latestEditedLineRanges?: Record<string, { start: number; end: number }[]>
+		recentEditBlockHistory?: Record<string, EditMarkerBlock[][]>
+	activeFileReads?: Record<string, { start: number; end: number }[] | null | undefined> | string[]
+	}
 
 	return { historyItem, tokenUsage }
 }

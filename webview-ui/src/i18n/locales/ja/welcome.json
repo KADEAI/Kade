@@ -1,45 +1,45 @@
 {
-	"greeting": "こんにちは、Kadeです！",
-	"introduction": "<strong>Kadeは最高の自律型コーディングエージェントです。</strong>アーキテクチャの設計、コーディング、デバッグ、そして今までにない生産性向上を体験する準備をしてください。続行するには、KadeにはAPIキーが必要です。",
-	"notice": "開始するには、この拡張機能にはAPIプロバイダーが必要です。",
-	"start": "さあ、始めましょう！",
-	"routers": {
-		"requesty": {
-			"description": "最適化されたLLMルーター",
-			"incentive": "$1の無料クレジット"
-		},
-		"openrouter": {
-			"description": "LLMsのための統一インターフェース"
-		},
-		"roo": {
-			"description": "始めるための最高の無料モデル",
-			"incentive": "Rooを無料で試す"
-		}
-	},
-	"chooseProvider": "Kadeが機能するには、APIキーが必要です。",
-	"providerSignup": {
-		"rooCloudProvider": "Roo Code Cloudプロバイダー",
-		"rooCloudDescription": "Rooを使用する最も簡単な方法。低コストで厳選された無料および有料モデルの組み合わせ",
-		"learnMore": "詳細を見る",
-		"useAnotherProvider": "別のプロバイダーを使用",
-		"useAnotherProviderDescription": "APIキーを入力して始める。",
-		"noApiKeys": "キーを扱いたくないですか？Roo Code Cloudプロバイダーを選びましょう。",
-		"getStarted": "始める"
-	},
-	"waitingForCloud": {
-		"heading": "Roo Code Cloudにお連れします...",
-		"description": "ブラウザでサインアップを完了すると、自動的にここに戻ります。",
-		"noPrompt": "URLを開くように促されない場合は、<clickHere>ここをクリック</clickHere>してください。",
-		"havingTrouble": "サインアップを完了しましたが問題がある場合は、<clickHere>ここをクリック</clickHere>してください。",
-		"pasteUrl": "ブラウザからコールバックURLを貼り付けてください：",
-		"invalidURL": "有効なコールバックURLのようには見えません。Roo Code Cloudがブラウザに表示しているものをコピーしてください。",
-		"goBack": "戻る"
-	},
-	"startRouter": "LLMルーターの使用をお勧めします：",
-	"startCustom": "または、あなた自身のAPIキーを使用できます：",
-	"telemetry": {
-		"helpImprove": "Kadeの改善にご協力ください",
-		"helpImproveMessage": "Kadeはバグの修正と拡張機能の改善のため、エラーと使用データを収集します。このテレメトリはコード、プロンプト、個人情報を収集しません。<settingsLink>設定</settingsLink>でこれを無効にできます。"
-	},
-	"importSettings": "設定をインポート"
+  "greeting": "こんにちは、Kadeです！",
+  "introduction": "<strong>Kadeは最高の自律型コーディングエージェントです。</strong>アーキテクチャの設計、コーディング、デバッグ、そして今までにない生産性向上を体験する準備をしてください。続行するには、KadeにはAPIキーが必要です。",
+  "notice": "開始するには、この拡張機能にはAPIプロバイダーが必要です。",
+  "start": "さあ、始めましょう！",
+  "routers": {
+    "requesty": {
+      "description": "最適化されたLLMルーター",
+      "incentive": "$1の無料クレジット"
+    },
+    "openrouter": {
+      "description": "LLMsのための統一インターフェース"
+    },
+    "roo": {
+      "description": "始めるための最高の無料モデル",
+      "incentive": "Rooを無料で試す"
+    }
+  },
+  "chooseProvider": "Kadeが機能するには、APIキーが必要です。",
+  "providerSignup": {
+    "rooCloudProvider": "Roo Code Cloudプロバイダー",
+    "rooCloudDescription": "Rooを使用する最も簡単な方法。低コストで厳選された無料および有料モデルの組み合わせ",
+    "learnMore": "詳細を見る",
+    "useAnotherProvider": "別のプロバイダーを使用",
+    "useAnotherProviderDescription": "APIキーを入力して始める。",
+    "noApiKeys": "キーを扱いたくないですか？Roo Code Cloudプロバイダーを選びましょう。",
+    "getStarted": "始める"
+  },
+  "waitingForCloud": {
+    "heading": "Roo Code Cloudにお連れします...",
+    "description": "ブラウザでサインアップを完了すると、自動的にここに戻ります。",
+    "noPrompt": "URLを開くように促されない場合は、<clickHere>ここをクリック</clickHere>してください。",
+    "havingTrouble": "サインアップを完了しましたが問題がある場合は、<clickHere>ここをクリック</clickHere>してください。",
+    "pasteUrl": "ブラウザからコールバックURLを貼り付けてください：",
+    "invalidURL": "有効なコールバックURLのようには見えません。Roo Code Cloudがブラウザに表示しているものをコピーしてください。",
+    "goBack": "戻る"
+  },
+  "startRouter": "LLMルーターの使用をお勧めします：",
+  "startCustom": "または、あなた自身のAPIキーを使用できます：",
+  "telemetry": {
+    "helpImprove": "Kadeの改善にご協力ください",
+    "helpImproveMessage": "Kadeはバグの修正と拡張機能の改善のため、エラーと使用データを収集します。このテレメトリはコード、プロンプト、個人情報を収集しません。<settingsLink>設定</settingsLink>でこれを無効にできます。"
+  },
+  "importSettings": "設定をインポート"
 }

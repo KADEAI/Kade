@@ -13,8 +13,8 @@ interface UpdateTodoListParams {
 
 let approvedTodoList: TodoItem[] | undefined = undefined
 
-export class UpdateTodoListTool extends BaseTool<"update_todo_list"> {
-	readonly name = "update_todo_list" as const
+export class UpdateTodoListTool extends BaseTool<"todo"> {
+	readonly name = "todo" as const
 
 	parseLegacy(params: Partial<Record<string, string>>): UpdateTodoListParams {
 		return {
@@ -53,7 +53,7 @@ export class UpdateTodoListTool extends BaseTool<"update_todo_list"> {
 					todos = parseMarkdownChecklist(todosRaw || "")
 				} catch {
 					task.consecutiveMistakeCount++
-					task.recordToolError("update_todo_list")
+					task.recordToolError("todo")
 					task.didToolFailInCurrentTurn = true
 					pushToolResult(formatResponse.toolError("The todos parameter is not valid markdown checklist or JSON"))
 					return
@@ -69,7 +69,7 @@ export class UpdateTodoListTool extends BaseTool<"update_todo_list"> {
 			const { valid, error } = validateTodos(normalizedTodos)
 			if (!valid) {
 				task.consecutiveMistakeCount++
-				task.recordToolError("update_todo_list")
+				task.recordToolError("todo")
 				task.didToolFailInCurrentTurn = true
 				pushToolResult(formatResponse.toolError(error || "todos parameter validation failed"))
 				return
@@ -130,7 +130,7 @@ ${reminder}`
 		}
 	}
 
-	override async handlePartial(task: Task, block: ToolUse<"update_todo_list">): Promise<void> {
+	override async handlePartial(task: Task, block: ToolUse<"todo">): Promise<void> {
 		// Partial handling is tricky with patch vs full logic, so we'll just try to parse as full list for now
 		// or ignore since patch detection requires full lines.
 		// For simplicity, we keep legacy partial behavior but it might be slightly inaccurate during typing of a patch.

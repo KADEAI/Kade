@@ -32,5 +32,4 @@ export * from "./kilocode/kilocode.js"
 export * from "./kilocode/device-auth.js" // kade_change
 export * from "./kilocode/nativeFunctionCallingProviders.js"
 export * from "./usage-tracker.js" // kade_change
-
 export * from "./providers/index.js"

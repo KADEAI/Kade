@@ -33,6 +33,7 @@ export function generateSmartContext(messages: ApiMessage[], slidingWindowSize?:
     const recentAssistantMessages = new Set(assistantMessagesInHistory.slice(-recentAssistantCount))
 
     let summaryText = "Context Summary:\n\n"
+    const summaryLines: string[] = []
 
     for (const msg of effectiveHistory) {
         let content = ""
@@ -49,26 +50,14 @@ export function generateSmartContext(messages: ApiMessage[], slidingWindowSize?:
         }
 
         if (msg.role === 'user') {
-            if (recentUserMessages.has(msg)) {
-                // Recent User Message: Keep last 200 words
-                const processed = wordTruncate(content, 200, true)
-                summaryText += `User: ${processed}\n\n`
-            } else {
-                // Older User Message: Keep LAST 30 words
-                const processed = wordTruncate(content, 30, true)
-                summaryText += `User: ...${processed}\n\n`
-            }
+            summaryLines.push(content)
         } else if (msg.role === 'assistant') {
-            if (recentAssistantMessages.has(msg)) {
-                // Recent Assistant Message: Keep last 850 words
-                const processed = wordTruncate(content, 850, true)
-                summaryText += `Assistant: ${processed}\n\n`
-            } else {
-                // Older Assistant Message: Keep LAST 30 words
-                const processed = wordTruncate(content, 30, true)
-                summaryText += `Assistant: ...${processed}\n\n`
-            }
+            summaryLines.push(content)
         }
+    }
+
+    if (summaryLines.length > 0) {
+        summaryText += summaryLines.join("\n\n")
     }
 
     const lastMessage = messages[messages.length - 1]
@@ -81,23 +70,4 @@ export function generateSmartContext(messages: ApiMessage[], slidingWindowSize?:
     }
 
     return [summaryMessage, lastMessage]
-}
-
-/**
- * Truncates text to a specific number of words.
- * @param text The text to truncate
- * @param count Number of words to keep
- * @param fromEnd If true, keeps the last `count` words. If false, keeps the first `count` words.
- */
-function wordTruncate(text: string, count: number, fromEnd: boolean): string {
-    const words = text.split(/\s+/)
-    if (words.length <= count) {
-        return text
-    }
-
-    if (fromEnd) {
-        return words.slice(words.length - count).join(" ")
-    } else {
-        return words.slice(0, count).join(" ")
-    }
 }

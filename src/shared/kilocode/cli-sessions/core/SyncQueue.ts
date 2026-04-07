@@ -36,6 +36,8 @@ export class SyncQueue {
 	private taskIndex: Map<string, SyncQueueItem[]> = new Map()
 	private blobIndex: Map<string, SyncQueueItem> = new Map() // key: `${taskId}:${blobName}`
 	private flushHandler: (() => Promise<void>) | null = null
+	private flushInProgress = false
+	private flushRequestedDuringInProgress = false
 
 	/**
 	 * Creates a new SyncQueue instance.
@@ -71,8 +73,43 @@ export class SyncQueue {
 		this.blobIndex.set(blobKey, item)
 
 		if (this.length > this.queueFlushThreshold) {
-			this.flushHandler?.()
+			this.requestFlush()
 		}
+	}
+
+	/**
+	 * Requests a queue flush, coalescing repeated calls while a flush is already running.
+	 *
+	 * This prevents repeated flush invocations when many items are enqueued in quick
+	 * succession and the queue is already above the flush threshold.
+	 */
+	private requestFlush(): void {
+		if (!this.flushHandler) {
+			return
+		}
+
+		if (this.flushInProgress) {
+			this.flushRequestedDuringInProgress = true
+			return
+		}
+
+		this.flushInProgress = true
+
+		void Promise.resolve(this.flushHandler())
+			.catch(() => {
+				// The caller owns error handling. We only coalesce requests here.
+			})
+			.finally(() => {
+				this.flushInProgress = false
+
+				if (this.flushRequestedDuringInProgress) {
+					this.flushRequestedDuringInProgress = false
+
+					if (this.length > this.queueFlushThreshold) {
+						this.requestFlush()
+					}
+				}
+			})
 	}
 
 	/**
@@ -158,6 +195,7 @@ export class SyncQueue {
 		this.items = []
 		this.taskIndex.clear()
 		this.blobIndex.clear()
+		this.flushRequestedDuringInProgress = false
 	}
 
 	/**

@@ -75,7 +75,7 @@ function parseSyntheticModel(model: SyntheticModel): ModelInfo {
 		supportedParameters: (model.supported_sampling_parameters || []).filter(isModelParameter),
 		supportsTemperature: (model.supported_sampling_parameters || []).includes("temperature"),
 		supportsNativeTools: true,
-		defaultToolProtocol: "markdown",
+		defaultToolProtocol: "unified",
 	}
 }
 

@@ -3,6 +3,7 @@ import * as fs from "fs/promises"
 import * as path from "path"
 import { HistoryItem } from "@roo-code/types"
 import { logger } from "../../utils/logging"
+import { getStorageBasePath, getTaskStorageBasePath } from "../../utils/storage"
 
 /**
  * TaskHistoryStorage - Disk-based storage for task history
@@ -10,26 +11,34 @@ import { logger } from "../../utils/logging"
  * This service moves task history from VS Code's globalState (SQLite) to disk files,
  * solving the ~5MB extension state warning and improving startup performance.
  * 
- * Storage location: globalStorageUri/task_history.json
+ * Storage location:
+ * - customStoragePath/task_history.json when explicitly configured
+ * - <workspace>/.kilocode/task_history.json by default
+ * - falls back to globalStorageUri/task_history.json when no workspace is open
  */
 export class TaskHistoryStorage {
-	private static instance: TaskHistoryStorage | null = null
+	private static instances = new Map<string, TaskHistoryStorage>()
 	private readonly storagePath: string
 	private cache: HistoryItem[] | null = null
 	private isDirty = false
 	private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null
 	private readonly SAVE_DEBOUNCE_MS = 500
 
-	private constructor(globalStorageUri: vscode.Uri) {
-		this.storagePath = path.join(globalStorageUri.fsPath, "task_history.json")
+	private constructor(storagePath: string) {
+		this.storagePath = storagePath
 	}
 
-	static async getInstance(context: vscode.ExtensionContext): Promise<TaskHistoryStorage> {
-		if (!TaskHistoryStorage.instance) {
-			TaskHistoryStorage.instance = new TaskHistoryStorage(context.globalStorageUri)
-			await TaskHistoryStorage.instance.initialize(context)
+	static async getInstance(context: vscode.ExtensionContext, workspacePath?: string): Promise<TaskHistoryStorage> {
+		const basePath = await getTaskStorageBasePath(context.globalStorageUri.fsPath, workspacePath)
+		const storagePath = path.join(basePath, "task_history.json")
+
+		let instance = TaskHistoryStorage.instances.get(storagePath)
+		if (!instance) {
+			instance = new TaskHistoryStorage(storagePath)
+			TaskHistoryStorage.instances.set(storagePath, instance)
+			await instance.initialize(context)
 		}
-		return TaskHistoryStorage.instance
+		return instance
 	}
 
 	/**
@@ -42,6 +51,20 @@ export class TaskHistoryStorage {
 			await fs.mkdir(storageDir, { recursive: true })
 		} catch {
 			// Directory may already exist
+		}
+
+		// Migrate legacy disk history from the old global-storage location if the new
+		// workspace-local file doesn't exist yet.
+		const legacyBasePath = await getStorageBasePath(context.globalStorageUri.fsPath)
+		const legacyStoragePath = path.join(legacyBasePath, "task_history.json")
+		if (legacyStoragePath !== this.storagePath && !(await this.fileExists()) && (await this.fileExistsAt(legacyStoragePath))) {
+			try {
+				await fs.rename(legacyStoragePath, this.storagePath)
+			} catch {
+				await fs.cp(legacyStoragePath, this.storagePath)
+				await fs.rm(legacyStoragePath, { force: true })
+			}
+			logger.info("[TaskHistoryStorage] Migrated legacy task_history.json to workspace-local storage")
 		}
 
 		// Check if we need to migrate from globalState
@@ -60,6 +83,14 @@ export class TaskHistoryStorage {
 		} else if (existsOnDisk) {
 			// Load from disk
 			await this.loadFromDisk()
+
+			// Cleanup: older builds could re-populate globalState.taskHistory after migration.
+			// If disk storage already exists, clear the leftover Memento copy so VS Code's
+			// extension state warning goes away and startup doesn't keep loading stale history.
+			if (globalStateHistory && globalStateHistory.length > 0) {
+				await context.globalState.update("taskHistory", undefined)
+				logger.info("[TaskHistoryStorage] Cleared stale taskHistory from globalState")
+			}
 		} else {
 			// Fresh start
 			this.cache = []
@@ -67,8 +98,12 @@ export class TaskHistoryStorage {
 	}
 
 	private async fileExists(): Promise<boolean> {
+		return this.fileExistsAt(this.storagePath)
+	}
+
+	private async fileExistsAt(filePath: string): Promise<boolean> {
 		try {
-			await fs.access(this.storagePath)
+			await fs.access(filePath)
 			return true
 		} catch {
 			return false
@@ -198,6 +233,6 @@ export class TaskHistoryStorage {
 	 * Reset instance (for testing)
 	 */
 	static resetInstance(): void {
-		TaskHistoryStorage.instance = null
+		TaskHistoryStorage.instances.clear()
 	}
 }

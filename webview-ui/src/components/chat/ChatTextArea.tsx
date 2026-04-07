@@ -77,6 +77,7 @@ import { cn } from "@/lib/utils";
 import { usePromptHistory } from "./hooks/usePromptHistory";
 import { useSTT } from "@/hooks/useSTT"; // kade_change: STT hook
 import { formatLargeNumber } from "@/utils/format";
+import { hasDraftContent } from "./chatDraft";
 
 // kade_change start: pull slash commands from Cline
 import SlashCommandMenu from "@/components/chat/SlashCommandMenu";
@@ -90,6 +91,7 @@ import {
 import { ModelSelector } from "../kilocode/chat/ModelSelector"; // kade_change: Move model selector here
 import { useSelectedModel } from "@/components/ui/hooks/useSelectedModel"; // kade_change: for ModelSelector
 import { AutoApproveDropdown } from "./AutoApproveDropdown";
+import { createSendRequestGate } from "./sendRequestGate";
 // kade_change end
 
 interface ChatTextAreaProps {
@@ -258,7 +260,6 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       globalWorkflows, // kade_change
       taskHistoryVersion, // kade_change
       clineMessages,
-      ghostServiceSettings, // kade_change
       language, // User's VSCode display language
       experiments, // kade_change: For speechToText experiment flag
       speechToTextStatus, // kade_change: Speech-to-text availability status with failure reason
@@ -301,6 +302,9 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
     const [gitCommits, setGitCommits] = useState<any[]>([]);
     const [showDropdown, setShowDropdown] = useState(false);
     const [isIndexingMenuOpen, setIsIndexingMenuOpen] = useState(false);
+    const [isTaskPopoverOpen, setIsTaskPopoverOpen] = useState(false);
+    const [taskPopoverDefaultExpanded, setTaskPopoverDefaultExpanded] =
+      useState(false);
 
     const handleIndexingMenuOpenChange = useCallback((open: boolean) => {
       setIsIndexingMenuOpen(open);
@@ -314,6 +318,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 
     // kade_change begin: remove button from chat when it gets to small
     const [containerWidth, setContainerWidth] = useState(0);
+    const useCompactModeSelector = containerWidth > 0 && containerWidth < 470;
     const safeContextTokens = Math.max(0, contextTokens ?? 0);
     const safeContextWindow = Math.max(0, contextWindow ?? 0);
     const contextUsagePercent =
@@ -341,6 +346,21 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
     }, [contextUsagePercent]);
 
     const portalContainer = useRooPortal("roo-portal"); // kade_change
+    const canOpenTaskPopover =
+      !!task && !!handleCondenseContext && !!onCloseTask && !!groupedMessages;
+
+    const openTaskPopover = useCallback((expanded: boolean) => {
+      if (!canOpenTaskPopover) return;
+      setTaskPopoverDefaultExpanded(expanded);
+      setIsTaskPopoverOpen(true);
+    }, [canOpenTaskPopover]);
+
+    const handleTaskPopoverOpenChange = useCallback((open: boolean) => {
+      setIsTaskPopoverOpen(open);
+      if (!open) {
+        setTaskPopoverDefaultExpanded(false);
+      }
+    }, []);
 
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -455,6 +475,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
     const [cursorPosition, setCursorPosition] = useState(0);
     const [searchQuery, setSearchQuery] = useState("");
     const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+    const sendRequestGateRef = useRef(createSendRequestGate());
     const [isMouseDownOnMenu, setIsMouseDownOnMenu] = useState(false);
 
     // kade_change: Use STT (Speech-to-Text) hook
@@ -544,6 +565,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       }
       return inputValue;
     }, [isRecording, liveTranscript, inputValue]);
+    const hasDraftContentValue = hasDraftContent(inputValue, selectedImages);
 
     // Show cursor at insertion point during recording
     const recordingCursorPosition =
@@ -558,6 +580,10 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
     const shouldAutoScrollToCaretRef = useRef(false); // kade_change
     // kade_change start: Plus Menu State
     const [isPlusMenuVisible, setIsPlusMenuVisible] = useState(false);
+
+    const requestSend = useCallback(() => {
+      sendRequestGateRef.current.requestSend(onSend);
+    }, [onSend]);
 
     const [selectedMenuIndex, setSelectedMenuIndex] = useState(-1);
     const [selectedType, setSelectedType] =
@@ -577,8 +603,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       handleInputChange: handleGhostTextInputChange,
     } = useChatGhostText({
       textAreaRef,
-      enableChatAutocomplete:
-        ghostServiceSettings?.enableChatAutocomplete ?? false,
+      enableChatAutocomplete: false,
     });
     // kade_change end: FIM autocomplete ghost text
     const [imageWarning, setImageWarning] = useState<string | null>(null); // kade_change
@@ -998,6 +1023,10 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         if (shouldSendMessage) {
           event.preventDefault();
 
+          if (event.repeat) {
+            return;
+          }
+
           const trimmedInput = inputValue.trim();
 
           const preventFlow = handleSessionCommand(trimmedInput, setInputValue);
@@ -1006,8 +1035,12 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             return;
           }
 
+          if (!hasDraftContentValue) {
+            return;
+          }
+
           resetHistoryNavigation();
-          onSend();
+          requestSend();
         }
 
         // Handle prompt history navigation using custom hook
@@ -1921,8 +1954,8 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       <div
         ref={containerRef}
         className={cn(
-          "flex flex-col gap-2 relative bg-transparent",
-          !isEditMode && "px-4 pt-4 pb-[13px]",
+          "flex w-full min-w-0 flex-col gap-2 relative bg-transparent",
+          !isEditMode && "pl-4 pr-5 pt-4 pb-[13px]",
         )}
       >
         {showContextMenu && (
@@ -1936,7 +1969,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
               "z-[1000]",
               "mb-2",
               // kade_change: Remove filter/drop-shadow which breaks backdrop-blur in children
-              !isEditMode && "px-4",
+              !isEditMode && "pl-4 pr-5",
             )}
           >
             <ContextMenu
@@ -1956,13 +1989,13 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         )}
         <div
           className={cn(
-            "flex flex-col rounded-xl overflow-hidden relative transition-colors bg-vscode-dropdown-background/90 backdrop-blur-md",
+            "flex flex-col rounded-xl overflow-hidden relative transition-colors backdrop-blur-md border-[0.8px] border-white/[0.12]",
             isEnhancingPrompt &&
               "rainbow-border border-transparent focus-within:ring-0 focus-within:border-transparent",
           )}
           style={{
             backgroundColor:
-              "color-mix(in srgb, var(--vscode-dropdown-background) 80%, transparent)",
+              "color-mix(in srgb, var(--vscode-dropdown-background) 70%, black)",
             boxShadow: "none",
           }}
         >
@@ -1973,8 +2006,9 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
               "flex",
               "flex-col",
               "outline-none",
-              "px-1",
+              "px-0.5",
               "pt-0",
+              "pb-2",
             )} // kade_change: reduced padding
             onDrop={handleDrop}
             onDragOver={(e) => {
@@ -2027,10 +2061,10 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             {renderTextAreaSection()}
           </div>
 
-          <div className="flex justify-between items-center px-2 pb-2 pt-1 gap-2">
+          <div className="flex flex-wrap justify-between items-center px-2 pb-1 pt-0 gap-1.5 min-w-0 overflow-hidden">
             {/* Left: Selectors */}
-            <div className="flex items-center gap-2 flex-wrap min-w-0">
-              <div className="flex items-center gap-0 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1 overflow-hidden">
+              <div className="flex items-center gap-0 min-w-0 max-w-full flex-nowrap overflow-hidden">
                 {/* kade_change start: Plus Menu */}
 
                 {/* kade_change end */}
@@ -2041,13 +2075,15 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                   onChange={setMode}
                   modeShortcutText={modeShortcutText}
                   customModes={customModes}
+                  hideLabel={useCompactModeSelector}
+                  triggerClassName="max-w-full translate-y-[-0.57px]"
                 />
                 {/* kade_change end */}
 
                 {/* kade_change: Move ModelSelector here */}
                 {apiConfiguration && (
                   <div
-                    className="flex min-w-0 mt-[-0.1px]"
+                    className="flex min-w-0 max-w-full mt-[-0.1px]"
                     data-testid="model-selector"
                   >
                     <ModelSelector
@@ -2074,8 +2110,10 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                 >
                   <PopoverTrigger asChild>
                     <button
+                      type="button"
                       className={cn(
-                        "flex items-center justify-center p-0 rounded-sm hover:opacity-100 opacity-60 text-vscode-descriptionForeground transition-opacity shrink-0 mt-[1px]",
+                        "flex items-center justify-center p-0 rounded-sm hover:opacity-100 opacity-60 text-vscode-descriptionForeground transition-opacity shrink-0 mt-[-0.4px]",
+                        "cursor-pointer",
                       )}
                     >
                       <Plus className="size-3.5" />
@@ -2198,7 +2236,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             </div>
 
             {/* Right: Actions */}
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-1 min-w-0">
               <div className="ml-1.5 flex items-center">
                 <KiloProfileSelector
                   currentConfigId={currentConfigId}
@@ -2213,14 +2251,25 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
               {showAutoApproveMenu && <AutoApproveDropdown />}
               {safeContextWindow > 0 && (
                 <StandardTooltip content={contextUsageLabel}>
-                  <div
+                  <button
+                    type="button"
+                    aria-label={
+                      canOpenTaskPopover
+                        ? "Open task info from context usage"
+                        : contextUsageTooltip
+                    }
+                    aria-disabled={!canOpenTaskPopover}
+                    onClick={() => openTaskPopover(true)}
                     className={cn(
                       "relative inline-flex items-center justify-center",
-                      "w-[26px] h-[1px] p-1.5",
-                      "rounded-md",
-                      "cursor-pointer",
+                      "bg-transparent border-none text-vscode-foreground",
+                      "rounded-md w-6 h-6 p-1",
                       "opacity-80 hover:opacity-100",
-                      "transition-all duration-150 -mt-[0.4px]",
+                      "transition-all duration-150 translate-x-[0.2px] translate-y-[0.4px]",
+                      "hover:bg-[rgba(255,255,255,0.03)] hover:border-[rgba(255,255,255,0.15)]",
+                      "focus:outline-none focus-visible:ring-1 focus-visible:ring-vscode-focusBorder",
+                      "active:bg-[rgba(255,255,255,0.1)]",
+                      canOpenTaskPopover ? "cursor-pointer" : "cursor-default",
                     )}
                   >
                     <svg className="-rotate-90 w-4 h-4" viewBox="0 0 24 24">
@@ -2250,7 +2299,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                         cy="12"
                       />
                     </svg>
-                  </div>
+                  </button>
                 </StandardTooltip>
               )}
               {isTtsPlaying && (
@@ -2275,15 +2324,20 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                 handleCondenseContext &&
                 onCloseTask &&
                 groupedMessages && (
-                  <Popover>
+                  <Popover
+                    open={isTaskPopoverOpen}
+                    onOpenChange={handleTaskPopoverOpenChange}
+                  >
                     <StandardTooltip content="Task Info">
                       <PopoverTrigger asChild>
                         <button
+                          type="button"
                           aria-label="Task Info"
+                          onClick={() => setTaskPopoverDefaultExpanded(false)}
                           className={cn(
                             "relative inline-flex items-center justify-center",
                             "bg-transparent border-none p-1",
-                            "rounded-md w-7 h-7",
+                            "rounded-md w-6 h-6",
                             "opacity-80 hover:opacity-100 text-vscode-foreground",
                             "transition-all duration-150",
                             "hover:bg-[rgba(255,255,255,0.03)] hover:border-[rgba(255,255,255,0.15)]",
@@ -2319,6 +2373,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                         onMessageClick={onMessageClick}
                         isTaskActive={sendingDisabled} // Reusing sendingDisabled as proxy for isTaskActive like ChatView did
                         todos={todos}
+                        defaultExpanded={taskPopoverDefaultExpanded}
                       />
                     </PopoverContent>
                   </Popover>
@@ -2327,6 +2382,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 
               <StandardTooltip content={t("chat:addImages")}>
                 <button
+                  type="button"
                   aria-label={t("chat:addImages")}
                   disabled={shouldDisableImages}
                   onClick={onSelectImages}
@@ -2336,9 +2392,10 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                     "rounded-md w-6 h-6",
                     "text-vscode-foreground",
                     "transition-all duration-150 -ml-[2.4px]",
-                    "hover:bg-[rgba(207, 30, 30, 0.03)] hover:border-[rgba(255,255,255,0.15)]",
+                    "opacity-80 hover:opacity-100",
+                    "hover:bg-[rgba(255,255,255,0.03)] hover:border-[rgba(255,255,255,0.15)]",
                     "focus:outline-none focus-visible:ring-1 focus-visible:ring-vscode-focusBorder",
-                    "active:bg-[rgba(210, 210, 210, 0.91)]",
+                    "active:bg-[rgba(255,255,255,0.1)]",
                     !shouldDisableImages && "cursor-pointer",
                     shouldDisableImages &&
                       "opacity-40 cursor-not-allowed grayscale-[30%] hover:bg-transparent hover:border-[rgba(255,255,255,0.08)] active:bg-transparent",
@@ -2389,7 +2446,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
               )}
               {/* kade_change end */}
 
-              <div className="relative w-5 h-5">
+              <div className="relative w-[19px] h-[19px]">
                 <AnimatePresence initial={false}>
                   {isStreaming ? (
                     <motion.div
@@ -2431,8 +2488,8 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                       exit={{ scale: 0, rotate: -90 }}
                       transition={{
                         type: "spring",
-                        stiffness: 260,
-                        damping: 20,
+                        stiffness: 300,
+                        damping: 30,
                       }}
                     >
                       <StandardTooltip
@@ -2442,32 +2499,37 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
                           aria-label={
                             isEditMode ? "Unsend" : t("chat:sendMessage")
                           }
-                          disabled={!isEditMode && sendingDisabled}
+                          disabled={
+                            !isEditMode &&
+                            (sendingDisabled || !hasDraftContentValue)
+                          }
                           onClick={
                             isEditMode
                               ? onDelete || onCancel
-                              : !sendingDisabled
-                                ? onSend
+                              : !sendingDisabled && hasDraftContentValue
+                                ? requestSend
                                 : undefined
                           }
                           className={cn(
                             "kade-send-button relative inline-flex items-center justify-center",
-                            "bg-vscode-button-foreground p-0.5", // Inverted background
-                            "rounded-full w-5 h-5", // Smaller size
-                            "text-vscode-editor-background", // Inverted text color
-                            "hover:opacity-90",
+                            "rounded-full w-[19px] h-[19px] p-0.5",
+                            hasDraftContentValue
+                              ? "bg-vscode-button-foreground text-vscode-editor-background"
+                              : "bg-white/[0.18] text-vscode-input-background",
+
                             "focus:outline-none focus-visible:ring-1 focus-visible:ring-vscode-focusBorder",
-                            (isEditMode || !sendingDisabled) &&
+                            (isEditMode ||
+                              (!sendingDisabled && hasDraftContentValue)) &&
                               "cursor-pointer",
                             !isEditMode &&
-                              sendingDisabled &&
-                              "opacity-50 cursor-not-allowed grayscale-[30%]",
+                              (sendingDisabled || !hasDraftContentValue) &&
+                              "opacity-55 cursor-not-allowed",
                           )}
                         >
                           {isEditMode ? (
                             <Undo2 className="w-3 h-3" />
                           ) : (
-                            <ArrowUp className="w-3 h-3" />
+                            <ArrowUp className="w-2.5 h-2.5" />
                           )}
                         </button>
                       </StandardTooltip>

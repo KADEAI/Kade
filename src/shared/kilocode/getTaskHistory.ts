@@ -2,6 +2,7 @@ import { Fzf } from "fzf"
 import { HistoryItem } from "@roo-code/types"
 import { highlightFzfMatch } from "../../../webview-ui/src/utils/highlight" // weird hack, but apparently it works
 import { TaskHistoryRequestPayload, TaskHistoryResponsePayload } from "../WebviewMessage"
+import { sanitizeSessionTitle } from "./sanitizeSessionTitle"
 
 const DEFAULT_PAGE_SIZE = 10
 
@@ -16,6 +17,12 @@ export function getTaskHistory(
 	if (request.workspace === "current") {
 		tasks = tasks.filter((item) => item.workspace === cwd)
 	}
+
+	tasks = tasks.map((item) => ({
+		...item,
+		task: sanitizeSessionTitle(item.task),
+		title: item.title ? sanitizeSessionTitle(item.title) : item.title,
+	}))
 
 	if (request.favoritesOnly) {
 		tasks = tasks.filter((item) => item.isFavorited)

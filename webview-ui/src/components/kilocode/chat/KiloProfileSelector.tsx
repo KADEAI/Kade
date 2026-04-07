@@ -1,174 +1,200 @@
 // kade_change - new file
-import { SelectDropdown, DropdownOptionType, Button, StandardTooltip } from "@/components/ui"
-import { vscode } from "@/utils/vscode"
-import { useAppTranslation } from "@/i18n/TranslationContext"
-import { cn } from "@/lib/utils"
-import { Check, Pin, User } from "lucide-react"
-import { getProviderIcon } from "@/components/settings/providerIcons"
+import {
+  SelectDropdown,
+  DropdownOptionType,
+  Button,
+  StandardTooltip,
+} from "@/components/ui";
+import { vscode } from "@/utils/vscode";
+import { useAppTranslation } from "@/i18n/TranslationContext";
+import { cn } from "@/lib/utils";
+import { Check, Pin, User } from "lucide-react";
+import { getProviderIcon } from "@/components/settings/providerIcons";
 
 interface ApiConfigMeta {
-	id: string
-	name: string
-	apiProvider?: string
+  id: string;
+  name: string;
+  apiProvider?: string;
 }
 
 interface KiloProfileSelectorProps {
-	currentConfigId: string
-	currentApiConfigName?: string
-	displayName: string
-	listApiConfigMeta?: ApiConfigMeta[]
-	pinnedApiConfigs?: Record<string, boolean>
-	togglePinnedApiConfig: (configId: string) => void
-	selectApiConfigDisabled?: boolean
-	initiallyOpen?: boolean
+  currentConfigId: string;
+  currentApiConfigName?: string;
+  displayName: string;
+  listApiConfigMeta?: ApiConfigMeta[];
+  pinnedApiConfigs?: Record<string, boolean>;
+  togglePinnedApiConfig: (configId: string) => void;
+  selectApiConfigDisabled?: boolean;
+  initiallyOpen?: boolean;
 }
 
 export const KiloProfileSelector = ({
-	currentConfigId,
-	currentApiConfigName,
-	displayName,
-	listApiConfigMeta,
-	pinnedApiConfigs,
-	togglePinnedApiConfig,
-	selectApiConfigDisabled = false,
-	initiallyOpen = false,
+  currentConfigId,
+  currentApiConfigName,
+  displayName,
+  listApiConfigMeta,
+  pinnedApiConfigs,
+  togglePinnedApiConfig,
+  selectApiConfigDisabled = false,
+  initiallyOpen = false,
 }: KiloProfileSelectorProps) => {
-	const { t } = useAppTranslation()
+  const { t } = useAppTranslation();
 
-	// Hide if there is only one profile
-	if ((listApiConfigMeta?.length ?? 0) < 2) {
-		return null
-	}
+  // Hide if there is only one profile
+  if ((listApiConfigMeta?.length ?? 0) < 2) {
+    return null;
+  }
 
-	return (
-		<div className={cn("shrink-0")}>
-			<SelectDropdown
-				value={currentConfigId}
-				disabled={selectApiConfigDisabled}
-				title={t("chat:selectApiConfig")}
-				disableSearch={true}
-				placeholder=""
-				hideLabel={true}
-				triggerIcon={User}
-				initiallyOpen={initiallyOpen}
-				options={[
-					// Pinned items first.
-					...(listApiConfigMeta || [])
-						.filter((config) => pinnedApiConfigs && pinnedApiConfigs[config.id])
-						.map((config) => ({
-							value: config.id,
-							label: config.name,
-							icon: config.apiProvider ? getProviderIcon(config.apiProvider, "shrink-0") : undefined,
-							name: config.name, // Keep name for comparison with currentApiConfigName.
-							type: DropdownOptionType.ITEM,
-							pinned: true,
-						}))
-						.sort((a, b) => a.label.localeCompare(b.label)),
-					// If we have pinned items and unpinned items, add a separator.
-					...(pinnedApiConfigs &&
-					Object.keys(pinnedApiConfigs).length > 0 &&
-					(listApiConfigMeta || []).some((config) => !pinnedApiConfigs[config.id])
-						? [
-								{
-									value: "sep-pinned",
-									label: t("chat:separator"),
-									type: DropdownOptionType.SEPARATOR,
-								},
-							]
-						: []),
-					// Unpinned items sorted alphabetically.
-					...(listApiConfigMeta || [])
-						.filter((config) => !pinnedApiConfigs || !pinnedApiConfigs[config.id])
-						.map((config) => ({
-							value: config.id,
-							label: config.name,
-							icon: config.apiProvider ? getProviderIcon(config.apiProvider, "shrink-0") : undefined,
-							name: config.name, // Keep name for comparison with currentApiConfigName.
-							type: DropdownOptionType.ITEM,
-							pinned: false,
-						}))
-						.sort((a, b) => a.label.localeCompare(b.label)),
-					{
-						value: "sep-2",
-						label: t("chat:separator"),
-						type: DropdownOptionType.SEPARATOR,
-					},
-					{
-						value: "settingsButtonClicked",
-						label: t("chat:edit"),
-						type: DropdownOptionType.ACTION,
-					},
-				]}
-				onChange={(value) => {
-					if (value === "settingsButtonClicked") {
-						vscode.postMessage({
-							type: "loadApiConfiguration",
-							text: value,
-							values: { section: "providers" },
-						})
-					} else {
-						vscode.postMessage({ type: "loadApiConfigurationById", text: value })
-					}
-				}}
-				contentClassName="max-h-[300px] overflow-y-auto"
-				// kade_change start - VSC Theme
-				triggerClassName={cn(
-					"w-auto px-0.5",
-					"bg-transparent border-transparent hover:bg-vscode-toolbar-hoverBackground",
-				)}
-				// kade_change end
-				itemClassName="group"
-				renderItem={({ type, value, label, pinned }) => {
-					if (type !== DropdownOptionType.ITEM) {
-						return <div className="py-1.5 px-3">{label}</div>
-					}
+  return (
+    <div className={cn("shrink-0")}>
+      <SelectDropdown
+        value={currentConfigId}
+        disabled={selectApiConfigDisabled}
+        title={t("chat:selectApiConfig")}
+        disableSearch={true}
+        placeholder=""
+        hideLabel={true}
+        triggerIcon={User}
+        initiallyOpen={initiallyOpen}
+        options={[
+          // Pinned items first.
+          ...(listApiConfigMeta || [])
+            .filter((config) => pinnedApiConfigs && pinnedApiConfigs[config.id])
+            .map((config) => ({
+              value: config.id,
+              label: config.name,
+              icon: config.apiProvider
+                ? getProviderIcon(config.apiProvider, "shrink-0")
+                : undefined,
+              name: config.name, // Keep name for comparison with currentApiConfigName.
+              type: DropdownOptionType.ITEM,
+              pinned: true,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label)),
+          // If we have pinned items and unpinned items, add a separator.
+          ...(pinnedApiConfigs &&
+          Object.keys(pinnedApiConfigs).length > 0 &&
+          (listApiConfigMeta || []).some(
+            (config) => !pinnedApiConfigs[config.id],
+          )
+            ? [
+                {
+                  value: "sep-pinned",
+                  label: t("chat:separator"),
+                  type: DropdownOptionType.SEPARATOR,
+                },
+              ]
+            : []),
+          // Unpinned items sorted alphabetically.
+          ...(listApiConfigMeta || [])
+            .filter(
+              (config) => !pinnedApiConfigs || !pinnedApiConfigs[config.id],
+            )
+            .map((config) => ({
+              value: config.id,
+              label: config.name,
+              icon: config.apiProvider
+                ? getProviderIcon(config.apiProvider, "shrink-0")
+                : undefined,
+              name: config.name, // Keep name for comparison with currentApiConfigName.
+              type: DropdownOptionType.ITEM,
+              pinned: false,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label)),
+          {
+            value: "sep-2",
+            label: t("chat:separator"),
+            type: DropdownOptionType.SEPARATOR,
+          },
+          {
+            value: "settingsButtonClicked",
+            label: t("chat:edit"),
+            type: DropdownOptionType.ACTION,
+          },
+        ]}
+        onChange={(value) => {
+          if (value === "settingsButtonClicked") {
+            vscode.postMessage({
+              type: "loadApiConfiguration",
+              text: value,
+              values: { section: "providers" },
+            });
+          } else {
+            vscode.postMessage({
+              type: "loadApiConfigurationById",
+              text: value,
+            });
+          }
+        }}
+        contentClassName="max-h-[300px] overflow-y-auto"
+        // kade_change start - VSC Theme
+        triggerClassName={cn(
+          "w-auto px-0.5",
+          "bg-transparent border-transparent",
+          "hover:bg-[rgba(255,255,255,0.03)]",
+          "focus-visible:ring-1 focus-visible:ring-vscode-focusBorder",
+          "active:bg-[rgba(255,255,255,0.1)]",
+        )}
+        // kade_change end
+        itemClassName="group"
+        renderItem={({ type, value, label, pinned }) => {
+          if (type !== DropdownOptionType.ITEM) {
+            return <div className="py-1.5 px-3">{label}</div>;
+          }
 
-					const config = listApiConfigMeta?.find((c) => c.id === value)
-					const isCurrentConfig = config?.name === currentApiConfigName
+          const config = listApiConfigMeta?.find((c) => c.id === value);
+          const isCurrentConfig = config?.name === currentApiConfigName;
 
-					return (
-						<div className="flex justify-between gap-2 w-full py-1.5 px-3">
-							<div className="flex min-w-0 items-center gap-2 overflow-hidden">
-								{config?.apiProvider ? getProviderIcon(config.apiProvider, "shrink-0") : null}
-								<div
-									className={cn("truncate min-w-0 overflow-hidden", {
-										"font-medium": isCurrentConfig,
-									})}>
-									{label}
-								</div>
-							</div>
-							<div className="flex justify-end w-10 flex-shrink-0">
-								<div
-									className={cn("size-5 p-1", {
-										"block group-hover:hidden": !pinned,
-										hidden: !isCurrentConfig,
-									})}>
-									<Check className="size-3" />
-								</div>
-								<StandardTooltip content={pinned ? t("chat:unpin") : t("chat:pin")}>
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={(e) => {
-											e.stopPropagation()
-											togglePinnedApiConfig(value)
-											vscode.postMessage({
-												type: "toggleApiConfigPin",
-												text: value,
-											})
-										}}
-										className={cn("size-5", {
-											"hidden group-hover:flex": !pinned,
-											"bg-accent": pinned,
-										})}>
-										<Pin className="size-3 p-0.5 opacity-50" />
-									</Button>
-								</StandardTooltip>
-							</div>
-						</div>
-					)
-				}}
-			/>
-		</div>
-	)
-}
+          return (
+            <div className="flex justify-between gap-2 w-full py-1.5 px-3">
+              <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+                {config?.apiProvider
+                  ? getProviderIcon(config.apiProvider, "shrink-0")
+                  : null}
+                <div
+                  className={cn("truncate min-w-0 overflow-hidden", {
+                    "font-medium": isCurrentConfig,
+                  })}
+                >
+                  {label}
+                </div>
+              </div>
+              <div className="flex justify-end w-10 flex-shrink-0">
+                <div
+                  className={cn("size-5 p-1", {
+                    "block group-hover:hidden": !pinned,
+                    hidden: !isCurrentConfig,
+                  })}
+                >
+                  <Check className="size-3" />
+                </div>
+                <StandardTooltip
+                  content={pinned ? t("chat:unpin") : t("chat:pin")}
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePinnedApiConfig(value);
+                      vscode.postMessage({
+                        type: "toggleApiConfigPin",
+                        text: value,
+                      });
+                    }}
+                    className={cn("size-5", {
+                      "hidden group-hover:flex": !pinned,
+                      "bg-accent": pinned,
+                    })}
+                  >
+                    <Pin className="size-3 p-0.5 opacity-50" />
+                  </Button>
+                </StandardTooltip>
+              </div>
+            </div>
+          );
+        }}
+      />
+    </div>
+  );
+};

@@ -5,6 +5,7 @@ import type { IExtensionMessenger } from "../types/IExtensionMessenger.js"
 import type { ILogger } from "../types/ILogger.js"
 import type { SessionClient } from "./SessionClient.js"
 import type { SessionStateManager } from "./SessionStateManager.js"
+import { createSessionTitlePreview, sanitizeSessionTitle } from "../../sanitizeSessionTitle.js"
 
 /**
  * Message emitted when a session title has been generated and updated.
@@ -92,9 +93,10 @@ export class SessionTitleService {
 			.replace(/```[\s\S]*?```/g, "")
 			.replace(/<tool_code>[\s\S]*?<\/tool_code>/g, "")
 			.replace(/\s+/g, " ")
-			.trim();
+			.trim()
+		clean = sanitizeSessionTitle(clean)
 		if (clean.length > 5) {
-			return clean.substring(0, 40) + (clean.length > 40 ? "..." : "");
+			return createSessionTitlePreview(clean)
 		}
 	}
 
@@ -108,8 +110,7 @@ export class SessionTitleService {
 		return null
 	}
 
-	let rawText = firstMessageWithText.text.trim()
-	rawText = rawText.replace(/\s+/g, " ")
+	let rawText = sanitizeSessionTitle(firstMessageWithText.text)
 
 	if (!rawText) {
 		return null
@@ -141,10 +142,11 @@ async generateTitle(uiMessages: ClineMessage[]): Promise<string | null> {
 			.replace(/<tool_code>[\s\S]*?<\/tool_code>/g, "") // Remove tool tags
 			.replace(/\[tool usage:[\s\S]*?\]/g, "") // Remove tool usage markers
 			.replace(/\s+/g, " ")
-			.trim();
+			.trim()
+		cleanText = sanitizeSessionTitle(cleanText)
 
 		if (cleanText.length > 5) {
-			return cleanText.substring(0, 40) + (cleanText.length > 40 ? "..." : "");
+			return createSessionTitlePreview(cleanText)
 		}
 	}
 
@@ -160,7 +162,7 @@ async generateTitle(uiMessages: ClineMessage[]): Promise<string | null> {
 	 * @param title - The new title to set
 	 */
 	async updateTitle(sessionId: string, title: string): Promise<void> {
-		const trimmedTitle = title.trim()
+		const trimmedTitle = sanitizeSessionTitle(title)
 		if (!trimmedTitle) {
 			throw new Error("Session title cannot be empty")
 		}

@@ -9,6 +9,7 @@ interface OpenFileOptions {
 	content?: string
 	line?: number
 	endLine?: number
+	viewColumn?: vscode.ViewColumn
 }
 
 export async function openFile(filePath: string, options: OpenFileOptions = {}) {
@@ -170,6 +171,7 @@ export async function openFile(filePath: string, options: OpenFileOptions = {}) 
 		await vscode.window.showTextDocument(document, {
 			preview: false,
 			selection,
+			viewColumn: options.viewColumn,
 		})
 	} catch (error) {
 		if (error instanceof Error) {

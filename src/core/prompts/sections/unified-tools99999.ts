@@ -99,10 +99,10 @@ CRITICAL: TEXT-BASED tool calling ONLY.
 - All tool calls must open and close with double angles. \`edit\` and \`write\` must include their required closing tags. Example edit: 
   <<edit --path path
   Content:
-  Old (n-n):
+  SEARCH (n-n):
   This is a word
   This is another word 
-  New:
+  REPLACE:
   This is an edited word
   This is another edited word
   /edit>>
@@ -131,16 +131,16 @@ Tool: edit
 Syntax:
   <<edit --path path
   Content:
-  Old (n):
+  SEARCH (n):
   This is a word
-  New:
+  REPLACE:
   This is an edited word
   /edit>>
 Usage: Modify existing files with precision markers.
 Flags:
   Required: --path <string>
-Body: "Old (start-end):" with line range, "New:" with replacement content.
-One line edits: Use a single line number, e.g. Old (12):
+Body: "SEARCH (start-end):" with line range, "REPLACE:" with replacement content.
+One line edits: Use a single line number, e.g. SEARCH (12):
 End tag: /edit>>
 Note: Multiple non-overlapping Old/New blocks allowed per call.
 
@@ -179,7 +179,7 @@ Flags:
 Tool: grep
 Syntax: <<grep --query query --path path>>
 Multi-query syntax: <<grep --query "query1|query2|query3" --path path>>
-Usage: Search text across files using ripgrep. Defaults to current directory. Case-insensitive by default.
+Usage: Search text across files using ripgrep. Defaults to current directory. Case-sensitive by default, with whole-word matching for simple identifier queries.
 Flags:
   Required: --query <string>
   Optional: --path <string or comma-separated paths> (defaults to current directory)
@@ -236,14 +236,14 @@ ${mcpToolsSection}` : ''}
 
 <<edit --path src/app.ts (multi-block example, preferred format)
 Content:
-Old (12):
+SEARCH (12):
 const port = 3000
-New:
+REPLACE:
 const port = 8080
-Old (17-18):
+SEARCH (17-18):
 This is a word 
 this is another word
-New:
+REPLACE:
 This is an edit
 This is another edit
 /edit>>

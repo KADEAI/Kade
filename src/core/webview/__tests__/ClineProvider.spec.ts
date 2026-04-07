@@ -590,7 +590,7 @@ describe("ClineProvider", () => {
 			enableCheckpoints: false,
 			writeDelayMs: 1000,
 			browserViewportSize: "900x600",
-			fuzzyMatchThreshold: 1.0,
+			fuzzyMatchThreshold: 0.8,
 			mcpEnabled: true,
 			enableMcpServerCreation: false,
 			requestDelaySeconds: 5,
@@ -871,7 +871,7 @@ describe("ClineProvider", () => {
 		expect(mockPostMessage).toHaveBeenCalled()
 	})
 
-	test("requestDelaySeconds defaults to 10 seconds", async () => {
+	test("requestDelaySeconds defaults to 1 second", async () => {
 		// Mock globalState.get to return undefined for requestDelaySeconds
 		; (mockContext.globalState.get as any).mockImplementation((key: string) => {
 			if (key === "requestDelaySeconds") {
@@ -881,7 +881,7 @@ describe("ClineProvider", () => {
 		})
 
 		const state = await provider.getState()
-		expect(state.requestDelaySeconds).toBe(10)
+		expect(state.requestDelaySeconds).toBe(1)
 	})
 
 	test("alwaysApproveResubmit defaults to true", async () => {
@@ -1040,6 +1040,19 @@ describe("ClineProvider", () => {
 		const state = await provider.getState()
 		expect(state).toHaveProperty("browserToolEnabled")
 		expect(state.browserToolEnabled).toBe(true) // Default value should be true
+	})
+
+	test("handles computerUseToolEnabled setting", async () => {
+		await provider.resolveWebviewView(mockWebviewView)
+		const messageHandler = (mockWebviewView.webview.onDidReceiveMessage as any).mock.calls[0][0]
+
+		await messageHandler({ type: "updateSettings", updatedSettings: { computerUseToolEnabled: false } })
+		expect(mockContext.globalState.update).toHaveBeenCalledWith("computerUseToolEnabled", false)
+		expect(mockPostMessage).toHaveBeenCalled()
+
+		const state = await provider.getState()
+		expect(state).toHaveProperty("computerUseToolEnabled")
+		expect(state.computerUseToolEnabled).toBe(false)
 	})
 
 	test("handles showRooIgnoredFiles setting", async () => {

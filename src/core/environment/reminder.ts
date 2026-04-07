@@ -20,7 +20,7 @@ export function formatReminderSection(
 
 	// 2. Active File Contexts
 	if (activeFileReads && activeFileReads.size > 0) {
-		lines.push("## Active File Contexts (Latest Versions in History)")
+		lines.push("## Active File Reads")
 
 		// Handle both Map (new) and Set (legacy)
 		if (activeFileReads instanceof Map) {

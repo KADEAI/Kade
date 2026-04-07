@@ -3,6 +3,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"postinstall": "node ../scripts/patch-virtuoso-message-list.mjs",
 		"lint": "eslint src --ext=ts,tsx --max-warnings=0",
 		"check-types": "tsc",
 		"pretest": "turbo run kilo-code#bundle --cwd ..",
@@ -37,6 +38,7 @@
 		"@types/qrcode": "^1.5.6",
 		"@types/seedrandom": "^3.0.8",
 		"@use-gesture/react": "^10.3.1",
+		"@virtuoso.dev/message-list": "^1.16.0",
 		"@vscode/codicons": "^0.0.36",
 		"@vscode/webview-ui-toolkit": "^1.4.0",
 		"axios": "^1.12.0",
@@ -87,7 +89,6 @@
 		"tailwindcss-animate": "^1.0.7",
 		"unist-util-visit": "^5.0.0",
 		"use-sound": "^5.0.0",
-		"vscode-material-icons": "^0.1.1",
 		"vscrui": "^0.2.2",
 		"zod": "^3.25.61"
 	},

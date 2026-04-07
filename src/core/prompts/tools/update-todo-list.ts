@@ -1,10 +1,10 @@
 import { ToolArgs } from "./types"
 
 /**
- * Get the description for the update_todo_list tool.
+ * Get the description for the todo tool.
  */
 export function getUpdateTodoListDescription(args?: ToolArgs): string {
-	return `## update_todo_list
+	return `## todo
 
 **Description:**
 Replace the entire TODO list with an updated checklist reflecting the current state. Always provide the full list; the system will overwrite the previous one. This tool is designed for step-by-step task tracking, allowing you to confirm completion of each step before updating, update multiple task statuses at once (e.g., mark one as completed and start the next), and dynamically add new todos discovered during long or complex tasks.
@@ -33,7 +33,7 @@ Replace the entire TODO list with an updated checklist reflecting the current st
 - Remove tasks only if they are no longer relevant or if the user requests deletion.
 
 **Usage Example:**
-<update_todo_list>
+<todo>
 <todos>
 [x] Analyze requirements
 [x] Design architecture
@@ -41,10 +41,10 @@ Replace the entire TODO list with an updated checklist reflecting the current st
 [ ] Write tests
 [ ] Update documentation
 </todos>
-</update_todo_list>
+</todo>
 
 *After completing "Implement core logic" and starting "Write tests":*
-<update_todo_list>
+<todo>
 <todos>
 [x] Analyze requirements
 [x] Design architecture
@@ -53,7 +53,7 @@ Replace the entire TODO list with an updated checklist reflecting the current st
 [ ] Update documentation
 [ ] Add performance benchmarks
 </todos>
-</update_todo_list>
+</todo>
 
 **Patch Update Format (Quick Status Updates):**
 You can also update just the status using numbers:
@@ -65,14 +65,14 @@ You can also update just the status using numbers:
 - "3. [ ]" - Mark task 3 as pending
 
 *Patch Update Example:*
-<update_todo_list>
+<todo>
 <todos>
 1: completed
 2: in progress
 3. [x]
 4. [-]
 </todos>
-</update_todo_list>
+</todo>
 
 **When to Use:**
 - The task is complicated or involves multiple steps or requires ongoing tracking.

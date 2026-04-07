@@ -16,6 +16,8 @@ export async function getOvhCloudAiEndpointsModels(): Promise<Record<string, Mod
 				contextWindow: model.context_length,
 				supportsImages: model.input_modalities.includes("image"),
 				supportsPromptCache: model.input_modalities.includes("cache"),
+				supportsNativeTools: false,
+				defaultToolProtocol: "unified",
 				inputPrice: parseApiPrice(model.pricing.prompt),
 				outputPrice: parseApiPrice(model.pricing.completion),
 				description: model.description,

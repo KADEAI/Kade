@@ -489,6 +489,40 @@ describe("SyncQueue", () => {
 			expect(mockFlushHandler).toHaveBeenCalledTimes(1)
 			expect(mockFlushHandler).toHaveBeenCalledWith()
 		})
+
+		it("coalesces flush requests while a flush is already running", async () => {
+			const smallQueue = new SyncQueue(0)
+			let resolveFlush: () => void
+			const flushPromise = new Promise<void>((resolve) => {
+				resolveFlush = resolve
+			})
+			const handler = vi.fn().mockImplementation(() => flushPromise)
+			smallQueue.setFlushHandler(handler)
+
+			const item1: SyncQueueItem = {
+				taskId: "task-1",
+				blobName: "api_conversation_history",
+				blobPath: "/path/to/file1.json",
+				timestamp: 1000,
+			}
+			const item2: SyncQueueItem = {
+				taskId: "task-1",
+				blobName: "ui_messages",
+				blobPath: "/path/to/file2.json",
+				timestamp: 2000,
+			}
+
+			smallQueue.enqueue(item1)
+			smallQueue.enqueue(item2)
+
+			expect(handler).toHaveBeenCalledTimes(1)
+
+			resolveFlush!()
+			await flushPromise
+			await Promise.resolve()
+
+			expect(handler).toHaveBeenCalledTimes(2)
+		})
 	})
 
 	describe("Edge Cases", () => {

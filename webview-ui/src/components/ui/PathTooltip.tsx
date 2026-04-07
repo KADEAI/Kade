@@ -1,19 +1,19 @@
-import { ReactNode } from "react"
-import { StandardTooltip } from "./standard-tooltip"
+import { ReactNode } from "react";
+import { StandardTooltip } from "./standard-tooltip";
 
 interface PathTooltipProps {
-	/** The file path or content to display in the tooltip */
-	content: string
-	/** The element(s) that trigger the tooltip */
-	children: ReactNode
-	/** The preferred side of the trigger to render the tooltip */
-	side?: "top" | "right" | "bottom" | "left"
-	/** The preferred alignment against the trigger */
-	align?: "start" | "center" | "end"
-	/** Distance in pixels from the trigger */
-	sideOffset?: number
-	/** Whether the trigger should be rendered as a child */
-	asChild?: boolean
+  /** The file path or content to display in the tooltip */
+  content: string;
+  /** The element(s) that trigger the tooltip */
+  children: ReactNode;
+  /** The preferred side of the trigger to render the tooltip */
+  side?: "top" | "right" | "bottom" | "left";
+  /** The preferred alignment against the trigger */
+  align?: "start" | "center" | "end";
+  /** Distance in pixels from the trigger */
+  sideOffset?: number;
+  /** Whether the trigger should be rendered as a child */
+  asChild?: boolean;
 }
 
 /**
@@ -32,23 +32,24 @@ interface PathTooltipProps {
  * </PathTooltip>
  */
 export function PathTooltip({
-	content,
-	children,
-	side = "top",
-	align = "start",
-	sideOffset = 4,
-	asChild = true,
+  content,
+  children,
+  side = "top",
+  align = "start",
+  sideOffset = 4,
+  asChild = true,
 }: PathTooltipProps) {
-	return (
-		<StandardTooltip
-			content={content}
-			side={side}
-			align={align}
-			sideOffset={sideOffset}
-			className="[text-wrap:wrap]"
-			maxWidth="min(300px,100vw)"
-			asChild={asChild}>
-			{children}
-		</StandardTooltip>
-	)
+  return (
+    <StandardTooltip
+      content={content}
+      side={side}
+      align={align}
+      sideOffset={sideOffset}
+      className="[text-wrap:wrap]"
+      maxWidth="min(300px,100vw)"
+      asChild={asChild}
+    >
+      {children}
+    </StandardTooltip>
+  );
 }

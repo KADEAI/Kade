@@ -1,6 +1,6 @@
-import { useManagedIndexerState } from "./useManagedIndexerState"
+import { useManagedIndexerState } from "./useManagedIndexerState";
 
 export function useManagedCodeIndexingEnabled() {
-	const state = useManagedIndexerState()
-	return state.isEnabled
+  const state = useManagedIndexerState();
+  return state.isEnabled;
 }

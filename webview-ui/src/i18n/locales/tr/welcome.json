@@ -1,45 +1,45 @@
 {
-	"greeting": "Merhaba, ben Kade!",
-	"introduction": "<strong>Kade, önde gelen otonom kodlama aracıdır.</strong> Daha önce hiç görmediğin şekilde mimari tasarım yapmaya, kod yazmaya, hata ayıklamaya ve üretkenliğini artırmaya hazırlan. Devam etmek için Kade'un bir API anahtarına ihtiyacı var.",
-	"notice": "Başlamak için bu eklentinin bir API sağlayıcısına ihtiyacı var.",
-	"start": "Hadi başlayalım!",
-	"routers": {
-		"requesty": {
-			"description": "Optimize edilmiş LLM yönlendiricin",
-			"incentive": "$1 ücretsiz kredi"
-		},
-		"openrouter": {
-			"description": "LLM'ler için birleşik bir arayüz"
-		},
-		"roo": {
-			"description": "Başlamak için en iyi ücretsiz modeller",
-			"incentive": "Roo'yu ücretsiz dene"
-		}
-	},
-	"chooseProvider": "Sihirini yapabilmesi için Kade'nun bir API anahtarına ihtiyacı var.",
-	"providerSignup": {
-		"rooCloudProvider": "Roo Code Cloud Sağlayıcısı",
-		"rooCloudDescription": "Roo'yu kullanmanın en basit yolu. Düşük maliyetle seçilmiş ücretsiz ve ücretli modellerin karışımı",
-		"learnMore": "daha fazla bilgi",
-		"useAnotherProvider": "Başka bir sağlayıcı kullan",
-		"useAnotherProviderDescription": "Bir API anahtarı gir ve başla.",
-		"noApiKeys": "Anahtarlarla uğraşmak istemez misin? Roo Code Cloud Sağlayıcısı'nı seç.",
-		"getStarted": "Başla"
-	},
-	"waitingForCloud": {
-		"heading": "Seni Roo Code Cloud'a götürüyoruz...",
-		"description": "Tarayıcında kaydı tamamla ve otomatik olarak buraya döneceksin.",
-		"noPrompt": "URL açmanız istenmezse, <clickHere>buraya tıkla</clickHere>.",
-		"havingTrouble": "Kaydı tamamladıysan ama sorun yaşıyorsan, <clickHere>buraya tıkla</clickHere>.",
-		"pasteUrl": "Tarayıcınızdan geri arama URL'sini yapıştırın:",
-		"invalidURL": "Bu geçerli bir geri arama URL'si gibi görünmüyor. Roo Code Cloud'un tarayıcında gösterdiği şeyi kopyala.",
-		"goBack": "Geri Dön"
-	},
-	"startRouter": "Bir LLM yönlendiricisi kullanmanı öneririz:",
-	"startCustom": "Veya kendi API anahtarını kullanabilirsin:",
-	"telemetry": {
-		"helpImprove": "Kade'u Geliştirmeye Yardım Et",
-		"helpImproveMessage": "Kade, hataları düzeltmemize ve eklentiyi geliştirmemize yardımcı olmak için hata ve kullanım verileri toplar. Bu telemetri kod, prompts veya kişisel bilgi toplamaz. Bunu <settingsLink>ayarlar</settingsLink>da kapatabilirsin."
-	},
-	"importSettings": "Ayarları İçe Aktar"
+  "greeting": "Merhaba, ben Kade!",
+  "introduction": "<strong>Kade, önde gelen otonom kodlama aracıdır.</strong> Daha önce hiç görmediğin şekilde mimari tasarım yapmaya, kod yazmaya, hata ayıklamaya ve üretkenliğini artırmaya hazırlan. Devam etmek için Kade'un bir API anahtarına ihtiyacı var.",
+  "notice": "Başlamak için bu eklentinin bir API sağlayıcısına ihtiyacı var.",
+  "start": "Hadi başlayalım!",
+  "routers": {
+    "requesty": {
+      "description": "Optimize edilmiş LLM yönlendiricin",
+      "incentive": "$1 ücretsiz kredi"
+    },
+    "openrouter": {
+      "description": "LLM'ler için birleşik bir arayüz"
+    },
+    "roo": {
+      "description": "Başlamak için en iyi ücretsiz modeller",
+      "incentive": "Roo'yu ücretsiz dene"
+    }
+  },
+  "chooseProvider": "Sihirini yapabilmesi için Kade'nun bir API anahtarına ihtiyacı var.",
+  "providerSignup": {
+    "rooCloudProvider": "Roo Code Cloud Sağlayıcısı",
+    "rooCloudDescription": "Roo'yu kullanmanın en basit yolu. Düşük maliyetle seçilmiş ücretsiz ve ücretli modellerin karışımı",
+    "learnMore": "daha fazla bilgi",
+    "useAnotherProvider": "Başka bir sağlayıcı kullan",
+    "useAnotherProviderDescription": "Bir API anahtarı gir ve başla.",
+    "noApiKeys": "Anahtarlarla uğraşmak istemez misin? Roo Code Cloud Sağlayıcısı'nı seç.",
+    "getStarted": "Başla"
+  },
+  "waitingForCloud": {
+    "heading": "Seni Roo Code Cloud'a götürüyoruz...",
+    "description": "Tarayıcında kaydı tamamla ve otomatik olarak buraya döneceksin.",
+    "noPrompt": "URL açmanız istenmezse, <clickHere>buraya tıkla</clickHere>.",
+    "havingTrouble": "Kaydı tamamladıysan ama sorun yaşıyorsan, <clickHere>buraya tıkla</clickHere>.",
+    "pasteUrl": "Tarayıcınızdan geri arama URL'sini yapıştırın:",
+    "invalidURL": "Bu geçerli bir geri arama URL'si gibi görünmüyor. Roo Code Cloud'un tarayıcında gösterdiği şeyi kopyala.",
+    "goBack": "Geri Dön"
+  },
+  "startRouter": "Bir LLM yönlendiricisi kullanmanı öneririz:",
+  "startCustom": "Veya kendi API anahtarını kullanabilirsin:",
+  "telemetry": {
+    "helpImprove": "Kade'u Geliştirmeye Yardım Et",
+    "helpImproveMessage": "Kade, hataları düzeltmemize ve eklentiyi geliştirmemize yardımcı olmak için hata ve kullanım verileri toplar. Bu telemetri kod, prompts veya kişisel bilgi toplamaz. Bunu <settingsLink>ayarlar</settingsLink>da kapatabilirsin."
+  },
+  "importSettings": "Ayarları İçe Aktar"
 }

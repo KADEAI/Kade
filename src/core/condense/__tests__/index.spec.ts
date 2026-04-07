@@ -64,7 +64,7 @@ describe("getKeepMessagesWithToolBlocks", () => {
 		const toolUseBlock = {
 			type: "tool_use" as const,
 			id: "toolu_123",
-			name: "read_file",
+			name: "read",
 			input: { path: "test.txt" },
 		}
 		const toolResultBlock = {
@@ -108,7 +108,7 @@ describe("getKeepMessagesWithToolBlocks", () => {
 		const toolUseBlock = {
 			type: "tool_use" as const,
 			id: "toolu_123",
-			name: "read_file",
+			name: "read",
 			input: { path: "test.txt" },
 		}
 
@@ -154,13 +154,13 @@ describe("getKeepMessagesWithToolBlocks", () => {
 		const toolUseBlock1 = {
 			type: "tool_use" as const,
 			id: "toolu_123",
-			name: "read_file",
+			name: "read",
 			input: { path: "file1.txt" },
 		}
 		const toolUseBlock2 = {
 			type: "tool_use" as const,
 			id: "toolu_456",
-			name: "read_file",
+			name: "read",
 			input: { path: "file2.txt" },
 		}
 		const toolResultBlock1 = {
@@ -292,6 +292,26 @@ describe("getMessagesSinceLastSummary", () => {
 			{ role: "user", content: "Hello", ts: 1 },
 			{ role: "assistant", content: "Second summary", ts: 4, isSummary: true },
 			{ role: "user", content: "What's new?", ts: 5 },
+		])
+	})
+
+	it("should prefer the provided user anchor over the fallback first user message", () => {
+		const messages: ApiMessage[] = [
+			{ role: "assistant", content: "Initial response", ts: 1 },
+			{ role: "user", content: "Original request", ts: 2 },
+			{ role: "assistant", content: "Summary of conversation", ts: 3, isSummary: true },
+			{ role: "user", content: "Most recent request", ts: 4 },
+			{ role: "assistant", content: "Latest response", ts: 5 },
+		]
+
+		const anchorMessage: ApiMessage = { role: "user", content: "Anchor request", ts: 99 }
+
+		const result = getMessagesSinceLastSummary(messages, anchorMessage)
+		expect(result).toEqual([
+			anchorMessage,
+			{ role: "assistant", content: "Summary of conversation", ts: 3, isSummary: true },
+			{ role: "user", content: "Most recent request", ts: 4 },
+			{ role: "assistant", content: "Latest response", ts: 5 },
 		])
 	})
 
@@ -772,7 +792,7 @@ describe("summarizeConversation", () => {
 		const toolUseBlock = {
 			type: "tool_use" as const,
 			id: "toolu_123",
-			name: "read_file",
+			name: "read",
 			input: { path: "test.txt" },
 		}
 		const toolResultBlock = {
@@ -834,7 +854,7 @@ describe("summarizeConversation", () => {
 		expect((content[0] as Anthropic.Messages.TextBlockParam).text).toBe("Summary of conversation")
 		expect(content[1].type).toBe("tool_use")
 		expect((content[1] as Anthropic.Messages.ToolUseBlockParam).id).toBe("toolu_123")
-		expect((content[1] as Anthropic.Messages.ToolUseBlockParam).name).toBe("read_file")
+		expect((content[1] as Anthropic.Messages.ToolUseBlockParam).name).toBe("read")
 
 		// With non-destructive condensing, all messages are retained plus the summary
 		expect(result.messages.length).toBe(messages.length + 1) // all original + summary
@@ -848,7 +868,7 @@ describe("summarizeConversation", () => {
 		const toolUseBlock = {
 			type: "tool_use" as const,
 			id: "toolu_history_fix",
-			name: "read_file",
+			name: "read",
 			input: { path: "sample.txt" },
 		}
 		const toolResultBlock = {

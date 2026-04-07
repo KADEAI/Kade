@@ -1,5 +1,6 @@
 import * as path from "path"
 import { Parser as ParserT, Language as LanguageT, Query as QueryT } from "web-tree-sitter"
+import { getLanguageWasmPath, getTreeSitterCoreWasmPath } from "./wasmPaths"
 import {
 	javascriptQuery,
 	typescriptQuery,
@@ -38,8 +39,14 @@ export interface LanguageParser {
 }
 
 async function loadLanguage(langName: string, sourceDirectory?: string) {
-	const baseDir = sourceDirectory || __dirname
-	const wasmPath = path.join(baseDir, `tree-sitter-${langName}.wasm`)
+	const wasmPath = getLanguageWasmPath(langName, {
+		baseDir: __dirname,
+		sourceDirectory,
+	})
+
+	if (!wasmPath) {
+		throw new Error(`Could not find language WASM file: tree-sitter-${langName}.wasm`)
+	}
 
 	try {
 		const { Language } = require("web-tree-sitter")
@@ -79,8 +86,22 @@ export async function loadRequiredLanguageParsers(filesToParse: string[], source
 	const { Parser, Query } = require("web-tree-sitter")
 
 	if (!isParserInitialized) {
+		const coreWasmPath = getTreeSitterCoreWasmPath(sourceDirectory || __dirname)
+
+		if (!coreWasmPath) {
+			throw new Error("Could not find tree-sitter.wasm")
+		}
+
 		try {
-			await Parser.init()
+			await Parser.init({
+				locateFile(scriptName: string) {
+					if (scriptName === "tree-sitter.wasm") {
+						return coreWasmPath
+					}
+
+					return scriptName
+				},
+			})
 			isParserInitialized = true
 		} catch (error) {
 			console.error(`Error initializing parser: ${error instanceof Error ? error.message : error}`)

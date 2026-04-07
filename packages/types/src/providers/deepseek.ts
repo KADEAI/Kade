@@ -15,7 +15,7 @@ export const deepSeekModels = {
 		supportsImages: false,
 		supportsPromptCache: true,
 		supportsNativeTools: true,
-		defaultToolProtocol: "markdown",
+		defaultToolProtocol: "unified",
 		inputPrice: 0.28, // $0.28 per million tokens (cache miss) - Updated Dec 9, 2025
 		outputPrice: 0.42, // $0.42 per million tokens - Updated Dec 9, 2025
 		cacheWritesPrice: 0.28, // $0.28 per million tokens (cache miss) - Updated Dec 9, 2025
@@ -28,7 +28,7 @@ export const deepSeekModels = {
 		supportsImages: false,
 		supportsPromptCache: true,
 		supportsNativeTools: true,
-		defaultToolProtocol: "markdown",
+		defaultToolProtocol: "unified",
 		preserveReasoning: true,
 		inputPrice: 0.28, // $0.28 per million tokens (cache miss) - Updated Dec 9, 2025
 		outputPrice: 0.42, // $0.42 per million tokens - Updated Dec 9, 2025

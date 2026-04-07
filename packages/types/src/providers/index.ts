@@ -2,6 +2,7 @@ export * from "./anthropic.js"
 export * from "./apertis.js"
 export * from "./baseten.js"
 export * from "./bedrock.js"
+export * from "./bluesminds.js"
 export * from "./cerebras.js"
 export * from "./chutes.js"
 export * from "./claude-code.js"
@@ -49,12 +50,14 @@ export * from "./deepinfra.js"
 export * from "./openai-codex.js"
 export * from "./openai-codex-rate-limits.js"
 export * from "./antigravity.js"
+export * from "./zed.js"
 export * from "./kiro.js"
 
 import { anthropicDefaultModelId } from "./anthropic.js"
 import { apertisDefaultModelId } from "./apertis.js"
 import { basetenDefaultModelId } from "./baseten.js"
 import { bedrockDefaultModelId } from "./bedrock.js"
+import { bluesmindsDefaultModelId } from "./bluesminds.js"
 import { cerebrasDefaultModelId } from "./cerebras.js"
 import { chutesDefaultModelId } from "./chutes.js"
 import { claudeCodeDefaultModelId } from "./claude-code.js"
@@ -87,6 +90,7 @@ import { internationalZAiDefaultModelId, mainlandZAiDefaultModelId } from "./zai
 import { deepInfraDefaultModelId } from "./deepinfra.js"
 import { minimaxDefaultModelId } from "./minimax.js"
 import { openAiCodexDefaultModelId } from "./openai-codex.js"
+import { zedDefaultModelId } from "./zed.js"
 import { kiroDefaultModelId } from "./kiro.js"
 import { aihubmixDefaultModelId } from "./aihubmix.js"
 import { corethinkDefaultModelId } from "./corethink.js"
@@ -136,6 +140,8 @@ export function getProviderDefaultModelId(
 			return basetenDefaultModelId
 		case "bedrock":
 			return bedrockDefaultModelId
+		case "bluesminds":
+			return bluesmindsDefaultModelId
 		case "vertex":
 			return vertexDefaultModelId
 		case "gemini":
@@ -152,6 +158,8 @@ export function getProviderDefaultModelId(
 			return options?.isChina ? mainlandZAiDefaultModelId : internationalZAiDefaultModelId
 		case "openai-codex":
 			return openAiCodexDefaultModelId
+		case "zed":
+			return zedDefaultModelId
 		case "openai-native":
 			return "gpt-4o" // Based on openai-native patterns
 		case "mistral":
@@ -193,10 +201,10 @@ export function getProviderDefaultModelId(
 		case "anthropic":
 		case "gemini-cli":
 		case "human-relay":
-		case "fake-ai":
-			return anthropicDefaultModelId
-		case "aihubmix":
-			return aihubmixDefaultModelId
+        case "fake-ai":
+            return anthropicDefaultModelId
+        case "corethink":
+            return corethinkDefaultModelId
 		default:
 			return anthropicDefaultModelId
 	}

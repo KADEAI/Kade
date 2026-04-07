@@ -2,6 +2,7 @@ import type { ToolName, ModeConfig } from "@roo-code/types"
 import { toolNames as validToolNames } from "@roo-code/types"
 
 import { Mode, isToolAllowedForMode } from "../../shared/modes"
+import { parseMcpToolName } from "../../utils/mcp-name"
 
 /**
  * Checks if a tool name is a valid, known tool.
@@ -14,13 +15,13 @@ export function isValidToolName(toolName: string): toolName is ToolName {
 		return true
 	}
 
-	// SPECIAL CASE: run_sub_agent is a valid tool
-	if (toolName === "run_sub_agent") {
+	// SPECIAL CASE: agent is a valid tool
+	if (toolName === "agent") {
 		return true
 	}
 
-	// Check if it's a dynamic MCP tool (mcp_serverName_toolName format)
-	if (toolName.startsWith("mcp_")) {
+	// Check if it's a dynamic MCP tool (mcp--serverName--toolName format)
+	if (parseMcpToolName(toolName) !== null) {
 		return true
 	}
 

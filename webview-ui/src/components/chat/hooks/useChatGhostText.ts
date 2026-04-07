@@ -1,19 +1,19 @@
 // kade_change - new file
-import { useCallback, useEffect, useRef, useState } from "react"
-import { ExtensionMessage } from "@roo/ExtensionMessage"
-import { vscode } from "@/utils/vscode"
-import { generateRequestId } from "@roo/id"
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ExtensionMessage } from "@roo/ExtensionMessage";
+import { vscode } from "@/utils/vscode";
+import { generateRequestId } from "@roo/id";
 
 interface UseChatGhostTextOptions {
-	textAreaRef: React.RefObject<HTMLTextAreaElement>
-	enableChatAutocomplete?: boolean
+  textAreaRef: React.RefObject<HTMLTextAreaElement>;
+  enableChatAutocomplete?: boolean;
 }
 
 interface UseChatGhostTextReturn {
-	ghostText: string
-	handleKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => boolean // Returns true if event was handled
-	handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-	clearGhostText: () => void
+  ghostText: string;
+  handleKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => boolean; // Returns true if event was handled
+  handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  clearGhostText: () => void;
 }
 
 /**
@@ -21,140 +21,140 @@ interface UseChatGhostTextReturn {
  * Handles completion requests, ghost text display, and Tab/Escape/ArrowRight interactions.
  */
 export function useChatGhostText({
-	textAreaRef,
-	enableChatAutocomplete = true,
+  textAreaRef,
+  enableChatAutocomplete = true,
 }: UseChatGhostTextOptions): UseChatGhostTextReturn {
-	const [ghostText, setGhostText] = useState<string>("")
-	const completionDebounceRef = useRef<NodeJS.Timeout | null>(null)
-	const completionRequestIdRef = useRef<string>("")
-	const skipNextCompletionRef = useRef<boolean>(false) // Skip completion after accepting suggestion
+  const [ghostText, setGhostText] = useState<string>("");
+  const completionDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const completionRequestIdRef = useRef<string>("");
+  const skipNextCompletionRef = useRef<boolean>(false); // Skip completion after accepting suggestion
 
-	// Handle chat completion result messages
-	useEffect(() => {
-		const messageHandler = (event: MessageEvent<ExtensionMessage>) => {
-			const message = event.data
-			if (message.type === "chatCompletionResult") {
-				// Only update if this is the response to our latest request
-				if (message.requestId === completionRequestIdRef.current) {
-					setGhostText(message.text || "")
-				}
-			}
-		}
+  // Handle chat completion result messages
+  useEffect(() => {
+    const messageHandler = (event: MessageEvent<ExtensionMessage>) => {
+      const message = event.data;
+      if (message.type === "chatCompletionResult") {
+        // Only update if this is the response to our latest request
+        if (message.requestId === completionRequestIdRef.current) {
+          setGhostText(message.text || "");
+        }
+      }
+    };
 
-		window.addEventListener("message", messageHandler)
-		return () => window.removeEventListener("message", messageHandler)
-	}, [])
+    window.addEventListener("message", messageHandler);
+    return () => window.removeEventListener("message", messageHandler);
+  }, []);
 
-	const clearGhostText = useCallback(() => {
-		setGhostText("")
-	}, [])
+  const clearGhostText = useCallback(() => {
+    setGhostText("");
+  }, []);
 
-	const handleKeyDown = useCallback(
-		(event: React.KeyboardEvent<HTMLTextAreaElement>): boolean => {
-			const textArea = textAreaRef.current
-			if (!textArea) {
-				return false
-			}
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLTextAreaElement>): boolean => {
+      const textArea = textAreaRef.current;
+      if (!textArea) {
+        return false;
+      }
 
-			const hasSelection = textArea.selectionStart !== textArea.selectionEnd
-			const isCursorAtEnd = textArea.selectionStart === textArea.value.length
-			const canAcceptCompletion = ghostText && !hasSelection && isCursorAtEnd
+      const hasSelection = textArea.selectionStart !== textArea.selectionEnd;
+      const isCursorAtEnd = textArea.selectionStart === textArea.value.length;
+      const canAcceptCompletion = ghostText && !hasSelection && isCursorAtEnd;
 
-			// Tab: Accept full ghost text
-			if (event.key === "Tab" && !event.shiftKey && canAcceptCompletion) {
-				event.preventDefault()
-				skipNextCompletionRef.current = true
-				insertTextAtCursor(textArea, ghostText)
-				// Send telemetry event for accepted suggestion
-				vscode.postMessage({
-					type: "chatCompletionAccepted",
-					suggestionLength: ghostText.length,
-				})
-				setGhostText("")
-				return true
-			}
+      // Tab: Accept full ghost text
+      if (event.key === "Tab" && !event.shiftKey && canAcceptCompletion) {
+        event.preventDefault();
+        skipNextCompletionRef.current = true;
+        insertTextAtCursor(textArea, ghostText);
+        // Send telemetry event for accepted suggestion
+        vscode.postMessage({
+          type: "chatCompletionAccepted",
+          suggestionLength: ghostText.length,
+        });
+        setGhostText("");
+        return true;
+      }
 
-			// ArrowRight: Accept next word only
-			if (
-				event.key === "ArrowRight" &&
-				!event.shiftKey &&
-				!event.ctrlKey &&
-				!event.metaKey &&
-				canAcceptCompletion
-			) {
-				event.preventDefault()
-				skipNextCompletionRef.current = true
-				const { word, remainder } = extractNextWord(ghostText)
-				insertTextAtCursor(textArea, word)
-				// Send telemetry event for accepted word
-				vscode.postMessage({
-					type: "chatCompletionAccepted",
-					suggestionLength: word.length,
-				})
-				setGhostText(remainder)
-				return true
-			}
+      // ArrowRight: Accept next word only
+      if (
+        event.key === "ArrowRight" &&
+        !event.shiftKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        canAcceptCompletion
+      ) {
+        event.preventDefault();
+        skipNextCompletionRef.current = true;
+        const { word, remainder } = extractNextWord(ghostText);
+        insertTextAtCursor(textArea, word);
+        // Send telemetry event for accepted word
+        vscode.postMessage({
+          type: "chatCompletionAccepted",
+          suggestionLength: word.length,
+        });
+        setGhostText(remainder);
+        return true;
+      }
 
-			// Escape: Clear ghost text
-			if (event.key === "Escape" && ghostText) {
-				setGhostText("")
-			}
-			return false
-		},
-		[ghostText, textAreaRef],
-	)
+      // Escape: Clear ghost text
+      if (event.key === "Escape" && ghostText) {
+        setGhostText("");
+      }
+      return false;
+    },
+    [ghostText, textAreaRef],
+  );
 
-	const handleInputChange = useCallback(
-		(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-			const newValue = e.target.value
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newValue = e.target.value;
 
-			// Clear any existing ghost text when typing
-			setGhostText("")
+      // Clear any existing ghost text when typing
+      setGhostText("");
 
-			// Clear any pending completion request
-			if (completionDebounceRef.current) {
-				clearTimeout(completionDebounceRef.current)
-			}
+      // Clear any pending completion request
+      if (completionDebounceRef.current) {
+        clearTimeout(completionDebounceRef.current);
+      }
 
-			// Skip completion request if we just accepted a suggestion (Tab) or undid
-			if (skipNextCompletionRef.current) {
-				skipNextCompletionRef.current = false
-				// Don't request a new completion - wait for user to type more
-			} else if (
-				enableChatAutocomplete &&
-				newValue.length >= 5 &&
-				!newValue.startsWith("/") &&
-				!newValue.includes("@")
-			) {
-				// Request new completion after debounce (only if feature is enabled)
-				const requestId = generateRequestId()
-				completionRequestIdRef.current = requestId
-				completionDebounceRef.current = setTimeout(() => {
-					vscode.postMessage({
-						type: "requestChatCompletion",
-						text: newValue,
-						requestId,
-					})
-				}, 300) // 300ms debounce
-			}
-		},
-		[enableChatAutocomplete],
-	)
+      // Skip completion request if we just accepted a suggestion (Tab) or undid
+      if (skipNextCompletionRef.current) {
+        skipNextCompletionRef.current = false;
+        // Don't request a new completion - wait for user to type more
+      } else if (
+        enableChatAutocomplete &&
+        newValue.length >= 5 &&
+        !newValue.startsWith("/") &&
+        !newValue.includes("@")
+      ) {
+        // Request new completion after debounce (only if feature is enabled)
+        const requestId = generateRequestId();
+        completionRequestIdRef.current = requestId;
+        completionDebounceRef.current = setTimeout(() => {
+          vscode.postMessage({
+            type: "requestChatCompletion",
+            text: newValue,
+            requestId,
+          });
+        }, 300); // 300ms debounce
+      }
+    },
+    [enableChatAutocomplete],
+  );
 
-	useEffect(() => {
-		return () => {
-			if (completionDebounceRef.current) {
-				clearTimeout(completionDebounceRef.current)
-			}
-		}
-	}, [])
+  useEffect(() => {
+    return () => {
+      if (completionDebounceRef.current) {
+        clearTimeout(completionDebounceRef.current);
+      }
+    };
+  }, []);
 
-	return {
-		ghostText,
-		handleKeyDown,
-		handleInputChange,
-		clearGhostText,
-	}
+  return {
+    ghostText,
+    handleKeyDown,
+    handleInputChange,
+    clearGhostText,
+  };
 }
 
 /**
@@ -163,22 +163,22 @@ export function useChatGhostText({
  * Returns the word and the remaining text.
  */
 function extractNextWord(text: string): { word: string; remainder: string } {
-	if (!text) {
-		return { word: "", remainder: "" }
-	}
+  if (!text) {
+    return { word: "", remainder: "" };
+  }
 
-	// Match: optional leading whitespace + non-whitespace characters + optional trailing whitespace
-	// This captures " word " or "word " or " word" as complete units
-	const match = text.match(/^(\s*\S+\s*)/)
-	if (match) {
-		return { word: match[1], remainder: text.slice(match[1].length) }
-	}
+  // Match: optional leading whitespace + non-whitespace characters + optional trailing whitespace
+  // This captures " word " or "word " or " word" as complete units
+  const match = text.match(/^(\s*\S+\s*)/);
+  if (match) {
+    return { word: match[1], remainder: text.slice(match[1].length) };
+  }
 
-	// If text is only whitespace, return all of it
-	return { word: text, remainder: "" }
+  // If text is only whitespace, return all of it
+  return { word: text, remainder: "" };
 }
 
 function insertTextAtCursor(textArea: HTMLTextAreaElement, text: string): void {
-	textArea.setSelectionRange(textArea.value.length, textArea.value.length)
-	document?.execCommand("insertText", false, text)
+  textArea.setSelectionRange(textArea.value.length, textArea.value.length);
+  document?.execCommand("insertText", false, text);
 }

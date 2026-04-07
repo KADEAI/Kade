@@ -100,7 +100,7 @@ export class CerebrasHandler extends BaseProvider implements SingleCompletionHan
 
 		// Check if we should use native tool calling
 		const useNativeTools =
-			supportsNativeTools && metadata?.tools && metadata.tools.length > 0 && metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN
+			supportsNativeTools && metadata?.tools && metadata.tools.length > 0 && metadata?.toolProtocol === TOOL_PROTOCOL.JSON
 
 		// Convert Anthropic messages to OpenAI format (Cerebras is OpenAI-compatible)
 		const openaiMessages = convertToOpenAiMessages(messages)

@@ -57,13 +57,13 @@ Single file: \`<read> <file.txt> </read>\`
 
 **edit**
 Description: Modify a file by replacing old content with new content. Supports multiple blocks.
-Usage: \`<edit> <path> <Old start-end:/New: blocks> </edit>\`
+Usage: \`<edit> <path> <SEARCH start-end:/REPLACE: blocks> </edit>\`
 Example (Single-Block):
 <edit> <src/utils.ts> <
 Old 1-2:
   const x = 1;
   const y = 2;
-New:
+REPLACE:
   const x = 2;
   const z = 3;
 > </edit>
@@ -72,13 +72,13 @@ Example (Multi-Block):
 <edit> <src/utils.ts> <
 Old 10-10:
   console.log("test");
-New:
+REPLACE:
   console.log("debug");
 
 Old 20-21:
   return true;
   retun yes!
-New:
+REPLACE:
   return false;
   return no!
 > </edit>
@@ -140,7 +140,7 @@ ${mcpToolsSection}
 ---
 
 ### 🛡️ Implementation Rules
-1. **Precision**: Text inside \`Old:\` sections must match the file content exactly.
+1. **Precision**: Text inside \`SEARCH:\` sections must match the file content exactly.
 2. **Minimization**: Only include the lines that need to be changed in edits.
 3. **Completion**: Always close your tool calls with the standard XML closing tag.
 4. **Efficiency**: You can batch multiple tools to gather info faster, but avoid batching dependent actions where you guess the state of the codebase.

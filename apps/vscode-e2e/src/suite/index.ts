@@ -3,12 +3,47 @@ import Mocha from "mocha"
 import { glob } from "glob"
 import * as vscode from "vscode"
 
-import type { RooCodeAPI } from "@roo-code/types"
+import type { RooCodeAPI, RooCodeSettings } from "@roo-code/types"
 
 import { waitFor } from "./utils"
 
+function getInitialConfiguration() {
+	const provider = process.env.E2E_API_PROVIDER
+	const toolProtocol = process.env.E2E_TOOL_PROTOCOL as RooCodeSettings["toolProtocol"] | undefined
+
+	if (provider === "kilocode" && process.env.E2E_KILOCODE_TOKEN) {
+		return {
+			apiProvider: "kilocode" as const,
+			kilocodeToken: process.env.E2E_KILOCODE_TOKEN,
+			kilocodeModel: process.env.E2E_MODEL_ID,
+			toolProtocol,
+		}
+	}
+
+	if (provider === "openrouter" && process.env.OPENROUTER_API_KEY) {
+		return {
+			apiProvider: "openrouter" as const,
+			openRouterApiKey: process.env.OPENROUTER_API_KEY,
+			openRouterModelId: process.env.E2E_MODEL_ID || "openai/gpt-4.1",
+			toolProtocol,
+		}
+	}
+
+	if (process.env.OPENROUTER_API_KEY) {
+		return {
+			apiProvider: "openrouter" as const,
+			openRouterApiKey: process.env.OPENROUTER_API_KEY,
+			openRouterModelId: "openai/gpt-4.1",
+		}
+	}
+
+	return undefined
+}
+
 export async function run() {
-	const extension = vscode.extensions.getExtension<RooCodeAPI>("kilocode.kilo-code")
+	const extension =
+		vscode.extensions.getExtension<RooCodeAPI>("kade.kade") ??
+		vscode.extensions.getExtension<RooCodeAPI>("kilocode.kilo-code")
 
 	if (!extension) {
 		throw new Error("Extension not found")
@@ -16,13 +51,12 @@ export async function run() {
 
 	const api = extension.isActive ? extension.exports : await extension.activate()
 
-	await api.setConfiguration({
-		apiProvider: "openrouter" as const,
-		openRouterApiKey: process.env.OPENROUTER_API_KEY!,
-		openRouterModelId: "openai/gpt-4.1",
-	})
+	const initialConfiguration = getInitialConfiguration()
+	if (initialConfiguration) {
+		await api.setConfiguration(initialConfiguration)
+	}
 
-	await vscode.commands.executeCommand("kilo-code.SidebarProvider.focus")
+	await vscode.commands.executeCommand("kade.SidebarProvider.focus")
 	await waitFor(() => api.isReady())
 
 	globalThis.api = api

@@ -45,7 +45,6 @@ import { type ClineProviderState } from "../webview/ClineProvider" // kade_chang
 import { getUnifiedToolsPrompt } from "./sections/unified-tools"
 import { getUnifiedToolsPrompt as getUnifiedToolsSimplePrompt } from "./sections/unified-tools-simple"
 import { getMarkdownToolsPrompt } from "./sections/markdown-tools"
-import { getXmlToolsPrompt } from "./sections/xml-tools"
 import { isFastApplyAvailable } from "../tools/kilocode/editFileTool"
 
 // Helper function to get prompt component, filtering out empty objects
@@ -64,6 +63,7 @@ export function getPromptComponent(
 async function generatePrompt(
 	context: vscode.ExtensionContext,
 	cwd: string,
+	supportsBrowserUse: boolean,
 	supportsComputerUse: boolean,
 	mode: Mode,
 	mcpHub?: McpHub,
@@ -126,17 +126,16 @@ async function generatePrompt(
 	const subAgentToolEnabled = settings?.subAgentToolEnabled ?? false
 	if (effectiveProtocol === "unified") {
 		toolsCatalog = settings?.unifiedFormatVariant === "simple"
-			? getUnifiedToolsSimplePrompt(isIndexingEnabled, supportsComputerUse, todoListEnabled, subAgentToolEnabled, mcpHub, settings?.disableBatchToolUse, settings?.maxToolCalls)
-			: getUnifiedToolsPrompt(isIndexingEnabled, supportsComputerUse, todoListEnabled, subAgentToolEnabled, mcpHub, settings?.disableBatchToolUse, settings?.maxToolCalls)
+			? getUnifiedToolsSimplePrompt(isIndexingEnabled, supportsBrowserUse, supportsComputerUse, todoListEnabled, subAgentToolEnabled, mcpHub, settings?.disableBatchToolUse, settings?.maxToolCalls)
+			: getUnifiedToolsPrompt(isIndexingEnabled, supportsBrowserUse, supportsComputerUse, todoListEnabled, subAgentToolEnabled, mcpHub, settings?.disableBatchToolUse, settings?.maxToolCalls)
 	} else if (effectiveProtocol === "markdown") {
-		toolsCatalog = getMarkdownToolsPrompt(isIndexingEnabled, supportsComputerUse, todoListEnabled, subAgentToolEnabled, mcpHub, settings?.disableBatchToolUse, settings?.maxToolCalls)
-	} else if (effectiveProtocol === "xml") {
-		toolsCatalog = getXmlToolsPrompt(false, isIndexingEnabled, supportsComputerUse, todoListEnabled, mcpHub)
+		toolsCatalog = getMarkdownToolsPrompt(isIndexingEnabled, supportsBrowserUse, supportsComputerUse, todoListEnabled, subAgentToolEnabled, mcpHub, settings?.disableBatchToolUse, settings?.maxToolCalls)
 	} else if (!isNativeProtocol(effectiveProtocol)) {
 		toolsCatalog = `\n\n${getToolDescriptionsForMode(
 			mode,
 			cwd,
 			supportsComputerUse,
+			supportsBrowserUse,
 			codeIndexManager,
 			effectiveDiffStrategy,
 			browserViewportSize,
@@ -157,12 +156,20 @@ async function generatePrompt(
 		localRulesToggleState: context.workspaceState.get("localRulesToggles"), // kade_change
 		globalRulesToggleState: context.globalState.get("globalRulesToggles"), // kade_change
 		settings,
+		enabledSkills,
 	})
 
 	const promptTemplate = settings?.minimalSystemPrompt ? ANTIGRAVITY_MINIMAL_TEMPLATE : ANTIGRAVITY_TEMPLATE
+	const toolUsageSection = [
+		getSharedToolUseSection(effectiveProtocol),
+		getToolUseGuidelinesSection(effectiveProtocol),
+	]
+		.filter((section) => section.trim().length > 0)
+		.join("\n")
+
 	const basePrompt = promptTemplate(
 		toolsCatalog,
-		getSharedToolUseSection(effectiveProtocol) + "\n" + getToolUseGuidelinesSection(effectiveProtocol),
+		toolUsageSection,
 		getRulesSection(cwd, settings, clineProviderState /* kade_change */),
 		getSystemInfoSection(cwd),
 		mcpServersSection,
@@ -172,6 +179,7 @@ async function generatePrompt(
 		getSubAgentsSection(experiments?.enableSubAgents),
 		getSkillsSection(enabledSkills, installedSkills),
 		projectInit || "",
+		settings?.showVibeStyling !== false,
 		settings?.disableBatchToolUse ?? false,
 		settings?.maxToolCalls,
 	)
@@ -182,6 +190,7 @@ async function generatePrompt(
 export const SYSTEM_PROMPT = async (
 	context: vscode.ExtensionContext,
 	cwd: string,
+	supportsBrowserUse: boolean,
 	supportsComputerUse: boolean,
 	mcpHub?: McpHub,
 	diffStrategy?: DiffStrategy,
@@ -269,6 +278,7 @@ ${customInstructions}`
 	return generatePrompt(
 		context,
 		cwd,
+		supportsBrowserUse,
 		supportsComputerUse,
 		currentMode.slug,
 		mcpHub,

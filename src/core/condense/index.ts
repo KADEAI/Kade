@@ -346,11 +346,23 @@ export function getMessagesSinceLastSummary(
 
 	const lastSummaryIndex = messages.length - lastSummaryIndexReverse - 1
 	const messagesSinceSummary = messages.slice(lastSummaryIndex)
+	const fallbackAnchor = messages.slice(0, lastSummaryIndex).find((message) => message.role === "user")
+	const anchorMessage =
+		customContextAnchor?.role === "user" ? customContextAnchor : fallbackAnchor
 
-	return messagesSinceSummary
+	if (!anchorMessage) {
+		return messagesSinceSummary
+	}
 
+	const anchorAlreadyIncluded = messagesSinceSummary.some((message) => {
+		if (anchorMessage.ts !== undefined && message.ts !== undefined) {
+			return message.ts === anchorMessage.ts
+		}
 
-	return messagesSinceSummary
+		return message === anchorMessage
+	})
+
+	return anchorAlreadyIncluded ? messagesSinceSummary : [anchorMessage, ...messagesSinceSummary]
 }
 
 /**

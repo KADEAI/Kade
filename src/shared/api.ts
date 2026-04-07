@@ -185,6 +185,7 @@ type CommonFetchParams = {
 const dynamicProviderExtras = {
 	gemini: {} as { apiKey?: string; baseUrl?: string }, // kade_change
 	antigravity: {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
+	zed: {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
 	openrouter: {} as {}, // eslint-disable-line @typescript-eslint/no-empty-object-type
 	kiro: {} as { kiroApiKey?: string; kiroBaseUrl?: string },
 
@@ -205,6 +206,7 @@ const dynamicProviderExtras = {
 	ovhcloud: {} as { apiKey?: string }, // kade_change
 	inception: {} as { apiKey?: string; baseUrl?: string }, // kade_change
 	synthetic: {} as { apiKey?: string }, // kade_change
+	bluesminds: {} as { apiKey?: string; baseUrl?: string },
 	roo: {} as { apiKey?: string; baseUrl?: string },
 	chutes: {} as { apiKey?: string },
 	// kade_change start

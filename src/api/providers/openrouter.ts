@@ -20,7 +20,6 @@ import { resolveToolProtocol } from "../../utils/resolveToolProtocol"
 import { TOOL_PROTOCOL } from "@roo-code/types"
 import { ApiStreamChunk } from "../transform/stream"
 import { convertToR1Format } from "../transform/r1-format"
-import { addCacheBreakpoints as addAnthropicCacheBreakpoints } from "../transform/caching/anthropic"
 import { addCacheBreakpoints as addGeminiCacheBreakpoints } from "../transform/caching/gemini"
 import type { OpenRouterReasoningParams } from "../transform/reasoning"
 import { getModelParams } from "../transform/model-params"
@@ -50,6 +49,7 @@ import type { ApiHandlerCreateMessageMetadata, SingleCompletionHandler } from ".
 import { handleOpenAIError } from "./utils/openai-error-handler"
 import { generateImageWithProvider, ImageGenerationResult } from "./utils/image-generation"
 import { KiloCodeChunkSchema } from "./kilocode/chunk-schema"
+import { ProviderStreamDebugCollector } from "./providerStreamDebug"
 
 // Add custom interface for OpenRouter params.
 type OpenRouterChatCompletionParams = OpenAI.Chat.ChatCompletionCreateParams & {
@@ -188,6 +188,152 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 		return this.currentReasoningDetails.length > 0 ? this.currentReasoningDetails : undefined
 	}
 
+	protected shouldUseSimpleStreamPath(model: Awaited<ReturnType<OpenRouterHandler["fetchModel"]>>): boolean {
+		const modelId = model.id
+
+		if (this.providerName !== "OpenRouter" && this.providerName !== "KiloCode") {
+			return false
+		}
+
+		if (
+			this.options.openRouterSpecificProvider ||
+			this.options.openRouterProviderDataCollection ||
+			this.options.openRouterProviderSort ||
+			this.options.openRouterZdr ||
+			this.options.openRouterUseMiddleOutTransform === true
+		) {
+			return false
+		}
+
+		if (model.reasoning) {
+			return false
+		}
+
+		return !(
+			modelId.startsWith("google/gemini") ||
+			modelId.startsWith("anthropic/") ||
+			modelId.startsWith("deepseek/deepseek-r1") ||
+			modelId === "perplexity/sonar-reasoning"
+		)
+	}
+
+	private getRequestOptions(modelId: string, metadata?: ApiHandlerCreateMessageMetadata): { headers: Record<string, string> } {
+		const requestOptions = this.customRequestOptions(metadata) ?? { headers: {} }
+		if (modelId.startsWith("anthropic/")) {
+			requestOptions.headers["x-anthropic-beta"] =
+				"fine-grained-tool-streaming-2025-05-14,structured-outputs-2025-11-13"
+		}
+		return requestOptions
+	}
+
+	private async *createSimpleMessage(
+		model: Awaited<ReturnType<OpenRouterHandler["fetchModel"]>>,
+		systemPrompt: string,
+		messages: Anthropic.Messages.MessageParam[],
+		metadata?: ApiHandlerCreateMessageMetadata,
+	): AsyncGenerator<ApiStreamChunk> {
+		const { id: modelId, maxTokens, temperature, topP, reasoning, verbosity } = model
+		const openAiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+			{ role: "system", content: systemPrompt },
+			...convertToOpenAiMessages(messages),
+		]
+
+		if (OPEN_ROUTER_PROMPT_CACHING_MODELS.has(modelId)) {
+			this.applyOpenAiPromptCaching(systemPrompt, openAiMessages, model.info, metadata?.taskId)
+		}
+
+		const completionParams: OpenRouterChatCompletionParams = {
+			model: modelId,
+			...(maxTokens && maxTokens > 0 && { max_tokens: maxTokens }),
+			temperature,
+			top_p: topP,
+			messages: openAiMessages,
+			stream: true,
+			stream_options: { include_usage: true },
+			parallel_tool_calls: metadata?.parallelToolCalls ?? false,
+			...(reasoning && { reasoning }),
+			...(metadata?.tools && { tools: this.convertToolsForOpenAI(metadata.tools) }),
+			...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
+			verbosity,
+		}
+
+		let stream
+		let inferenceProvider: string | undefined
+		try {
+			stream = await this.client.chat.completions.create(completionParams, this.getRequestOptions(modelId, metadata))
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error)
+			const apiError = new ApiProviderError(errorMessage, this.providerName, modelId, "createMessage")
+			TelemetryService.instance.captureException(apiError)
+			throw new Error(makeOpenRouterErrorReadable(error))
+		}
+
+		let lastUsage: CompletionUsage | undefined
+		for await (const chunk of stream) {
+			if ("error" in chunk) {
+				this.handleStreamingError(chunk.error as OpenRouterErrorResponse, modelId, "createMessage")
+			}
+
+			if (this.providerName === "KiloCode") {
+				const kiloCodeChunk = KiloCodeChunkSchema.safeParse(chunk).data
+				inferenceProvider =
+					kiloCodeChunk?.choices?.[0]?.delta?.provider_metadata?.gateway?.routing?.resolvedProvider ??
+					kiloCodeChunk?.provider ??
+					inferenceProvider
+			}
+
+			verifyFinishReason(chunk.choices[0])
+			const delta = chunk.choices[0]?.delta
+			const finishReason = chunk.choices[0]?.finish_reason
+
+			if (delta) {
+				if ("reasoning_content" in delta && typeof delta.reasoning_content === "string") {
+					yield { type: "reasoning", text: delta.reasoning_content }
+				} else if ("reasoning" in delta && typeof delta.reasoning === "string") {
+					yield { type: "reasoning", text: delta.reasoning }
+				}
+
+				if ("tool_calls" in delta && Array.isArray(delta.tool_calls)) {
+					for (const toolCall of delta.tool_calls) {
+						yield {
+							type: "tool_call_partial",
+							index: toolCall.index,
+							id: toolCall.id,
+							name: toolCall.function?.name,
+							arguments: toolCall.function?.arguments,
+						}
+					}
+				}
+
+				if (delta.content) {
+					yield { type: "text", text: delta.content }
+				}
+			}
+
+			if (finishReason) {
+				for (const event of NativeToolCallParser.processFinishReason(finishReason)) {
+					yield event
+				}
+			}
+
+			if (chunk.usage) {
+				lastUsage = chunk.usage
+			}
+		}
+
+		if (lastUsage) {
+			yield {
+				type: "usage",
+				inputTokens: lastUsage.prompt_tokens || 0,
+				outputTokens: lastUsage.completion_tokens || 0,
+				cacheReadTokens: lastUsage.prompt_tokens_details?.cached_tokens,
+				reasoningTokens: lastUsage.completion_tokens_details?.reasoning_tokens,
+				totalCost: this.getTotalCost(lastUsage),
+				inferenceProvider,
+			}
+		}
+	}
+
 	/**
 	 * Handle OpenRouter streaming error response and report to telemetry.
 	 * OpenRouter may include metadata.raw with the actual upstream provider error.
@@ -231,11 +377,14 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 		metadata?: ApiHandlerCreateMessageMetadata,
 	): AsyncGenerator<ApiStreamChunk> {
 		const model = await this.fetchModel()
+		this.currentReasoningDetails = []
+
+		if (this.shouldUseSimpleStreamPath(model)) {
+			yield* this.createSimpleMessage(model, systemPrompt, messages, metadata)
+			return
+		}
 
 		let { id: modelId, maxTokens, temperature, topP, reasoning } = model
-
-		// Reset reasoning_details accumulator for this request
-		this.currentReasoningDetails = []
 
 		// OpenRouter sends reasoning tokens by default for Gemini 2.5 Pro models
 		// even if you don't request them. This is not the default for
@@ -262,8 +411,13 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 
 		// Process reasoning_details when switching models to Gemini for native tool call compatibility
 		const toolProtocol = resolveToolProtocol(this.options, model.info)
-		const isNativeProtocol = toolProtocol === TOOL_PROTOCOL.MARKDOWN
+		const isNativeProtocol = toolProtocol === TOOL_PROTOCOL.JSON
 		const isGemini = modelId.startsWith("google/gemini")
+		const upstreamDebug = new ProviderStreamDebugCollector({
+			providerName: this.providerName,
+			modelId,
+			toolProtocol: metadata?.toolProtocol,
+		})
 
 		// For Gemini with native protocol: inject fake reasoning.encrypted blocks for tool calls
 		// This is required when switching from other models to Gemini to satisfy API validation
@@ -306,12 +460,12 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 			if (modelId.startsWith("google")) {
 				addGeminiCacheBreakpoints(systemPrompt, openAiMessages)
 			} else {
-				addAnthropicCacheBreakpoints(systemPrompt, openAiMessages)
+				this.applyOpenAiPromptCaching(systemPrompt, openAiMessages, model.info, metadata?.taskId)
 			}
 		}
 		// kade_change end
 
-		const transforms = (this.options.openRouterUseMiddleOutTransform ?? true) ? ["middle-out"] : undefined
+		const transforms = (this.options.openRouterUseMiddleOutTransform ?? false) ? ["middle-out"] : undefined
 
 		// https://openrouter.ai/docs/transforms
 		const completionParams: OpenRouterChatCompletionParams = {
@@ -323,7 +477,7 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 			stream: true,
 			stream_options: { include_usage: true },
 			...this.getProviderParams(), // kade_change: original expression was moved into function
-			parallel_tool_calls: false, // Ensure only one tool call at a time
+			parallel_tool_calls: metadata?.parallelToolCalls ?? false,
 			...(transforms && { transforms }),
 			...(reasoning && { reasoning }),
 			...(metadata?.tools && { tools: this.convertToolsForOpenAI(metadata.tools) }),
@@ -331,17 +485,9 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 			verbosity: model.verbosity, // kade_change
 		}
 
-		// kade_change start
-		const requestOptions = this.customRequestOptions(metadata) ?? { headers: {} }
-		if (modelId.startsWith("anthropic/")) {
-			requestOptions.headers["x-anthropic-beta"] =
-				"fine-grained-tool-streaming-2025-05-14,structured-outputs-2025-11-13"
-		}
-		// kade_change end
-
 		let stream
 		try {
-			stream = await this.client.chat.completions.create(completionParams, requestOptions)
+			stream = await this.client.chat.completions.create(completionParams, this.getRequestOptions(modelId, metadata))
 		} catch (error) {
 			// kade_change start
 			// KiloCode backend errors are already user-readable and should be handled upstream.
@@ -377,26 +523,33 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 			}
 		>()
 
-		for await (const chunk of stream) {
-			// OpenRouter returns an error object instead of the OpenAI SDK throwing an error.
-			if ("error" in chunk) {
-				this.handleStreamingError(chunk.error as OpenRouterErrorResponse, modelId, "createMessage")
+			for await (const chunk of stream) {
+				// OpenRouter returns an error object instead of the OpenAI SDK throwing an error.
+				if ("error" in chunk) {
+					upstreamDebug.recordRaw(
+						"stream_error",
+						`${String((chunk.error as OpenRouterErrorResponse)?.code ?? "unknown")}:${String((chunk.error as OpenRouterErrorResponse)?.message ?? "")}`,
+					)
+					this.handleStreamingError(chunk.error as OpenRouterErrorResponse, modelId, "createMessage")
 			}
 
 			// kade_change start
-			const kiloCodeChunk = KiloCodeChunkSchema.safeParse(chunk).data
-			inferenceProvider =
-				kiloCodeChunk?.choices?.[0]?.delta?.provider_metadata?.gateway?.routing?.resolvedProvider ??
-				kiloCodeChunk?.provider ??
-				inferenceProvider
+			if (this.providerName === "KiloCode") {
+				const kiloCodeChunk = KiloCodeChunkSchema.safeParse(chunk).data
+				inferenceProvider =
+					kiloCodeChunk?.choices?.[0]?.delta?.provider_metadata?.gateway?.routing?.resolvedProvider ??
+					kiloCodeChunk?.provider ??
+					inferenceProvider
+			}
 			// kade_change end
 
 			verifyFinishReason(chunk.choices[0]) // kade_change
-			const delta = chunk.choices[0]?.delta
-			const finishReason = chunk.choices[0]?.finish_reason
+				const delta = chunk.choices[0]?.delta
+				const finishReason = chunk.choices[0]?.finish_reason
+				upstreamDebug.recordFinishReason(finishReason)
 
-			if (delta) {
-				let emittedReasoningFromStructuredSource = false
+				if (delta) {
+					let emittedReasoningFromStructuredSource = false
 				const shouldEmitReasoning = !hasStartedTextOutput
 				// Handle reasoning_details array format (used by Gemini 3, Claude, OpenAI o-series, etc.)
 				// See: https://openrouter.ai/docs/use-cases/reasoning-tokens#preserving-reasoning-blocks
@@ -414,9 +567,19 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 					}>
 				}
 
-				if (shouldEmitReasoning && deltaWithReasoning.reasoning_details && Array.isArray(deltaWithReasoning.reasoning_details)) {
-					for (const detail of deltaWithReasoning.reasoning_details) {
-						const index = detail.index ?? 0
+					if (shouldEmitReasoning && deltaWithReasoning.reasoning_details && Array.isArray(deltaWithReasoning.reasoning_details)) {
+						for (const detail of deltaWithReasoning.reasoning_details) {
+							upstreamDebug.recordRaw(
+								`reasoning_detail:${detail.type}`,
+								typeof detail.text === "string"
+									? detail.text
+									: typeof detail.summary === "string"
+										? detail.summary
+										: typeof detail.data === "string"
+											? detail.data
+											: "",
+							)
+							const index = detail.index ?? 0
 						const key = `${detail.type}-${index}`
 						const existing = reasoningDetailsAccumulator.get(key)
 
@@ -458,31 +621,38 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 						}
 						// Note: reasoning.encrypted types are intentionally skipped as they contain redacted content
 
-						if (reasoningText) {
-							yield { type: "reasoning", text: reasoningText }
-							emittedReasoningFromStructuredSource = true
+							if (reasoningText) {
+								upstreamDebug.recordReasoning(reasoningText)
+								yield { type: "reasoning", text: reasoningText }
+								emittedReasoningFromStructuredSource = true
+							}
 						}
-					}
-				} else if (shouldEmitReasoning && "reasoning_content" in delta && typeof delta.reasoning_content === "string") {
-					yield { type: "reasoning", text: delta.reasoning_content }
-					emittedReasoningFromStructuredSource = true
-				} else if (
-					shouldEmitReasoning &&
+					} else if (shouldEmitReasoning && "reasoning_content" in delta && typeof delta.reasoning_content === "string") {
+						upstreamDebug.recordReasoning(delta.reasoning_content)
+						yield { type: "reasoning", text: delta.reasoning_content }
+						emittedReasoningFromStructuredSource = true
+					} else if (
+						shouldEmitReasoning &&
 					!emittedReasoningFromStructuredSource &&
-					"reasoning" in delta &&
-					delta.reasoning &&
-					typeof delta.reasoning === "string"
-				) {
-					yield { type: "reasoning", text: delta.reasoning }
-				}
+						"reasoning" in delta &&
+						delta.reasoning &&
+						typeof delta.reasoning === "string"
+					) {
+						upstreamDebug.recordReasoning(delta.reasoning)
+						yield { type: "reasoning", text: delta.reasoning }
+					}
 
 				// Check for tool calls in delta
 				// Emit raw tool call chunks - NativeToolCallParser handles state management
-				if ("tool_calls" in delta && Array.isArray(delta.tool_calls)) {
-					for (const toolCall of delta.tool_calls) {
-						yield {
-							type: "tool_call_partial",
-							index: toolCall.index,
+					if ("tool_calls" in delta && Array.isArray(delta.tool_calls)) {
+						for (const toolCall of delta.tool_calls) {
+							upstreamDebug.recordToolCall(
+								toolCall.function?.name,
+								typeof toolCall.function?.arguments === "string" ? toolCall.function.arguments : "",
+							)
+							yield {
+								type: "tool_call_partial",
+								index: toolCall.index,
 							id: toolCall.id,
 							name: toolCall.function?.name,
 							arguments: toolCall.function?.arguments,
@@ -490,11 +660,21 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 					}
 				}
 
-				if (delta.content) {
-					hasStartedTextOutput = true
-					yield { type: "text", text: delta.content }
+					if (delta.content) {
+						hasStartedTextOutput = true
+						upstreamDebug.recordText(delta.content)
+						yield { type: "text", text: delta.content }
+					}
+					if (
+						!delta.content &&
+						!("tool_calls" in delta && Array.isArray(delta.tool_calls) && delta.tool_calls.length > 0) &&
+						!("reasoning_content" in delta && typeof delta.reasoning_content === "string") &&
+						!("reasoning" in delta && typeof delta.reasoning === "string") &&
+						!(deltaWithReasoning.reasoning_details && Array.isArray(deltaWithReasoning.reasoning_details) && deltaWithReasoning.reasoning_details.length > 0)
+					) {
+						upstreamDebug.recordRaw("empty_delta")
+					}
 				}
-			}
 
 			// Process finish_reason to emit tool_call_end events
 			// This ensures tool calls are finalized even if the stream doesn't properly close
@@ -505,18 +685,19 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 				}
 			}
 
-			if (chunk.usage) {
-				lastUsage = chunk.usage
+				if (chunk.usage) {
+					lastUsage = chunk.usage
+					upstreamDebug.recordUsage(chunk.usage.prompt_tokens, chunk.usage.completion_tokens)
+				}
 			}
-		}
 
 		// After streaming completes, store the accumulated reasoning_details
 		if (reasoningDetailsAccumulator.size > 0) {
 			this.currentReasoningDetails = Array.from(reasoningDetailsAccumulator.values())
 		}
 
-		if (lastUsage) {
-			yield {
+			if (lastUsage) {
+				yield {
 				type: "usage",
 				inputTokens: lastUsage.prompt_tokens || 0,
 				outputTokens: lastUsage.completion_tokens || 0,
@@ -526,9 +707,16 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 				totalCost: this.getTotalCost(lastUsage),
 				inferenceProvider,
 				// kade_change end
+				}
 			}
+
+			upstreamDebug.logEmptyNativeTurn({
+				outputTokens: lastUsage?.completion_tokens ?? 0,
+				inputTokens: lastUsage?.prompt_tokens ?? 0,
+				totalCost: lastUsage ? this.getTotalCost(lastUsage) : undefined,
+				inferenceProvider,
+			})
 		}
-	}
 
 	public async fetchModel() {
 		// PERF: If constructor's loadDynamicModels() is still in flight, wait for it
@@ -600,17 +788,10 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 		}
 
 		// kade_change start
-		const requestOptions = this.customRequestOptions() ?? { headers: {} }
-		if (modelId.startsWith("anthropic/")) {
-			requestOptions.headers["x-anthropic-beta"] =
-				"fine-grained-tool-streaming-2025-05-14,structured-outputs-2025-11-13"
-		}
-		// kade_change end
-
 		let response
 
 		try {
-			response = await this.client.chat.completions.create(completionParams, requestOptions)
+			response = await this.client.chat.completions.create(completionParams, this.getRequestOptions(modelId))
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, modelId, "completePrompt")

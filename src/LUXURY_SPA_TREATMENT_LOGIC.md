@@ -34,7 +34,7 @@ public async updateStaleReads(filePath: string) {
 - **Called from**: `AgentLoop.ts` line 974 after any file modification tool
 - **Triggers**: When these tools are used:
   - `edit`
-  - `write_to_file`
+  - `write`
   - `replace_in_file`
   - `apply_diff`
   - `edit_file`
@@ -50,11 +50,11 @@ The core refresh logic that:
 ## How It Works
 
 ### Step 1: Tracking File Reads
-When files are read (via `read_file` tool or @mentions), they get tracked:
+When files are read (via `read` tool or @mentions), they get tracked:
 
 ```typescript
 // For @mentions with [id: [mention]] suffix
-const mentionRegex = /\[read_file\s+for\s+'(.*?)'\]\s+Result\s+\(id:\s+\[mention\]\):/g
+const mentionRegex = /\[read\s+for\s+'(.*?)'\]\s+Result\s+\(id:\s+\[mention\]\):/g
 let mentionMatch
 while ((mentionMatch = mentionRegex.exec(processedText)) !== null) {
     const filePath = mentionMatch[1]
@@ -68,7 +68,7 @@ while ((mentionMatch = mentionRegex.exec(processedText)) !== null) {
 When modification tools execute in `AgentLoop.ts`:
 
 ```typescript
-const isModification = name === 'edit' || name === 'write_to_file' || 'replace_in_file' || 'apply_diff' || 'edit_file' || 'delete_file'
+const isModification = name === 'edit' || name === 'write' || 'replace_in_file' || 'apply_diff' || 'edit_file' || 'delete_file'
 
 if (isModification) {
     if (name === 'delete_file') {
@@ -94,7 +94,7 @@ The system searches through `apiConversationHistory` backwards:
 
 #### For User Messages (read results):
 **Regex matching**: Finds file content blocks using multiple patterns:
-- `[read_file for '...'] Result: File: ...`
+- `[read for '...'] Result: File: ...`
 - `file:///...`
 - `<file_content path="...">`
 
@@ -111,7 +111,7 @@ The system searches through `apiConversationHistory` backwards:
 ```
 
 #### For Assistant Messages (write operations):
-**Stale write_to_file inputs**: Replaced with placeholder:
+**Stale write inputs**: Replaced with placeholder:
 ```
 [the file has been created, you do not need to create it again! read from the file now to see the content]
 ```

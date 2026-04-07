@@ -2,7 +2,13 @@ import * as fs from "fs";
 import * as path from "path";
 import { ClineMessage } from "@roo-code/types";
 import { ApiMessage } from "../task-persistence";
-import { addLineNumbers } from "../../integrations/misc/extract-text";
+import { NativeToolCallParser } from "../assistant-message/NativeToolCallParser";
+import { collectFailedToolUseIdsFromContentBlocks } from "./unifiedHistoryTranslation";
+import {
+  HISTORY_CONTENT_PLACEMENT_PLACEHOLDER,
+  formatWriteHistoryPlaceholderBody,
+} from "../prompts/responses";
+import { EditResultBlockSummary } from "../prompts/responses";
 
 export interface LuxurySpaDelegate {
   cwd: string;
@@ -13,7 +19,32 @@ export interface LuxurySpaDelegate {
   saveClineMessages(): Promise<void>;
 }
 
+export interface EditMarkerBlock {
+  oldText: string;
+  newText: string;
+  startLine?: number;
+  endLine?: number;
+  marker: "*" | "**";
+}
+
+type TrackedReadRange = { start: number; end: number };
+
+type TrackedReadState = {
+  tracked: boolean;
+  ranges: TrackedReadRange[] | undefined;
+};
+
+function splitDisplayLines(content: string): string[] {
+  const lines = content.split("\n");
+  if (lines.length > 0 && lines[lines.length - 1] === "") {
+    lines.pop();
+  }
+  return lines;
+}
+
 export class LuxurySpa {
+  private static readonly MAX_PERSISTED_EDIT_BATCHES = 10;
+
   // System reminders for edits
   public systemReminders: string[] = [];
 
@@ -26,6 +57,18 @@ export class LuxurySpa {
 
   // Track how many times each file has been edited for labeling
   public fileEditCounts: Map<string, number> = new Map();
+
+  // Track how many edit-result blocks have been emitted per file for stable Index labels
+  public fileEditBlockCounts: Map<string, number> = new Map();
+
+  // Track the merged line ranges from recent edits per file so refreshed reads can highlight them.
+  public latestEditedLineRanges: Map<
+    string,
+    { start: number; end: number }[]
+  > = new Map();
+
+  // Track recent edit batches per file so markers can persist across multiple edits.
+  public recentEditBlockHistory: Map<string, EditMarkerBlock[][]> = new Map();
 
   // HOT CACHE: Store fresh file content from ReadFileTool to avoid re-reading disk
   // Key: file path, Value: { lines, total, timestamp }
@@ -61,14 +104,20 @@ export class LuxurySpa {
 
   /**
    * Regex to identify file content blocks in conversation history for refreshing.
-   * Matches both unified format (File: path \n Lines X-Y: ...) and XML format (<file_content path="...">...</file_content>)
+   * Matches legacy unified blocks, wrapped unified blocks, and XML format.
    */
   /**
    * Regex to identify file content blocks in conversation history for refreshing.
    * Optimized to prevent premature truncation on multi-line edits.
    */
-  private static readonly blockRegex =
-    /(?:(?:\[(?:read|read_file)\s+for\s+'.*?'\]\s+Result(?:\s+\(id:\s+\[mention\]\))?:\s+)?(?:File:\s+|file:\/\/\/|<path>)(.*?)(?:<\/path>|\r?\n|$)|<file_content\s+path="([^"]+)">)([\s\S]*?)(?:(?=<\/file_content>)<\/file_content>|(?=\r?\n(?:\[read(?:_file)?\s+for\s+'.*?'\]\s+Result|File:|file:\/\/\/|<path>|<file_content)|$))/gi;
+  private static readonly blockRegex = new RegExp(
+    [
+      "(?:Read result for\\s+([^\\r\\n]+)\\r?\\nRead Content:\\r?\\n([\\s\\S]*?)\\r?\\nEOF(?:\\r?\\n\\[[\\s\\S]*?\\])?)",
+      "|",
+      "(?:(?:\\[(?:read|read)\\s+for\\s+'.*?'\\]\\s+Result(?:\\s+\\(id:\\s+\\[mention\\]\\))?:\\s+)?(?:<<<READ_RESULT path=\"([^\"]+)\">>>\\s*)?(?:File:\\s+|file:\\/\\/\\/|<path>)(.*?)(?:<\\/path>|\\r?\\n|$)(?!\\s*(?:Edit Count:|<<<EDIT_BLOCK|Index=\"))|<file_content\\s+path=\"([^\"]+)\">)([\\s\\S]*?)(?:\\r?\\n<<<END_READ_RESULT>>>|(?=<\\/file_content>)<\\/file_content>|(?=\\r?\\n(?:Read result for |\\[read(?:_file)?\\s+for\\s+'.*?'\\]\\s+Result|<<<READ_RESULT path=|\\[EDIT_RESULT|File:|file:\\/\\/\\/|<path>|<file_content|EOF)|$))",
+    ].join(""),
+    "gi",
+  );
 
   constructor(private delegate: LuxurySpaDelegate) {}
 
@@ -126,6 +175,52 @@ export class LuxurySpa {
     return filePath.replace(/^(\.\/|\.\\)/, "");
   }
 
+  private getTrackedReadState(filePath: string): TrackedReadState {
+    const targetPathKey = this.getPlatformPathKey(filePath);
+    let isTracked = false;
+    const ranges: TrackedReadRange[] = [];
+
+    for (const [trackedPath, trackedRanges] of this.activeFileReads.entries()) {
+      if (this.getPlatformPathKey(trackedPath) !== targetPathKey) {
+        continue;
+      }
+
+      isTracked = true;
+      if (trackedRanges === undefined || trackedRanges.length === 0) {
+        return { tracked: true, ranges: undefined };
+      }
+
+      ranges.push(...trackedRanges);
+    }
+
+    return {
+      tracked: isTracked,
+      ranges: isTracked ? this.mergeAndNormalizeRanges(ranges) : undefined,
+    };
+  }
+
+  private deleteTrackedReadVariants(filePath: string) {
+    const targetPathKey = this.getPlatformPathKey(filePath);
+
+    for (const trackedPath of Array.from(this.activeFileReads.keys())) {
+      if (this.getPlatformPathKey(trackedPath) === targetPathKey) {
+        this.activeFileReads.delete(trackedPath);
+      }
+    }
+  }
+
+  private setTrackedReadState(
+    filePath: string,
+    ranges: TrackedReadRange[] | undefined,
+  ) {
+    const normalizedPath = this.normalizeTrackedPath(filePath);
+    this.deleteTrackedReadVariants(normalizedPath);
+    this.activeFileReads.set(
+      normalizedPath,
+      ranges && ranges.length > 0 ? [...ranges] : undefined,
+    );
+  }
+
   private markFileDirty(filePath: string) {
     this.dirtyFiles.add(this.normalizeTrackedPath(filePath));
   }
@@ -134,19 +229,242 @@ export class LuxurySpa {
     this.hasPendingStructuralRefresh = true;
   }
 
+  public markFilesDirty(filePaths: string[]) {
+    for (const filePath of filePaths) {
+      const normalizedPath = this.normalizeTrackedPath(filePath);
+      this.invalidateHotCache(normalizedPath);
+      this.markFileDirty(normalizedPath);
+    }
+  }
+
   public removeTrackedFile(filePath: string) {
     const normalizedPath = this.normalizeTrackedPath(filePath);
-    this.activeFileReads.delete(filePath);
-    if (normalizedPath !== filePath) {
-      this.activeFileReads.delete(normalizedPath);
-    }
+    this.deleteTrackedReadVariants(normalizedPath);
     this.normalizedActivePathsCache.delete(filePath);
     this.normalizedActivePathsCache.delete(normalizedPath);
     this.dirtyFiles.delete(filePath);
     this.dirtyFiles.delete(normalizedPath);
     this.latestToolResultIndices.delete(filePath);
     this.latestToolResultIndices.delete(normalizedPath);
+    this.latestEditedLineRanges.delete(filePath);
+    this.latestEditedLineRanges.delete(normalizedPath);
+    this.recentEditBlockHistory.delete(filePath);
+    this.recentEditBlockHistory.delete(normalizedPath);
     this.markStructuralRefreshNeeded();
+  }
+
+  public recordRecentEditBlocks(
+    filePath: string,
+    blocks: EditResultBlockSummary[],
+  ) {
+    const pathKey = this.getPlatformPathKey(filePath);
+    const normalizedBlocks = blocks
+      .filter(
+        (block) =>
+          block.status !== "failed" &&
+          typeof block.newText === "string" &&
+          block.newText.length > 0,
+      )
+      .map((block) => this.toEditMarkerBlock(block))
+      .filter((block): block is EditMarkerBlock => !!block);
+
+    if (normalizedBlocks.length === 0) {
+      this.recentEditBlockHistory.delete(pathKey);
+      this.latestEditedLineRanges.delete(pathKey);
+      return;
+    }
+
+    const existingHistory = this.recentEditBlockHistory.get(pathKey) ?? [];
+    const nextHistory = [...existingHistory, normalizedBlocks].slice(
+      -LuxurySpa.MAX_PERSISTED_EDIT_BATCHES,
+    );
+    this.recentEditBlockHistory.set(pathKey, nextHistory);
+    this.latestEditedLineRanges.set(
+      pathKey,
+      this.mergeAndNormalizeRanges(
+        normalizedBlocks
+          .filter((block) => block.startLine !== undefined)
+          .map((block) => ({
+            start: block.startLine!,
+            end: block.endLine ?? block.startLine!,
+          })),
+      ),
+    );
+  }
+
+  public restoreRecentEditBlockHistory(
+    filePath: string,
+    history: EditMarkerBlock[][],
+  ) {
+    const pathKey = this.getPlatformPathKey(filePath);
+    const normalizedHistory = history
+      .map((batch) =>
+        batch
+          .map((block) => this.normalizeEditMarkerBlock(block))
+          .filter((block): block is EditMarkerBlock => !!block),
+      )
+      .filter((batch) => batch.length > 0)
+      .slice(-LuxurySpa.MAX_PERSISTED_EDIT_BATCHES);
+
+    if (normalizedHistory.length === 0) {
+      this.recentEditBlockHistory.delete(pathKey);
+      this.latestEditedLineRanges.delete(pathKey);
+      return;
+    }
+
+    this.recentEditBlockHistory.set(pathKey, normalizedHistory);
+    this.latestEditedLineRanges.set(
+      pathKey,
+      this.mergeAndNormalizeRanges(
+        normalizedHistory
+          .flat()
+          .filter((block) => block.startLine !== undefined)
+          .map((block) => ({
+            start: block.startLine!,
+            end: block.endLine ?? block.startLine!,
+          })),
+      ),
+    );
+  }
+
+  private getPlatformPathKey(filePath: string): string {
+    const absolutePath = path.normalize(
+      path.isAbsolute(filePath)
+        ? filePath
+        : path.resolve(this.delegate.cwd, filePath),
+    );
+    return process.platform === "win32"
+      ? absolutePath.toLowerCase()
+      : absolutePath;
+  }
+
+  private mergeAndNormalizeRanges(ranges: { start: number; end: number }[]) {
+    const normalized = ranges
+      .map((range) => ({
+        start: Math.max(1, Math.min(range.start, range.end)),
+        end: Math.max(1, Math.max(range.start, range.end)),
+      }))
+      .sort((a, b) => a.start - b.start);
+
+    if (normalized.length === 0) {
+      return [];
+    }
+
+    const merged = [normalized[0]];
+    for (let i = 1; i < normalized.length; i++) {
+      const current = normalized[i];
+      const previous = merged[merged.length - 1];
+      if (current.start <= previous.end + 1) {
+        previous.end = Math.max(previous.end, current.end);
+        continue;
+      }
+      merged.push(current);
+    }
+
+    return merged;
+  }
+
+  private toEditMarkerBlock(
+    block: EditResultBlockSummary,
+  ): EditMarkerBlock | null {
+    if (!block.newText) {
+      return null;
+    }
+
+    return this.normalizeEditMarkerBlock({
+      newText: block.newText,
+      oldText: block.oldText ?? "",
+      startLine: block.startLine,
+      endLine: block.endLine ?? block.startLine,
+      marker: (block.oldText ?? "").length === 0 ? "*" : "**",
+    });
+  }
+
+  private normalizeEditMarkerBlock(
+    block: EditMarkerBlock,
+  ): EditMarkerBlock | null {
+    const normalizedNewText = block.newText.replace(/\r\n/g, "\n");
+    if (normalizedNewText.length === 0) {
+      return null;
+    }
+
+    const startLine =
+      typeof block.startLine === "number" && block.startLine > 0
+        ? block.startLine
+        : undefined;
+    const endLine =
+      typeof block.endLine === "number" && block.endLine > 0
+        ? block.endLine
+        : startLine;
+
+    return {
+      newText: normalizedNewText,
+      oldText: (block.oldText ?? "").replace(/\r\n/g, "\n"),
+      startLine,
+      endLine,
+      marker: block.marker === "*" ? "*" : "**",
+    };
+  }
+
+  private resolveMarkerBlockRange(
+    lines: string[],
+    block: EditMarkerBlock,
+    usedStarts: Set<number>,
+  ): { start: number; end: number } | null {
+    const targetLines = splitDisplayLines(block.newText);
+    if (targetLines.length === 0) {
+      return null;
+    }
+
+    const matchStarts: number[] = [];
+    for (let startIndex = 0; startIndex <= lines.length - targetLines.length; startIndex++) {
+      let matches = true;
+      for (let offset = 0; offset < targetLines.length; offset++) {
+        if (lines[startIndex + offset] !== targetLines[offset]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) {
+        matchStarts.push(startIndex + 1);
+      }
+    }
+
+    if (matchStarts.length === 0) {
+      if (
+        typeof block.startLine === "number" &&
+        typeof block.endLine === "number" &&
+        block.startLine >= 1 &&
+        block.endLine <= lines.length
+      ) {
+        return { start: block.startLine, end: block.endLine };
+      }
+      return null;
+    }
+
+    const preferredStart = this.pickBestMarkerStart(matchStarts, block.startLine, usedStarts);
+    usedStarts.add(preferredStart);
+    return {
+      start: preferredStart,
+      end: preferredStart + targetLines.length - 1,
+    };
+  }
+
+  private pickBestMarkerStart(
+    candidates: number[],
+    preferredStart?: number,
+    usedStarts?: Set<number>,
+  ) {
+    return [...candidates].sort((a, b) => {
+      const aUsedPenalty = usedStarts?.has(a) ? 100000 : 0;
+      const bUsedPenalty = usedStarts?.has(b) ? 100000 : 0;
+      const preferred = preferredStart ?? 1;
+      return (
+        aUsedPenalty +
+        Math.abs(a - preferred) -
+        (bUsedPenalty + Math.abs(b - preferred))
+      );
+    })[0];
   }
 
   /**
@@ -177,6 +495,94 @@ export class LuxurySpa {
     // Keep only the last 10 reminders to prevent prompt bloat
     if (this.systemReminders.length > 10) {
       this.systemReminders.shift();
+    }
+  }
+
+  private compactSuccessfulNativeToolHistory() {
+    const failedToolUseIds = new Set<string>();
+    const completedToolUseIds = new Set<string>();
+    for (const message of this.delegate.apiConversationHistory) {
+      if (message.role !== "user" || !Array.isArray(message.content)) {
+        continue;
+      }
+
+      for (const block of message.content as any[]) {
+        if (block?.type === "tool_result" && typeof block.tool_use_id === "string") {
+          completedToolUseIds.add(block.tool_use_id);
+        }
+      }
+
+      collectFailedToolUseIdsFromContentBlocks(message.content as any).forEach(
+        (toolUseId) => failedToolUseIds.add(toolUseId),
+      );
+    }
+
+    for (const message of this.delegate.apiConversationHistory) {
+      if (message.role !== "assistant" || !Array.isArray(message.content)) {
+        continue;
+      }
+
+      for (const block of message.content as any[]) {
+        if (block?.type !== "tool_use" || !block.id || failedToolUseIds.has(block.id)) {
+          continue;
+        }
+
+        if (!block.input || typeof block.input !== "object") {
+          continue;
+        }
+
+        block.input = NativeToolCallParser.compactToolInputForHistory(
+          block.name,
+          block.input,
+          { forModel: true },
+        );
+      }
+    }
+
+    for (const message of this.delegate.clineMessages) {
+      if (message.say !== "tool" || typeof message.text !== "string") {
+        continue;
+      }
+
+      try {
+        const payload = JSON.parse(message.text);
+        const toolUseId =
+          typeof payload?.id === "string" ? payload.id : undefined;
+        if (
+          !toolUseId ||
+          !completedToolUseIds.has(toolUseId) ||
+          failedToolUseIds.has(toolUseId)
+        ) {
+          continue;
+        }
+
+        if (payload.tool === "newFileCreated") {
+          if (typeof payload.content === "string") {
+            payload.content = formatWriteHistoryPlaceholderBody(payload.content);
+          }
+          if (typeof payload.diff === "string") {
+            payload.diff = formatWriteHistoryPlaceholderBody(payload.diff);
+          }
+          message.text = JSON.stringify(payload);
+          continue;
+        }
+
+        if (payload.tool === "appliedDiff") {
+          if (typeof payload.diff === "string") {
+            payload.diff = HISTORY_CONTENT_PLACEMENT_PLACEHOLDER;
+          }
+          if (Array.isArray(payload.edits)) {
+            payload.edits = (
+              NativeToolCallParser.compactToolInputForHistory("edit", {
+                edits: payload.edits,
+              }) as any
+            ).edits;
+          }
+          message.text = JSON.stringify(payload);
+        }
+      } catch {
+        // Ignore malformed persisted tool payloads and leave them untouched.
+      }
     }
   }
 
@@ -250,9 +656,50 @@ export class LuxurySpa {
       return pending;
     };
 
+    const resolveLineMarkers = (
+      filePath: string,
+      lines: string[],
+    ): Map<number, "*" | "**"> => {
+      const blocks =
+        this.recentEditBlockHistory.get(this.getPlatformPathKey(filePath)) ?? [];
+      const flattenedBlocks = blocks.flat();
+      if (flattenedBlocks.length === 0) {
+        const fallbackRanges =
+          this.latestEditedLineRanges.get(this.getPlatformPathKey(filePath)) ?? [];
+        return new Map(
+          fallbackRanges.flatMap((range) =>
+            Array.from(
+              { length: Math.max(0, range.end - range.start + 1) },
+              (_, index) => [range.start + index, "**" as const],
+            ),
+          ),
+        );
+      }
+
+      const markers = new Map<number, "*" | "**">();
+      const usedStarts = new Set<number>();
+      for (const block of flattenedBlocks) {
+        const resolvedRange = this.resolveMarkerBlockRange(lines, block, usedStarts);
+        if (!resolvedRange) {
+          continue;
+        }
+
+        for (let line = resolvedRange.start; line <= resolvedRange.end; line++) {
+          const existing = markers.get(line);
+          if (existing === "**") {
+            continue;
+          }
+          markers.set(line, block.marker === "**" ? "**" : existing ?? "*");
+        }
+      }
+
+      return markers;
+    };
+
     const formatRanges = (
       lines: string[],
       ranges: { start: number; end: number }[],
+      lineMarkers?: Map<number, "*" | "**">,
     ) => {
       const rangeContents: string[] = [];
       for (const range of ranges) {
@@ -260,16 +707,36 @@ export class LuxurySpa {
         const end = Math.min(lines.length, range.end);
         const rangeLines = lines.slice(start - 1, end);
         const numberedContent = rangeLines
-          .map((line, idx) => `${start + idx}→${line}`)
+          .map((line, idx) => {
+            const lineNumber = start + idx;
+            const marker = lineMarkers?.get(lineNumber) ?? "";
+            return `${marker}${lineNumber}→${line}`;
+          })
           .join("\n");
         rangeContents.push(`Lines ${start}-${end}:\n${numberedContent}`);
       }
       return rangeContents.join("\n\n");
     };
 
+    const formatUnifiedReadBlock = (
+      pathStr: string,
+      content: string,
+      advisory?: string,
+    ) =>
+      [
+        `Read result for ${pathStr}`,
+        "Read Content:",
+        content.trimEnd() || "(tool did not return anything)",
+        "EOF",
+        advisory ? `[${advisory}]` : undefined,
+      ]
+        .filter(Boolean)
+        .join("\n");
+
     const formatRangesXml = (
       lines: string[],
       ranges: { start: number; end: number }[],
+      lineMarkers?: Map<number, "*" | "**">,
     ) => {
       const rangeContents: string[] = [];
       for (const range of ranges) {
@@ -277,7 +744,11 @@ export class LuxurySpa {
         const end = Math.min(lines.length, range.end);
         const rangeLines = lines.slice(start - 1, end);
         const numberedContent = rangeLines
-          .map((line, idx) => `${start + idx}→${line}`)
+          .map((line, idx) => {
+            const lineNumber = start + idx;
+            const marker = lineMarkers?.get(lineNumber) ?? "";
+            return `${marker}${lineNumber}→${line}`;
+          })
           .join("\n");
         rangeContents.push(
           `<content lines="${start}-${end}">\n${numberedContent}</content>`,
@@ -286,10 +757,68 @@ export class LuxurySpa {
       return rangeContents.join("\n");
     };
 
+    const formattedContentCache = new Map<string, string>();
+    const buildRangesCacheKey = (ranges?: { start: number; end: number }[]) =>
+      ranges && ranges.length > 0
+        ? ranges.map((range) => `${range.start}-${range.end}`).join(",")
+        : "full";
+    const buildLineMarkersCacheKey = (
+      lineMarkers?: Map<number, "*" | "**">,
+    ) =>
+      lineMarkers && lineMarkers.size > 0
+        ? Array.from(lineMarkers.entries())
+            .map(([line, marker]) => `${marker}${line}`)
+            .join(",")
+        : "none";
+    const getFormattedReadContent = (
+      filePath: string,
+      fileData: { lines: string[]; total: number },
+      isXmlFormat: boolean,
+      ranges?: { start: number; end: number }[],
+    ) => {
+      const lineMarkers = resolveLineMarkers(filePath, fileData.lines);
+      const cacheKey = `${filePath}::${isXmlFormat ? "xml" : "unified"}::${buildRangesCacheKey(ranges)}::${buildLineMarkersCacheKey(lineMarkers)}`;
+      const cached = formattedContentCache.get(cacheKey);
+      if (cached !== undefined) {
+        return cached;
+      }
+
+      let formatted: string;
+      if (ranges && ranges.length > 0) {
+        formatted = isXmlFormat
+          ? formatRangesXml(fileData.lines, ranges, lineMarkers)
+          : formatRanges(fileData.lines, ranges, lineMarkers);
+      } else {
+        const preferred = this.getTrackedReadState(filePath).ranges;
+        if (preferred && preferred.length > 0) {
+          formatted = isXmlFormat
+            ? formatRangesXml(fileData.lines, preferred, lineMarkers)
+            : formatRanges(fileData.lines, preferred, lineMarkers);
+        } else if (isXmlFormat) {
+          formatted = `<content lines="1-${fileData.total}">\n${formatRanges(
+            fileData.lines,
+            [{ start: 1, end: fileData.total }],
+            lineMarkers,
+          )
+            .replace(/^Lines 1-\d+:\n/, "")
+            .trimEnd()}</content>\n`;
+        } else {
+          formatted = formatRanges(
+            fileData.lines,
+            [{ start: 1, end: fileData.total }],
+            lineMarkers,
+          );
+        }
+      }
+      formattedContentCache.set(cacheKey, formatted);
+      return formatted;
+    };
+
     // Track which files have found their "latest" version during the backward scan
     const foundLatestFiles = new Set<string>();
     // Track ranges already seen to strip redundant partials
     const foundFileRanges = new Map<string, { start: number; end: number }[]>();
+    const clinePathsToRefresh = new Set<string>();
     let absoluteModified = false;
 
     const activeTrackedPaths = Array.from(this.activeFileReads.keys());
@@ -349,7 +878,9 @@ export class LuxurySpa {
       // ⚡ FAST FILTER: Skip expensive regex if message doesn't contain any active file markers
       const hasPotentialBlock =
         typeof msg.content === "string"
-          ? msg.content.includes("File:") ||
+          ? msg.content.includes("Read result for ") ||
+            msg.content.includes("File:") ||
+            msg.content.includes("<<<READ_RESULT") ||
             msg.content.includes("<path>") ||
             msg.content.includes("<file_content")
           : Array.isArray(msg.content)
@@ -361,7 +892,9 @@ export class LuxurySpa {
                       ? block.content
                       : "";
                 return (
+                  text.includes("Read result for ") ||
                   text.includes("File:") ||
+                  text.includes("<<<READ_RESULT") ||
                   text.includes("<path>") ||
                   text.includes("<file_content")
                 );
@@ -391,12 +924,28 @@ export class LuxurySpa {
             LuxurySpa.blockRegex,
             async (
               match: string,
-              pathGroup1: string,
-              pathGroup2: string,
+              plainReadPathGroup: string,
+              plainReadContentGroup: string,
+              wrappedPathGroup: string,
+              headerPathGroup: string,
+              xmlPathGroup: string,
               contentStr: string,
               offset: number,
             ) => {
-              const pathStr = (pathGroup1 || pathGroup2 || "")
+              if (
+                match.startsWith("File:") &&
+                this.isOffsetInsideStructuredEditResult(originalText, offset)
+              ) {
+                return match;
+              }
+
+              const pathStr = (
+                plainReadPathGroup ||
+                wrappedPathGroup ||
+                headerPathGroup ||
+                xmlPathGroup ||
+                ""
+              )
                 .trim()
                 .replace(/^[\"']|[\"']$/g, "");
               if (!pathStr) return match;
@@ -432,30 +981,31 @@ export class LuxurySpa {
                 this.fileEditCounts.delete(
                   path.resolve(this.delegate.cwd, targetFilePath),
                 );
+                this.fileEditBlockCounts.delete(
+                  path.resolve(this.delegate.cwd, targetFilePath),
+                );
                 foundLatestFiles.add(targetFilePath); // Ensure UI sync picks it up
 
-                const header = match.startsWith("<file_content")
-                  ? `<file_content path="${pathStr}">`
-                  : `File: ${pathStr}`;
+                const isXmlBlock = match.startsWith("<file_content");
                 const wrapperMatch = match.match(
                   /^\[.*?\]\s+Result(?:\s+\(id:\s+\[mention\]\))?:\s+/,
                 );
-                let fullHeader = header;
-                if (wrapperMatch && !match.startsWith("<file_content"))
-                  fullHeader = wrapperMatch[0] + header;
-                const footer = match.startsWith("<file_content")
-                  ? "\n</file_content>"
-                  : "";
-
-                return `${fullHeader}\n[File not found or deleted]${footer}`;
+                const rebuilt = isXmlBlock
+                  ? `<file_content path="${pathStr}">\n[File not found or deleted]\n</file_content>`
+                  : formatUnifiedReadBlock(pathStr, "[File not found or deleted]");
+                if (wrapperMatch && !isXmlBlock) {
+                  return wrapperMatch[0] + rebuilt;
+                }
+                return rebuilt;
               }
 
               // Parse ranges from both unified format (Lines X-Y:) and XML format (<content lines="X-Y">)
+              const blockContent = plainReadContentGroup || contentStr;
               const unifiedRangeMatches = [
-                ...contentStr.matchAll(/Lines (\d+)-(\d+):/g),
+                ...blockContent.matchAll(/Lines (\d+)-(\d+):/g),
               ];
               const xmlRangeMatches = [
-                ...contentStr.matchAll(
+                ...blockContent.matchAll(
                   /<content[^>]*lines="(\d+)-(\d+)"[^>]*>/g,
                 ),
               ];
@@ -464,7 +1014,14 @@ export class LuxurySpa {
                 unifiedRangeMatches.length > 0 || xmlRangeMatches.length > 0;
               const isLatest = !foundLatestFiles.has(targetFilePath);
               const isXmlFormat = xmlRangeMatches.length > 0;
-
+              const trackedReadState =
+                this.getTrackedReadState(targetFilePath);
+              const preferredReadTracking = trackedReadState.ranges;
+              // A read is considered a "full file read" if it has no ranges, OR if it's explicitly tracked as full.
+              // However, we must respect the CURRENT tracking state.
+              const tracksFullFileRead =
+                trackedReadState.tracked &&
+                preferredReadTracking === undefined;
               const ranges = [
                 ...unifiedRangeMatches.map((m) => ({
                   start: parseInt(m[1]),
@@ -480,8 +1037,13 @@ export class LuxurySpa {
               let isActuallyFullRead = !hasRanges;
               if (hasRanges && ranges.length === 1) {
                 const { start, end } = ranges[0];
+                // If this file is being tracked as a full read, preserve that semantic even
+                // after later edits increase the file length.
+                if (start === 1 && tracksFullFileRead) {
+                  isActuallyFullRead = true;
+                }
                 // Be lenient with line counts (off by 2 is safer for trailing whitespace/newlines)
-                if (start === 1 && end >= fileData.total - 2) {
+                else if (start === 1 && end >= fileData.total - 2) {
                   isActuallyFullRead = true;
                 }
               }
@@ -500,14 +1062,27 @@ export class LuxurySpa {
                   shouldStrip = true;
                   contentToUse = `[Redundant partial read of ${targetFilePath} stripped to save tokens.]`;
                 } else {
-                  contentToUse = isXmlFormat
-                    ? formatRangesXml(fileData.lines, ranges)
-                    : formatRanges(fileData.lines, ranges);
-                  // Add to covered ranges
-                  foundFileRanges.set(targetFilePath, [
-                    ...existingRanges,
-                    ...ranges,
-                  ]);
+                  const normalizedRanges = this.mergeAndNormalizeRanges(ranges);
+                  // Mark as latest so subsequent (older) occurrences are handled correctly
+                  if (isLatest) {
+                    foundLatestFiles.add(targetFilePath);
+                    foundFileRanges.set(targetFilePath, normalizedRanges);
+                  } else {
+                    // Add to covered ranges
+                    foundFileRanges.set(
+                      targetFilePath,
+                      this.mergeAndNormalizeRanges([
+                        ...existingRanges,
+                        ...normalizedRanges,
+                      ]),
+                    );
+                  }
+                  contentToUse = getFormattedReadContent(
+                    targetFilePath,
+                    fileData,
+                    isXmlFormat,
+                    ranges,
+                  );
                 }
               } else if (isLatest) {
                 // This is the most recent full read or mention
@@ -517,43 +1092,35 @@ export class LuxurySpa {
                   { start: 1, end: fileData.total },
                 ]);
 
-                const preferred = this.activeFileReads.get(targetFilePath);
-                if (preferred && preferred.length > 0) {
-                  contentToUse = isXmlFormat
-                    ? formatRangesXml(fileData.lines, preferred)
-                    : formatRanges(fileData.lines, preferred);
-                } else {
-                  if (isXmlFormat) {
-                    contentToUse = `<content lines="1-${fileData.total}">\n${addLineNumbers(fileData.lines.join("\n"))}</content>\n`;
-                  } else {
-                    contentToUse = `Lines 1-${fileData.total}:\n${addLineNumbers(fileData.lines.join("\n"))}`;
-                    // Use formatRanges to get sticky headers for full file read
-                    contentToUse = formatRanges(fileData.lines, [
-                      { start: 1, end: fileData.total },
-                    ]);
-                  }
-                }
+                // If the existing block already has ranges, we MUST respect them.
+                // Otherwise we fallback to any preferred ranges from activeFileReads.
+                const rangesToUse = (ranges && ranges.length > 0) ? ranges : preferredReadTracking;
+                contentToUse = getFormattedReadContent(
+                  targetFilePath,
+                  fileData,
+                  isXmlFormat,
+                  rangesToUse && rangesToUse.length > 0 ? rangesToUse : undefined,
+                );
               } else {
                 // Older full read - strip it
                 shouldStrip = true;
                 contentToUse = `[Older version of ${targetFilePath} stripped to save tokens. See later in history for current content.]`;
               }
 
-              const header = match.startsWith("<file_content")
-                ? `<file_content path="${pathStr}">`
-                : `File: ${pathStr}`;
+              const isXmlBlock = match.startsWith("<file_content");
+              const isPlainReadBlock = match.startsWith("Read result for ");
               const wrapperMatch = match.match(
                 /^\[.*?\]\s+Result(?:\s+\(id:\s+\[mention\]\))?:\s+/,
               );
-              let fullHeader = header;
-              if (wrapperMatch && !match.startsWith("<file_content"))
-                fullHeader = wrapperMatch[0] + header;
-
-              const footer = match.startsWith("<file_content")
-                ? "\n</file_content>"
-                : "";
-
-              if (shouldStrip) return `${fullHeader}\n${contentToUse}${footer}`;
+              if (shouldStrip) {
+                const stripped = isXmlBlock
+                  ? `<file_content path="${pathStr}">\n${contentToUse}\n</file_content>`
+                  : formatUnifiedReadBlock(pathStr, contentToUse);
+                if (wrapperMatch && !isXmlBlock && !isPlainReadBlock) {
+                  return wrapperMatch[0] + stripped;
+                }
+                return stripped;
+              }
 
               // Add edit suffix if applicable
               const pathKey =
@@ -561,15 +1128,18 @@ export class LuxurySpa {
                   ? partAbsolutePath.toLowerCase()
                   : partAbsolutePath;
               const editCount = this.fileEditCounts.get(pathKey) || 0;
-              let suffix = "";
+              let advisory: string | undefined;
               if (editCount > 0) {
-                const advisory = `This earlier read result has been refreshed to reflect your latest edit. Review Edit #${editCount} later in this chat for the exact blocks that were applied, and see the "Old Blocks" section there if you need the previous content for comparison.`;
-                suffix = match.startsWith("<file_content")
-                  ? `\n(${advisory})`
-                  : `\n\n[${advisory}]`;
+                advisory = `This read result shows the most up-to-date file content after the latest edit, Edit #${editCount}. See Edit #${editCount} for the exact changes and previous content. Line numbers beginning with * mark added lines; ** mark edited lines.`;
               }
+              const rebuiltWithSuffix = isXmlBlock
+                ? `<file_content path="${pathStr}">\n${contentToUse}${advisory ? `\n(${advisory})` : ""}\n</file_content>`
+                : formatUnifiedReadBlock(pathStr, contentToUse, advisory);
 
-              return `${fullHeader}\n${contentToUse}${suffix}${footer}`;
+              if (wrapperMatch && !isXmlBlock && !isPlainReadBlock) {
+                return wrapperMatch[0] + rebuiltWithSuffix;
+              }
+              return rebuiltWithSuffix;
             },
           );
           if (modified) {
@@ -588,105 +1158,142 @@ export class LuxurySpa {
           msg.content = newContentBlocks[0].text || newContentBlocks[0].content;
         }
         absoluteModified = true;
+        foundLatestFiles.forEach((pathStr) => clinePathsToRefresh.add(pathStr));
+      }
+    }
 
-        // Sync UI messages if needed.
-        // Since apiConversationHistory and clineMessages timestamps rarely match perfectly,
-        // we search for messages whose content contains the headers we just refreshed.
-        const updatedPathStrs = Array.from(foundLatestFiles);
-        const updatedPathEntries = updatedPathStrs.map((pathStr) => ({
-          pathStr,
-          absPathStr:
-            this.normalizedActivePathsCache.get(pathStr) ??
-            path.normalize(path.resolve(this.delegate.cwd, pathStr)),
-        }));
+    if (clinePathsToRefresh.size > 0) {
+      const updatedPathEntries = Array.from(clinePathsToRefresh).map((pathStr) => ({
+        pathStr,
+        absPathStr:
+          this.normalizedActivePathsCache.get(pathStr) ??
+          path.normalize(path.resolve(this.delegate.cwd, pathStr)),
+      }));
 
-        for (const clineMsg of this.delegate.clineMessages) {
-          if (!clineMsg.text) continue;
+      for (const clineMsg of this.delegate.clineMessages) {
+        if (!clineMsg.text) continue;
 
-          let clineMsgModified = false;
-          let updatedText = clineMsg.text;
+        let clineMsgModified = false;
+        let updatedText = clineMsg.text;
 
-          const maybeRelevant = updatedPathEntries.some(
-            ({ pathStr, absPathStr }) =>
-              updatedText.includes(`File: ${pathStr}`) ||
-              updatedText.includes(`path="${pathStr}"`) ||
-              updatedText.includes(absPathStr),
-          );
-          if (!maybeRelevant) continue;
+        const maybeRelevant = updatedPathEntries.some(
+          ({ pathStr, absPathStr }) =>
+            updatedText.includes(`Read result for ${pathStr}`) ||
+            updatedText.includes(`<<<READ_RESULT path="${pathStr}">>>`) ||
+            updatedText.includes(`File: ${pathStr}`) ||
+            updatedText.includes(`path="${pathStr}"`) ||
+            updatedText.includes(absPathStr),
+        );
+        if (!maybeRelevant) continue;
 
-          updatedText = await this.asyncReplace(
-            updatedText,
-            LuxurySpa.blockRegex,
-            async (match: string, p1: string, p2: string, content: string) => {
-              const matchPath = (p1 || p2 || "")
-                .trim()
-                .replace(/^[\"']|[\"']$/g, "");
-              const normalizedMatchPath = matchPath.startsWith("file:///")
-                ? matchPath.slice(8)
-                : matchPath;
-              const matchAbs = path.normalize(
-                path.isAbsolute(normalizedMatchPath)
-                  ? normalizedMatchPath
-                  : path.resolve(this.delegate.cwd, normalizedMatchPath),
-              );
+        updatedText = await this.asyncReplace(
+          updatedText,
+          LuxurySpa.blockRegex,
+          async (
+            match: string,
+            plainReadPath: string,
+            plainReadContent: string,
+            wrappedPath: string,
+            headerPath: string,
+            xmlPath: string,
+            content: string,
+            offset: number,
+          ) => {
+            if (
+              match.startsWith("File:") &&
+              this.isOffsetInsideStructuredEditResult(updatedText, offset)
+            ) {
+              return match;
+            }
 
-              const target = updatedPathEntries.find(
-                ({ pathStr, absPathStr }) =>
-                  matchPath === pathStr || matchAbs === absPathStr,
-              );
-              if (!target) {
-                return match;
-              }
+            const matchPath = (
+              plainReadPath ||
+              wrappedPath ||
+              headerPath ||
+              xmlPath ||
+              ""
+            )
+              .trim()
+              .replace(/^[\"']|[\"']$/g, "");
+            const normalizedMatchPath = matchPath.startsWith("file:///")
+              ? matchPath.slice(8)
+              : matchPath;
+            const matchAbs = path.normalize(
+              path.isAbsolute(normalizedMatchPath)
+                ? normalizedMatchPath
+                : path.resolve(this.delegate.cwd, normalizedMatchPath),
+            );
 
-              const fileData = await getFileContent(target.pathStr);
+            const target = updatedPathEntries.find(
+              ({ pathStr, absPathStr }) =>
+                matchPath === pathStr || matchAbs === absPathStr,
+            );
+            if (!target) {
+              return match;
+            }
 
-              const isXml = match.startsWith("<file_content");
-              const wrapper = match.match(
-                /^\[.*?\]\s+Result(?:\s+\(id:\s+\[mention\]\))?:\s+/,
-              );
-              const h = isXml
-                ? `<file_content path="${target.pathStr}">`
-                : `File: ${target.pathStr}`;
-              const fh = wrapper && !isXml ? wrapper[0] + h : h;
-              const f = isXml ? "\n</file_content>" : "";
+            const fileData = await getFileContent(target.pathStr);
 
-              if (!fileData) {
-                clineMsgModified = true;
-                return `${fh}\n[File not found or deleted]${f}`;
-              }
+            const isXml = match.startsWith("<file_content");
+            const isPlainReadBlock = match.startsWith("Read result for ");
+            const wrapper = match.match(
+              /^\[.*?\]\s+Result(?:\s+\(id:\s+\[mention\]\))?:\s+/,
+            );
 
-              const preferred = this.activeFileReads.get(target.pathStr);
-              const editCount = this.fileEditCounts.get(target.absPathStr) || 0;
-
-              let refreshed: string;
-              if (preferred && preferred.length > 0) {
-                refreshed = isXml
-                  ? formatRangesXml(fileData.lines, preferred)
-                  : formatRanges(fileData.lines, preferred);
-              } else {
-                refreshed = isXml
-                  ? `<content lines="1-${fileData.total}">\n${addLineNumbers(fileData.lines.join("\n"))}</content>\n`
-                  : `Lines 1-${fileData.total}:\n${addLineNumbers(fileData.lines.join("\n"))}`;
-
-                // Use formatRanges for sticky headers
-                if (!isXml) {
-                  refreshed = formatRanges(fileData.lines, [
-                    { start: 1, end: fileData.total },
-                  ]);
-                }
-              }
-
-              const advisory = `This earlier read result has been rewritten to reflect your latest edit. Review Edit #${editCount} later in this chat for the exact blocks that were applied, and see the "Old Blocks" section there if you need the previous content for comparison.`;
-              const s = isXml ? `\n(${advisory})` : `\n\n[${advisory}]`;
-
+            if (!fileData) {
               clineMsgModified = true;
-              return `${fh}\n${refreshed}${editCount > 0 ? s : ""}${f}`;
-            },
-          );
+              const rebuilt = isXml
+                ? `<file_content path="${target.pathStr}">\n[File not found or deleted]\n</file_content>`
+                : formatUnifiedReadBlock(target.pathStr, "[File not found or deleted]");
+              return wrapper && !isXml && !isPlainReadBlock
+                ? wrapper[0] + rebuilt
+                : rebuilt;
+            }
 
-          if (clineMsgModified) {
-            clineMsg.text = updatedText;
-          }
+            const blockContent = plainReadContent || content;
+            const unifiedRanges = [
+              ...blockContent.matchAll(/Lines (\d+)-(\d+):/g),
+            ].map((rangeMatch) => ({
+              start: parseInt(rangeMatch[1]),
+              end: parseInt(rangeMatch[2]),
+            }));
+            const xmlRanges = [
+              ...blockContent.matchAll(/<content[^>]*lines="(\d+)-(\d+)"[^>]*>/g),
+            ].map((rangeMatch) => ({
+              start: parseInt(rangeMatch[1]),
+              end: parseInt(rangeMatch[2]),
+            }));
+            const preferred = this.getTrackedReadState(target.pathStr).ranges;
+            const blockRanges = [...unifiedRanges, ...xmlRanges];
+            const editCount = this.fileEditCounts.get(target.absPathStr) || 0;
+            const refreshed = getFormattedReadContent(
+              target.pathStr,
+              fileData,
+              isXml,
+              blockRanges.length > 0
+                ? this.mergeAndNormalizeRanges(blockRanges)
+                : preferred && preferred.length > 0
+                  ? preferred
+                  : undefined,
+            );
+
+            const advisory = `This earlier read result has been rewritten to reflect your latest edit. Review Edit #${editCount} later in this chat for the exact blocks that were applied, and see the "Old Blocks" section there if you need the previous content for comparison. Lines marked with * are additions and lines marked with ** are replacements or edits; these markers may reflect changes from the last 10 edits to this file in this task.`;
+            clineMsgModified = true;
+            const rebuilt = isXml
+              ? `<file_content path="${target.pathStr}">\n${refreshed}${editCount > 0 ? `\n(${advisory})` : ""}</file_content>`
+              : formatUnifiedReadBlock(
+                  target.pathStr,
+                  refreshed,
+                  editCount > 0 ? advisory : undefined,
+                );
+            return wrapper && !isXml && !isPlainReadBlock
+              ? wrapper[0] + rebuilt
+              : rebuilt;
+          },
+        );
+
+        if (clineMsgModified) {
+          clineMsg.text = updatedText;
         }
       }
     }
@@ -755,6 +1362,8 @@ export class LuxurySpa {
       }
 
       // console.log("[LuxurySpa] 💾 Persisting changes to disk...")
+
+      this.compactSuccessfulNativeToolHistory();
 
       // Run disk saves in parallel but don't block the next turn if they're slow
       Promise.all([
@@ -903,28 +1512,28 @@ export class LuxurySpa {
       path.normalize(path.resolve(this.delegate.cwd, normalizedPath)),
     );
 
-    const existing =
-      this.activeFileReads.get(filePath) ??
-      this.activeFileReads.get(normalizedPath);
+    const existingState = this.getTrackedReadState(normalizedPath);
+    const existing = existingState.ranges;
 
     if (newRanges === undefined) {
-      if (existing === undefined && this.activeFileReads.has(normalizedPath)) {
+      if (existingState.tracked && existing === undefined) {
+        // Already tracking full file, keep it that way
         return;
       }
-      this.activeFileReads.delete(filePath);
-      this.activeFileReads.set(normalizedPath, undefined);
+      this.setTrackedReadState(normalizedPath, undefined);
       this.markFileDirty(normalizedPath);
       return;
     }
 
-    if (existing === undefined && this.activeFileReads.has(normalizedPath)) {
-      // Already tracking full file, keep it that way
+    if (existingState.tracked && existing === undefined) {
       return;
     }
 
     if (!existing || existing.length === 0) {
-      this.activeFileReads.delete(filePath);
-      this.activeFileReads.set(normalizedPath, [...newRanges]);
+      this.setTrackedReadState(
+        normalizedPath,
+        this.mergeAndNormalizeRanges(newRanges),
+      );
       this.markFileDirty(normalizedPath);
       return;
     }
@@ -956,12 +1565,42 @@ export class LuxurySpa {
           range.end !== merged[index].end,
       );
 
-    this.activeFileReads.delete(filePath);
-    this.activeFileReads.set(normalizedPath, merged);
+    this.setTrackedReadState(normalizedPath, merged);
 
     if (changed) {
       this.markFileDirty(normalizedPath);
     }
+  }
+
+  public hasTrackedRead(filePath: string) {
+    const normalizedPath = this.normalizeTrackedPath(filePath);
+    if (
+      this.activeFileReads.has(filePath) ||
+      this.activeFileReads.has(normalizedPath)
+    ) {
+      return true;
+    }
+
+    const targetPathKey = this.getPlatformPathKey(filePath);
+    for (const trackedPath of this.activeFileReads.keys()) {
+      if (this.getPlatformPathKey(trackedPath) === targetPathKey) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Track a file as a full read only when it is not already tracked.
+   * This preserves existing partial read ranges during edit-triggered refreshes.
+   */
+  public ensureTrackedFullRead(filePath: string) {
+    if (this.hasTrackedRead(filePath)) {
+      return;
+    }
+
+    this.mergeLineRanges(filePath, undefined);
   }
 
   /** Internal sync fallback for when disk read fails */
@@ -982,7 +1621,7 @@ export class LuxurySpa {
               );
               if (
                 toolUse &&
-                ((toolUse as any).name === "read_file" ||
+                ((toolUse as any).name === "read" ||
                   (toolUse as any).name === "read")
               ) {
                 const input = (toolUse as any).input || {};
@@ -1055,7 +1694,7 @@ export class LuxurySpa {
                   (b: any) =>
                     b.type === "tool_use" && b.id === block.tool_use_id,
                 );
-                if (toolUse && (toolUse as any).name === "execute_command") {
+                if (toolUse && (toolUse as any).name === "bash") {
                   const content = (block as any).content;
                   if (typeof content === "string" && content.length > 800) {
                     // console.log(`[LuxurySpa] Truncating old terminal output (${content.length} chars)`)
@@ -1074,6 +1713,72 @@ export class LuxurySpa {
     // When a file is edited, we UPDATE OLD read results to latest version.
     // refreshAllActiveContexts already handles this globally
     await this.refreshAllActiveContexts();
+  }
+
+  private isOffsetInsideStructuredEditResult(
+    source: string,
+    offset: number,
+  ): boolean {
+    const lastEditStart = source.lastIndexOf("<<<EDIT_RESULT", offset);
+    if (lastEditStart !== -1) {
+      const lastEditEnd = source.lastIndexOf("<<<END_EDIT_RESULT>>>", offset);
+      if (lastEditStart > lastEditEnd) {
+        return true;
+      }
+    }
+
+    const plainEditStart = source.lastIndexOf("[EDIT for '", offset);
+    if (plainEditStart !== -1) {
+      const plainEditEnd = source.indexOf("\nEOF", plainEditStart);
+      if (plainEditEnd !== -1 && offset < plainEditEnd + "\nEOF".length) {
+        return true;
+      }
+    }
+
+    const compactUnifiedEditStart = source.lastIndexOf('@edit: "', offset);
+    if (compactUnifiedEditStart !== -1) {
+      const startsOnNewLine =
+        compactUnifiedEditStart === 0 ||
+        source[compactUnifiedEditStart - 1] === "\n";
+      if (startsOnNewLine) {
+        const remainder = source.slice(compactUnifiedEditStart + 1);
+        const nextToolMatch = remainder.match(/\n@[a-z_][a-z0-9_-]*:/i);
+        const compactUnifiedEditEnd =
+          nextToolMatch && nextToolMatch.index !== undefined
+            ? compactUnifiedEditStart + 1 + nextToolMatch.index
+            : source.length;
+        const compactUnifiedEditBody = source.slice(
+          compactUnifiedEditStart,
+          compactUnifiedEditEnd,
+        );
+        if (
+          compactUnifiedEditBody.includes('\n"') &&
+          offset < compactUnifiedEditEnd
+        ) {
+          return true;
+        }
+      }
+    }
+
+    const compactEditStart = source.lastIndexOf("Edit ", offset);
+    if (compactEditStart === -1) {
+      return false;
+    }
+
+    const startsOnNewLine =
+      compactEditStart === 0 || source[compactEditStart - 1] === "\n";
+    if (!startsOnNewLine) {
+      return false;
+    }
+
+    const compactEditEnd = source.indexOf("\nEOF", compactEditStart);
+    if (compactEditEnd === -1 || offset >= compactEditEnd + "\nEOF".length) {
+      return false;
+    }
+
+    return source
+      .slice(compactEditStart, compactEditEnd)
+      .includes("\nSearch ");
   }
 
   /**

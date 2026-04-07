@@ -79,7 +79,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 		const shouldIncludeNativeTools =
 			metadata?.tools &&
 			metadata.tools.length > 0 &&
-			metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN &&
+			metadata?.toolProtocol === TOOL_PROTOCOL.JSON &&
 			metadata?.tool_choice !== "none"
 
 		const nativeToolParams = shouldIncludeNativeTools

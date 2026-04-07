@@ -120,12 +120,9 @@ This document outlines the location of all major UI components and logic in the 
 ### Chat Enhancements
 - **`src/components/kilocode/chat/KiloChatRowGutterBar.tsx`** - Chat row gutter with actions
   - Chat action buttons and controls
-- **`src/components/kilocode/agent-manager/`** - Agent management components
-  - `AgentManagerApp.tsx` - Main agent manager interface
+- **`src/kilocode/native-agent-manager/`** - Active agent manager components
+  - `NativeAgentManagerApp.tsx` - Main agent manager interface
   - Agent configuration and management UI
-- **`src/components/kilocode/group-chat/`** - Group chat functionality
-  - `GroupChatApp.tsx` - Group chat interface
-  - Multi-user chat features
 
 ### Bottom Controls
 - **`src/components/kilocode/BottomControls.tsx`** - Bottom navigation/control bar

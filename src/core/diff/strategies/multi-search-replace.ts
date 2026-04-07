@@ -83,10 +83,10 @@ export class MultiSearchReplaceDiffStrategy implements DiffStrategy {
 	}
 
 	constructor(fuzzyThreshold?: number, bufferLines?: number) {
-		// Use provided threshold or default to exact matching (1.0)
-		// Note: fuzzyThreshold is inverted in UI (0% = 1.0, 10% = 0.9)
+		// Use provided threshold or default to forgiving matching (0.8)
+		// Note: fuzzyThreshold is inverted in UI (0% = 1.0, 20% = 0.8)
 		// so we use it directly here
-		this.fuzzyThreshold = fuzzyThreshold ?? 1.0
+		this.fuzzyThreshold = fuzzyThreshold ?? 0.8
 		this.bufferLines = bufferLines ?? BUFFER_LINES
 	}
 
@@ -94,8 +94,8 @@ export class MultiSearchReplaceDiffStrategy implements DiffStrategy {
 		return `## apply_diff
 Description: Request to apply PRECISE, TARGETED modifications to an existing file by searching for specific sections of content and replacing them. This tool is for SURGICAL EDITS ONLY - specific changes to existing code.
 You can perform multiple distinct search and replace operations within a single \`apply_diff\` call by providing multiple SEARCH/REPLACE blocks in the \`diff\` parameter. This is the preferred way to make several targeted changes efficiently.
-The SEARCH section must exactly match existing content including whitespace and indentation.
-If you're not confident in the exact content to search for, use the read_file tool first to get the exact content.
+The SEARCH section should match existing content as closely as possible. Exact matches are preferred, but strong fuzzy matches are allowed based on the configured threshold.
+If you're not confident in the exact content to search for, use the read tool first to get the exact content.
 When applying the diffs, be extra careful to remember to change any closing brackets or other syntax that may be affected by the diff farther down in the file.
 ALWAYS make as many changes in a single 'apply_diff' request as possible using multiple SEARCH/REPLACE blocks
 
@@ -435,7 +435,7 @@ Only use a single line of '=======' between search and replacement content, beca
 						`Search and replace content are identical - no changes would be made\n\n` +
 						`Debug Info:\n` +
 						`- Search and replace must be different to make changes\n` +
-						`- Use read_file to verify the content you want to change`,
+						`- Use read to verify the content you want to change`,
 				})
 				continue
 			}
@@ -545,7 +545,7 @@ Only use a single line of '=======' between search and replacement content, beca
 
 					diffResults.push({
 						success: false,
-						error: `No sufficiently similar match found${lineRange} (${Math.floor(bestMatchScore * 100)}% similar, needs ${Math.floor(this.fuzzyThreshold * 100)}%)\n\nDebug Info:\n- Similarity Score: ${Math.floor(bestMatchScore * 100)}%\n- Required Threshold: ${Math.floor(this.fuzzyThreshold * 100)}%\n- Search Range: ${startLine ? `starting at line ${startLine}` : "start to end"}\n- Tried both standard and aggressive line number stripping\n- Tip: Use the read_file tool to get the latest content of the file before attempting to use the apply_diff tool again, as the file content may have changed\n\nSearch Content:\n${searchChunk}${bestMatchSection}${originalContentSection}`,
+						error: `No sufficiently similar match found${lineRange} (${Math.floor(bestMatchScore * 100)}% similar, needs ${Math.floor(this.fuzzyThreshold * 100)}%)\n\nDebug Info:\n- Similarity Score: ${Math.floor(bestMatchScore * 100)}%\n- Required Threshold: ${Math.floor(this.fuzzyThreshold * 100)}%\n- Search Range: ${startLine ? `starting at line ${startLine}` : "start to end"}\n- Tried both standard and aggressive line number stripping\n- Tip: Use the read tool to get the latest content of the file before attempting to use the apply_diff tool again, as the file content may have changed\n\nSearch Content:\n${searchChunk}${bestMatchSection}${originalContentSection}`,
 					})
 					continue
 				}

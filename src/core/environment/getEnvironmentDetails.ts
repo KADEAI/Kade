@@ -45,7 +45,7 @@ const workspaceMetadataCache = new Map<string, {
 const WORKSPACE_METADATA_CACHE_TTL_MS = 60_000 // 60 seconds
 
 function trimFileList(fileListStr: string, maxFiles: number) {
-	let lines = fileListStr.split("\n")
+	let lines = fileListStr.split("")
 	if (lines.length <= maxFiles) {
 		return fileListStr
 	}
@@ -62,7 +62,7 @@ function trimFileList(fileListStr: string, maxFiles: number) {
 	const truncationMsg =
 		"(File list truncated. Use list_files on specific subdirectories if you need to explore further.)"
 
-	return lines.join("\n") + "\n\n" + truncationMsg
+	return lines.join("") + "" + truncationMsg
 }
 // kade_change end
 
@@ -88,11 +88,11 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 	// Filter paths through rooIgnoreController
 	const allowedVisibleFiles = cline.rooIgnoreController
 		? cline.rooIgnoreController.filterPaths(visibleFilePaths)
-		: visibleFilePaths.map((p) => p.toPosix()).join("\n")
+		: visibleFilePaths.map((p) => p.toPosix()).join("")
 
 	if (allowedVisibleFiles) {
-		details += "\n# VSCode Visible Files"
-		details += `\n${allowedVisibleFiles}`
+		details += ""
+		details += `${allowedVisibleFiles}`
 	}
 
 	const { maxOpenTabsContext } = state ?? {}
@@ -108,11 +108,11 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 	// Filter paths through rooIgnoreController
 	const allowedOpenTabs = cline.rooIgnoreController
 		? cline.rooIgnoreController.filterPaths(openTabPaths)
-		: openTabPaths.map((p) => p.toPosix()).join("\n")
+		: openTabPaths.map((p) => p.toPosix()).join("")
 
 	if (allowedOpenTabs) {
-		details += "\n# VSCode Open Tabs"
-		details += `\n${allowedOpenTabs}`
+		details += "# Open Tabs"
+		details += `${allowedOpenTabs}`
 	}
 
 	// Get task-specific and background terminals.
@@ -147,13 +147,13 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 
 	if (busyTerminals.length > 0) {
 		// Terminals are cool, let's retrieve their output.
-		terminalDetails += "\n# Actively Running Terminals"
+		terminalDetails += "# Actively Running Terminals"
 
 		for (const busyTerminal of busyTerminals) {
 			const cwd = busyTerminal.getCurrentWorkingDirectory()
-			terminalDetails += `\n## Terminal ${busyTerminal.id} (Active)`
-			terminalDetails += `\n### Working Directory: \`${cwd}\``
-			terminalDetails += `\n### Original command: \`${busyTerminal.getLastCommand()}\``
+			terminalDetails += `## Terminal ${busyTerminal.id} (Active)`
+			terminalDetails += `### Working Directory: \`${cwd}\``
+			terminalDetails += `### Original command: \`${busyTerminal.getLastCommand()}\``
 			let newOutput = TerminalRegistry.getUnretrievedOutput(busyTerminal.id)
 
 			if (newOutput) {
@@ -162,7 +162,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 					terminalOutputLineLimit,
 					terminalOutputCharacterLimit,
 				)
-				terminalDetails += `\n### New Output\n${newOutput}`
+				terminalDetails += `## New Output${newOutput}`
 			}
 		}
 	}
@@ -176,7 +176,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 
 	// Only add the header if there are terminals with output.
 	if (terminalsWithOutput.length > 0) {
-		terminalDetails += "\n# Inactive Terminals with Completed Process Output"
+		terminalDetails += "# Inactive Terminals with Completed Process Output"
 		for (const inactiveTerminal of terminalsWithOutput) {
 			let terminalOutputs: string[] = []
 
@@ -192,7 +192,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 						terminalOutputLineLimit,
 						terminalOutputCharacterLimit,
 					)
-					terminalOutputs.push(`Command: \`${process.command}\`\n${output}`)
+					terminalOutputs.push(`Command: \`${process.command}\`${output}`)
 				}
 			}
 
@@ -202,10 +202,10 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 			// Add this terminal's outputs to the details.
 			if (terminalOutputs.length > 0) {
 				const cwd = inactiveTerminal.getCurrentWorkingDirectory()
-				terminalDetails += `\n## Terminal ${inactiveTerminal.id} (Inactive)`
-				terminalDetails += `\n### Working Directory: \`${cwd}\``
+				terminalDetails += `## Terminal ${inactiveTerminal.id} (Inactive)`
+				terminalDetails += `### Working Directory: \`${cwd}\``
 				terminalOutputs.forEach((output) => {
-					terminalDetails += `\n### New Output\n${output}`
+					terminalDetails += `### New Output${output}`
 				})
 			}
 		}
@@ -218,9 +218,9 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 
 	if (recentlyModifiedFiles.length > 0) {
 		details +=
-			"\n# Recently Modified Files\nThese files have been modified since you last accessed them (file was just edited so you may need to re-read it before editing):"
+			""
 		for (const filePath of recentlyModifiedFiles) {
-			details += `\n${filePath}`
+			details += `${filePath}`
 		}
 	}
 
@@ -240,21 +240,21 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 		const timeZoneOffsetHours = Math.floor(Math.abs(timeZoneOffset))
 		const timeZoneOffsetMinutes = Math.abs(Math.round((Math.abs(timeZoneOffset) - timeZoneOffsetHours) * 60))
 		const timeZoneOffsetStr = `${timeZoneOffset >= 0 ? "+" : "-"}${timeZoneOffsetHours}:${timeZoneOffsetMinutes.toString().padStart(2, "0")}`
-		details += `\n# Current Time\nCurrent time in ISO 8601 UTC format: ${now.toISOString()}\nUser time zone: ${timeZone}, UTC${timeZoneOffsetStr}`
+		details += `# Current TimeCurrent time in ISO 8601 UTC format: ${now.toISOString()}User time zone: ${timeZone}, UTC${timeZoneOffsetStr}`
 	}
 
 	// Add git status information (if enabled with maxGitStatusFiles > 0).
 	if (maxGitStatusFiles > 0) {
 		const gitStatus = await getGitStatus(cline.cwd, maxGitStatusFiles)
 		if (gitStatus) {
-			details += `\n# Git Status\n${gitStatus}`
+			details += `# Git Status${gitStatus}`
 		}
 	}
 
 	// Add context tokens information (if enabled).
 	if (includeCurrentCost) {
 		const { totalCost } = getApiMetrics(cline.clineMessages)
-		details += `\n# Current Cost\n${totalCost !== null ? `$${totalCost.toFixed(2)}` : "(Not available)"}`
+		details += `# Current Cost${totalCost !== null ? `$${totalCost.toFixed(2)}` : "(Not available)"}`
 	}
 
 	// kade_change start
@@ -268,7 +268,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 				"error",
 				t("kilocode:task.notLoggedInError", { error: e instanceof Error ? e.message : String(e) }),
 			)
-			return `## Environment Context\n${details.trim()}`
+			return `## Environment Context${details.trim()}`
 		}
 	}
 	// kade_change end
@@ -320,14 +320,14 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 
 		const width = actualWidth ?? configuredWidth
 		const height = actualHeight ?? configuredHeight
-		const viewportInfo = width && height ? `\nCurrent viewport size: ${width}x${height} pixels.` : ""
+		const viewportInfo = width && height ? `Current viewport size: ${width}x${height} pixels.` : ""
 
-		details += `\n# Browser Session Status\nActive - A browser session is currently open and ready for browser_action commands${viewportInfo}`
+		details += `# Browser Session StatusActive - A browser session is currently open and ready for browser_action commands${viewportInfo}`
 	}
 
 	if (includeFileDetails) {
 		const fileDetailsStart = details.length
-		details += `\n# Current Workspace Directory (${cline.cwd.toPosix()}) Files\n`
+		details += `# CWD (${cline.cwd.toPosix()}) Files`
 		const isDesktop = arePathsEqual(cline.cwd, path.join(os.homedir(), "Desktop"))
 
 		if (isDesktop) {
@@ -339,7 +339,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 
 			// Early return for limit of 0
 			if (maxFiles === 0) {
-				details += "(Workspace files context disabled. Use ls to explore if needed.)"
+				details += ""
 			} else {
 				const { showRooIgnoredFiles = false } = state ?? {}
 
@@ -417,5 +417,5 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 		cline.luxurySpa.activeFileReads,
 		todoListEnabled
 	)
-	return `${details.trim()}${reminderSection ? `\n${reminderSection}` : ''}`
+	return `${details.trim()}${reminderSection ? `${reminderSection}` : ''}`
 }

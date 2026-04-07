@@ -54,6 +54,7 @@ import { ManagedIndexer } from "./services/code-index/managed/ManagedIndexer" //
 import { flushModels, getModels, initializeModelCacheRefresh } from "./api/providers/fetchers/modelCache"
 import { kilo_initializeSessionManager } from "./shared/kilocode/cli-sessions/extension/session-manager-utils" // kade_change
 import { geminiOAuthManager } from "./integrations/gemini/oauth"
+import { zedOAuthManager } from "./integrations/zed/oauth"
 
 
 // kade_change start
@@ -159,6 +160,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Initialize OpenAI Codex OAuth manager for ChatGPT subscription-based access.
 	openAiCodexOAuthManager.initialize(context, (message) => outputChannel.appendLine(message))
+
+	// Initialize Zed OAuth manager for Zed Cloud access.
+	zedOAuthManager.initialize(context, outputChannel.appendLine.bind(outputChannel))
 
 	// Get default commands from configuration.
 	const defaultCommands = vscode.workspace.getConfiguration(Package.name).get<string[]>("allowedCommands") || []

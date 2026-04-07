@@ -9,7 +9,6 @@ import { ApiHandlerOptions } from "../../shared/api"
 
 import { ApiStream } from "../transform/stream"
 import { convertToOpenAiMessages } from "../transform/openai-format"
-import { addCacheBreakpoints } from "../transform/caching/anthropic"
 
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
 import { RouterProvider } from "./router-provider"
@@ -46,7 +45,7 @@ export class GlamaHandler extends RouterProvider implements SingleCompletionHand
 		]
 
 		if (modelId.startsWith("anthropic/claude-3")) {
-			addCacheBreakpoints(systemPrompt, openAiMessages)
+			this.applyOpenAiPromptCaching(systemPrompt, openAiMessages, info, metadata?.taskId)
 		}
 
 		// Required by Anthropic; other providers default to max tokens allowed.

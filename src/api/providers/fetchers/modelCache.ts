@@ -33,6 +33,8 @@ import { getGeminiModels } from "./gemini"
 import { getInceptionModels } from "./inception"
 import { getSyntheticModels } from "./synthetic"
 import { getSapAiCoreModels } from "./sap-ai-core"
+import { getBluesmindsModels } from "./bluesminds"
+import { getAihubmixModels } from "./aihubmix"
 // kade_change end
 
 import { getDeepInfraModels } from "./deepinfra"
@@ -41,6 +43,7 @@ import { getRooModels } from "./roo"
 import { getChutesModels } from "./chutes"
 import { getNanoGptModels } from "./nano-gpt" //kade_change
 import { getOpenCodeModels } from "./opencode" // kade_change
+import { getZedModels } from "./zed"
 
 import { getApertisModels } from "./apertis"
 import { getPoeModels } from "./poe"
@@ -207,6 +210,12 @@ async function fetchModelsFromProvider(options: GetModelsOptions): Promise<Model
 		case "synthetic":
 			models = await getSyntheticModels(options.apiKey)
 			break
+		case "bluesminds":
+			models = await getBluesmindsModels({
+				apiKey: options.apiKey,
+				baseUrl: options.baseUrl,
+			})
+			break
 		case "gemini":
 			models = await getGeminiModels({
 				apiKey: options.apiKey,
@@ -273,6 +282,9 @@ async function fetchModelsFromProvider(options: GetModelsOptions): Promise<Model
 		case "antigravity":
 			models = ANTIGRAVITY_MODELS
 			break
+		case "zed":
+			models = await getZedModels()
+			break
 		case "kiro":
 			models = kiroModels
 			break
@@ -280,9 +292,9 @@ async function fetchModelsFromProvider(options: GetModelsOptions): Promise<Model
 			models = await getApertisModels(options)
 			break
 		case "aihubmix":
-			models = await getOpenRouterModels({
-				openRouterBaseUrl: options.baseUrl || "https://aihubmix.com/api/v1",
-				headers: options.apiKey ? { Authorization: `Bearer ${options.apiKey}` } : undefined,
+			models = await getAihubmixModels({
+				baseUrl: options.baseUrl,
+				apiKey: options.apiKey,
 			})
 			break
 		case "corethink":

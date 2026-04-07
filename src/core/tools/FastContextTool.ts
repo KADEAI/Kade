@@ -43,7 +43,7 @@ interface FastContextResult {
 
 // ── Tuning constants ────────────────────────────────────────────────────────
 const MAX_GREP_PATTERNS = 12
-const MAX_READ_FILES = 20
+const MAX_readS = 20
 const MAX_CONTEXT_LINES = 50
 const MAX_RESULTS = 15
 const MAX_TOTAL_LINES = 750
@@ -223,7 +223,7 @@ export class FastContextTool extends BaseTool<"fast_context"> {
 			const rankedFiles = this.rankFiles(fileMatches, workspacePath, query)
 
 			// Step 5: Read top files to get context
-			const topFiles = rankedFiles.slice(0, MAX_READ_FILES)
+			const topFiles = rankedFiles.slice(0, MAX_readS)
 			await this.readTopFiles(topFiles, workspacePath, task, state)
 
 			// Finalize

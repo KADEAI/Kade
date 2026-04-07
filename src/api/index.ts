@@ -7,6 +7,8 @@ import { ApiStream } from "./transform/stream"
 
 import {
 	GlamaHandler, // kade_change
+	AIHubMixHandler,
+	BluesmindsHandler,
 	AnthropicHandler,
 	AwsBedrockHandler,
 	CerebrasHandler,
@@ -54,6 +56,7 @@ import {
 	BasetenHandler,
 	OpenAiCodexHandler,
 	KiroHandler,
+	ZedHandler,
 } from "./providers"
 // kade_change start
 import { KilocodeOpenrouterHandler } from "./providers/kilocode-openrouter"
@@ -101,7 +104,8 @@ export interface ApiHandlerCreateMessageMetadata {
 	// kade_change end
 	/**
 	 * Optional array of tool definitions to pass to the model.
-	 * For OpenAI-compatible providers, these are ChatCompletionTool definitions.
+	 * These should be canonical OpenAI ChatCompletionTool definitions.
+	 * Provider adapters may translate them further for Anthropic, Gemini, or other APIs.
 	 */
 	tools?: any[]
 	/**
@@ -121,13 +125,6 @@ export interface ApiHandlerCreateMessageMetadata {
 	 * Only applies when toolProtocol is "native".
 	 */
 	parallelToolCalls?: boolean
-	// kade_change start
-	/**
-	 * KiloCode-specific: Raw tool definitions for logging and debugging.
-	 * @kilocode-only
-	 */
-	tool_manifest?: any[]
-	// kade_change end
 }
 
 export interface ApiHandler {
@@ -266,6 +263,8 @@ export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
 			handler = new BasetenHandler(options); break
 		case "openai-codex":
 			handler = new OpenAiCodexHandler(options); break
+		case "zed":
+			handler = new ZedHandler(options); break
 		case "kiro":
 			handler = new KiroHandler(options); break
 		case "antigravity": // kade_change
@@ -277,7 +276,9 @@ export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
 			// Assuming there is a PoeHandler or falling back to Anthropic
 			handler = new AnthropicHandler(options); break
 		case "aihubmix":
-			handler = new AnthropicHandler(options); break
+			handler = new AIHubMixHandler(options); break
+		case "bluesminds":
+			handler = new BluesmindsHandler(options); break
 		case "corethink":
 			handler = new AnthropicHandler(options); break
 		case "zenmux":

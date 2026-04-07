@@ -513,7 +513,7 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 				supportsImages: false, // VSCode Language Model API currently doesn't support image inputs
 				supportsPromptCache: true,
 				supportsNativeTools: true, // VSCode Language Model API supports native tool calling
-				defaultToolProtocol: "markdown", // Use native tool protocol by default
+				defaultToolProtocol: "unified", // Use the unified tool protocol by default
 				inputPrice: 0,
 				outputPrice: 0,
 				description: `VSCode Language Model: ${modelId}`,
@@ -534,7 +534,7 @@ export class VsCodeLmHandler extends BaseProvider implements SingleCompletionHan
 			info: {
 				...openAiModelInfoSaneDefaults,
 				supportsNativeTools: true, // VSCode Language Model API supports native tool calling
-				defaultToolProtocol: "markdown", // Use native tool protocol by default
+				defaultToolProtocol: "unified", // Use the unified tool protocol by default
 				description: `VSCode Language Model (Fallback): ${fallbackId}`,
 			},
 		}

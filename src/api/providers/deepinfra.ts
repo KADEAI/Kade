@@ -68,7 +68,7 @@ export class DeepInfraHandler extends RouterProvider implements SingleCompletion
 		// Check if model supports native tools and tools are provided with native protocol
 		const supportsNativeTools = info.supportsNativeTools ?? false
 		const useNativeTools =
-			supportsNativeTools && _metadata?.tools && _metadata.tools.length > 0 && _metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN
+			supportsNativeTools && _metadata?.tools && _metadata.tools.length > 0 && _metadata?.toolProtocol === TOOL_PROTOCOL.JSON
 
 		const requestOptions: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
 			model: modelId,

@@ -39,11 +39,11 @@ describe("simple-format", () => {
 				{
 					type: "tool_use",
 					id: "tool-1",
-					name: "read_file",
+					name: "read",
 					input: { path: "test.txt" },
 				},
 			] as Array<Anthropic.Messages.TextBlockParam | Anthropic.Messages.ToolUseBlockParam>
-			expect(convertToSimpleContent(content)).toBe("Using a tool:\n[Tool Use: read_file]")
+			expect(convertToSimpleContent(content)).toBe("Using a tool:\n[Tool Use: read]")
 		})
 
 		it("handles string tool result content", () => {

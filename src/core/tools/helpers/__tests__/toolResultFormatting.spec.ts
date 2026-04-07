@@ -47,25 +47,25 @@ describe("toolResultFormatting", () => {
 
 	describe("formatToolInvocation", () => {
 		it("should format for XML protocol", () => {
-			const result = formatToolInvocation("read_file", { path: "test.ts" }, TOOL_PROTOCOL.MARKDOWN)
+			const result = formatToolInvocation("read", { path: "test.ts" }, TOOL_PROTOCOL.MARKDOWN)
 
-			expect(result).toContain("<read_file>")
+			expect(result).toContain("<read>")
 			expect(result).toContain("<path>")
 			expect(result).toContain("test.ts")
 			expect(result).toContain("</path>")
-			expect(result).toContain("</read_file>")
+			expect(result).toContain("</read>")
 		})
 
 		it("should format for native protocol", () => {
-			const result = formatToolInvocation("read_file", { path: "test.ts" }, TOOL_PROTOCOL.MARKDOWN)
+			const result = formatToolInvocation("read", { path: "test.ts" }, TOOL_PROTOCOL.MARKDOWN)
 
-			expect(result).toBe("Called read_file with path: test.ts")
+			expect(result).toBe("Called read with path: test.ts")
 			expect(result).not.toContain("<")
 		})
 
 		it("should handle multiple parameters for XML", () => {
 			const result = formatToolInvocation(
-				"read_file",
+				"read",
 				{ path: "test.ts", start_line: "1", end_line: "10" },
 				TOOL_PROTOCOL.MARKDOWN,
 			)
@@ -76,9 +76,9 @@ describe("toolResultFormatting", () => {
 		})
 
 		it("should handle multiple parameters for native", () => {
-			const result = formatToolInvocation("read_file", { path: "test.ts", start_line: "1" }, TOOL_PROTOCOL.MARKDOWN)
+			const result = formatToolInvocation("read", { path: "test.ts", start_line: "1" }, TOOL_PROTOCOL.MARKDOWN)
 
-			expect(result).toContain("Called read_file with")
+			expect(result).toContain("Called read with")
 			expect(result).toContain("path: test.ts")
 			expect(result).toContain("start_line: 1")
 		})
@@ -90,8 +90,8 @@ describe("toolResultFormatting", () => {
 
 		it("should use config when protocol not specified", () => {
 			mockGetConfiguration.mockReturnValue(TOOL_PROTOCOL.MARKDOWN)
-			const result = formatToolInvocation("read_file", { path: "test.ts" })
-			expect(result).toBe("Called read_file with path: test.ts")
+			const result = formatToolInvocation("read", { path: "test.ts" })
+			expect(result).toBe("Called read with path: test.ts")
 		})
 	})
 })

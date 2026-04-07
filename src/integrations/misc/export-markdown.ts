@@ -2,6 +2,7 @@ import { Anthropic } from "@anthropic-ai/sdk"
 import os from "os"
 import * as path from "path"
 import * as vscode from "vscode"
+import { NativeToolCallParser } from "../../core/assistant-message/NativeToolCallParser"
 
 // Extended content block types to support new Anthropic API features
 interface ReasoningBlock {
@@ -37,7 +38,7 @@ export async function downloadTask(dateTs: number, conversationHistory: Anthropi
 		.join("---\n\n")
 
 	if (systemPrompt) {
-		markdownContent = `**System Prompt:**\n\n${systemPrompt}\n\n---\n\n${markdownContent}`
+		markdownContent = `${systemPrompt}${markdownContent}`
 	}
 
 	// Prompt user for save location
@@ -61,18 +62,20 @@ export function formatContentBlockToMarkdown(block: ExtendedContentBlock): strin
 			return `[Image]`
 		case "tool_use": {
 			let input: string
-			if (typeof block.input === "object" && block.input !== null) {
-				input = Object.entries(block.input)
-					.map(([key, value]) => {
-						const formattedKey = key.charAt(0).toUpperCase() + key.slice(1)
-						// Handle nested objects/arrays by JSON stringifying them
-						const formattedValue =
-							typeof value === "object" && value !== null ? JSON.stringify(value, null, 2) : String(value)
-						return `${formattedKey}: ${formattedValue}`
-					})
-					.join("\n")
+			const rawInput =
+				(block as any).historyInput &&
+				typeof (block as any).historyInput === "object" &&
+				(block as any).historyInput !== null
+					? ((block as any).historyInput as Record<string, any>)
+					: block.input
+			if (typeof rawInput === "object" && rawInput !== null) {
+				const compactedInput = NativeToolCallParser.compactToolInputForHistory(
+					block.name,
+					rawInput as Record<string, any>,
+				)
+				input = JSON.stringify(compactedInput, null, 2)
 			} else {
-				input = String(block.input)
+				input = String(rawInput)
 			}
 			return `[Tool Use: ${block.name}]\n${input}`
 		}

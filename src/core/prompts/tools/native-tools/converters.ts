@@ -9,7 +9,10 @@ export type ToolParam = {
 	description: string
 	enum?: string[]
 	items?: any
+	minItems?: number
+	maxItems?: number
 	properties?: Record<string, ToolParam> // Support nested objects
+	required?: string[]
 }
 
 /**
@@ -25,6 +28,22 @@ export interface Tool {
 	input_schema?: Anthropic.Tool.InputSchema
 }
 
+export function toOpenAIFunctionTool(
+	tool: Tool | OpenAI.Chat.ChatCompletionTool,
+): OpenAI.Chat.ChatCompletionTool {
+	if ((tool as OpenAI.Chat.ChatCompletionTool).type === "function") {
+		return tool as OpenAI.Chat.ChatCompletionTool
+	}
+
+	return convertToOpenAI(tool as Tool)
+}
+
+export function normalizeToolsToOpenAI(
+	tools: Array<Tool | OpenAI.Chat.ChatCompletionTool>,
+): OpenAI.Chat.ChatCompletionTool[] {
+	return tools.map((tool) => toOpenAIFunctionTool(tool))
+}
+
 /**
  * Converts our ultra-simple Tool format to OpenAI's ChatCompletionTool format.
  */
@@ -37,7 +56,16 @@ export function convertToOpenAI(tool: Tool): OpenAI.Chat.ChatCompletionTool {
 			type: value.type || "string",
 			description: value.description,
 			...(value.enum ? { enum: value.enum } : {}),
-			...(value.items ? { items: value.items } : {}),
+			...(typeof value.minItems === "number" ? { minItems: value.minItems } : {}),
+			...(typeof value.maxItems === "number" ? { maxItems: value.maxItems } : {}),
+			...(value.items
+				? {
+						items:
+							value.items && typeof value.items === "object" && !Array.isArray(value.items)
+								? convertParam(value.items as ToolParam)
+								: value.items,
+					}
+				: {}),
 		}
 
 		if (value.properties) {
@@ -46,9 +74,9 @@ export function convertToOpenAI(tool: Tool): OpenAI.Chat.ChatCompletionTool {
 				nestedProps[k] = convertParam(v)
 			}
 			param.properties = nestedProps
-			// Make all properties required by default for nested objects in strict mode? 
-			// For now, let's just include all keys as required if not specified otherwise
-			param.required = Object.keys(nestedProps)
+			if (Array.isArray(value.required)) {
+				param.required = value.required
+			}
 			param.additionalProperties = false
 		}
 

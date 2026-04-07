@@ -76,10 +76,10 @@ export class MarkdownToolCallParser {
         let sawCompletedTool = false
 
         const knownToolShortNames = new Set([
-            "read", "edit", "write", "ls", "glob", "grep", "search", "cmd", "execute_command", "todo", "done",
+            "read", "edit", "write", "ls", "glob", "grep", "search", "cmd", "bash", "todo", "done",
             "web", "research", "fetch", "browse", "click", "type", "scroll", "image", "ask",
-            "edit_file", "new_rule", "report_bug", "agent", "run_sub_agent", "condense", "sub", "diff",
-            "delete", "delete_file", "fast_context", "context", "mv", "move", "rename", "browser_action", "browser", "semgrep", "wrap", "mkdir", "find",
+            "edit_file", "new_rule", "report_bug", "agent", "agent", "condense", "sub", "diff",
+            "delete", "delete_file", "fast_context", "context", "mv", "move", "rename", "browser_action", "browser", "computer_action", "computer", "desktop", "semgrep", "wrap", "mkdir", "find",
         ])
 
         const toolStartRegex = /(?<!\\)```\s*(?:tool[:\s]+)?([\w-]+?)(?=\s|--|```|$)(?:[ \t]*(.*))?/g
@@ -158,7 +158,7 @@ export class MarkdownToolCallParser {
                 }
             }
 
-            const isContentTool = ["write", "edit", "write_to_file", "edit_file", "new_rule", "todo", "wrap"].includes(toolShortName)
+            const isContentTool = ["write", "edit", "write", "edit_file", "new_rule", "todo", "wrap"].includes(toolShortName)
             if (isContentTool && !isOneLiner) {
                 const explicitCloserRegex = new RegExp(`\\/?${toolShortName}\`{1,3}$`)
                 const trimmedArgs = argsStr.trim()
@@ -183,7 +183,7 @@ export class MarkdownToolCallParser {
             } else {
                 const remainingText = message.slice(startTagEndIndex)
                 let closingRegex: RegExp
-                if (["edit", "write", "edit_file", "write_to_file", "todo", "wrap"].includes(toolShortName)) {
+                if (["edit", "write", "edit_file", "write", "todo", "wrap"].includes(toolShortName)) {
                     closingRegex = new RegExp(`(?:^|[\\r\\n])[ \\t]*(?<!\\\\)\\/${toolShortName}(?:\`{1,3})?(?:[ \\t]*(?:[\\r\\n]|$))`)
                 } else {
                     closingRegex = /(?:^|[\r\n])[ \t]*`{3}[ \t]*/
@@ -191,7 +191,7 @@ export class MarkdownToolCallParser {
                 const nextToolRegex = /(?:^|[\r\n])[ \t]*(?<!\\)```\s*(?:tool[:\s]+)?([\w-]+)/
                 const endMatch = remainingText.match(closingRegex)
                 const nextToolMatch = remainingText.match(nextToolRegex)
-                const strictTools = ['edit', 'write', 'edit_file', 'write_to_file', 'new_rule', 'todo', 'wrap']
+                const strictTools = ['edit', 'write', 'edit_file', 'write', 'new_rule', 'todo', 'wrap']
                 const isStrictTool = strictTools.includes(toolShortName)
 
                 let actualEndMatch = endMatch
@@ -247,10 +247,10 @@ export class MarkdownToolCallParser {
         let finalizedBlockCount = 0
 
         const knownToolShortNames = [
-            "read", "edit", "write", "ls", "glob", "grep", "search", "cmd", "execute_command", "todo", "done",
+            "read", "edit", "write", "ls", "glob", "grep", "search", "cmd", "bash", "todo", "done",
             "web", "research", "fetch", "browse", "click", "type", "scroll", "image", "ask",
-            "edit_file", "new_rule", "report_bug", "agent", "run_sub_agent", "condense", "sub", "diff",
-            "delete", "delete_file", "fast_context", "context", "mv", "move", "rename", "browser_action", "browser", "semgrep", "wrap", "mkdir", "find"
+            "edit_file", "new_rule", "report_bug", "agent", "agent", "condense", "sub", "diff",
+            "delete", "delete_file", "fast_context", "context", "mv", "move", "rename", "browser_action", "browser", "computer_action", "computer", "desktop", "semgrep", "wrap", "mkdir", "find"
         ]
 
         // 1. Find positions of <think> tags to skip
@@ -283,6 +283,7 @@ export class MarkdownToolCallParser {
         // IMPORTANT: For MarkdownToolCallParser, we must NOT skip ```toolname blocks
         // since those ARE tool calls. Only skip regular code blocks (```js, ```python, etc.)
         const toolShortNamesSet = new Set(knownToolShortNames)
+        const toolFenceStartRegex = /(?:^|[\r\n])[ \t]*(?<!\\)```\s*(?:tool[:\s]+)?([\w-]+?)(?=\s|--|```|$)/g
         const getCodeRanges = (str: string) => {
             const ranges: { start: number, end: number }[] = []
             let i = 0
@@ -310,9 +311,58 @@ export class MarkdownToolCallParser {
                     
                     const endMatch = str.indexOf("```", i)
                     if (endMatch !== -1) {
+                        const maybeToolFence = str
+                            .slice(endMatch)
+                            .match(/^```\s*(?:tool[:\s]+)?([\w-]+?)(?=\s|--|```|$)/)
+                        const recoveredToolName = maybeToolFence?.[1]?.startsWith("tool_")
+                            ? maybeToolFence[1].slice(5)
+                            : maybeToolFence?.[1]
+                        const isRecoveredToolFence =
+                            !!recoveredToolName &&
+                            (
+                                toolShortNamesSet.has(recoveredToolName) ||
+                                this.mcpToolNames.has(recoveredToolName) ||
+                                this.mcpToolNames.has(recoveredToolName.replace(/-/g, "_"))
+                            )
+
+                        if (isRecoveredToolFence) {
+                            ranges.push({ start, end: endMatch })
+                            i = endMatch
+                            continue
+                        }
+
                         ranges.push({ start, end: endMatch + 3 })
                         i = endMatch + 3
                     } else {
+                        // Recovery: if an unterminated non-tool code fence is followed by a real tool
+                        // opener, do not let the stray fence swallow the rest of the stream.
+                        toolFenceStartRegex.lastIndex = i
+                        let recoveredToolStart = -1
+                        let toolMatch: RegExpExecArray | null
+
+                        while ((toolMatch = toolFenceStartRegex.exec(str)) !== null) {
+                            const toolName = toolMatch[1].startsWith("tool_")
+                                ? toolMatch[1].slice(5)
+                                : toolMatch[1]
+                            const isKnownTool =
+                                toolShortNamesSet.has(toolName) ||
+                                this.mcpToolNames.has(toolName) ||
+                                this.mcpToolNames.has(toolName.replace(/-/g, "_"))
+
+                            if (!isKnownTool) {
+                                continue
+                            }
+
+                            recoveredToolStart = toolMatch.index + (toolMatch[0].startsWith("\n") || toolMatch[0].startsWith("\r") ? 1 : 0)
+                            break
+                        }
+
+                        if (recoveredToolStart !== -1) {
+                            ranges.push({ start, end: recoveredToolStart })
+                            i = recoveredToolStart
+                            continue
+                        }
+
                         // Unclosed fenced block (streaming) - treat rest as code
                         ranges.push({ start, end: str.length })
                         break
@@ -446,7 +496,7 @@ export class MarkdownToolCallParser {
             // IMPORTANT: write/edit/todo tools NEVER use one-liner syntax — they always need a content block.
             // Treating them as one-liners would cut off their content entirely.
             // wrap tool also MUST use a content block as it wraps message content.
-            const isContentTool = ["write", "edit", "write_to_file", "edit_file", "new_rule", "todo", "wrap"].includes(toolShortName)
+            const isContentTool = ["write", "edit", "write", "edit_file", "new_rule", "todo", "wrap"].includes(toolShortName)
             
             // KILOCODE FIX: Allow content tools to be one-liners IF they explicitly contain their closing tag in argsStr
             // e.g. ```write\nexample.txt "content"\n/write```
@@ -509,7 +559,7 @@ export class MarkdownToolCallParser {
                 const remainingText = message.slice(startTagEndIndex)
                 // KILOCODE MOD: Syntax-Aware Closer detection
                 let closingRegex: RegExp
-                if (['edit', 'write', 'edit_file', 'write_to_file', 'todo', 'wrap'].includes(toolShortName)) {
+                if (['edit', 'write', 'edit_file', 'write', 'todo', 'wrap'].includes(toolShortName)) {
                     // KILOCODE FIX: Content tools MUST only close on a tag at the start of a line.
                     // This prevents "insane regex" or code content containing the tool name from
                     // prematurely closing the block.
@@ -540,7 +590,7 @@ export class MarkdownToolCallParser {
                 // KILOCODE FIX: Only tools that consume arbitrary, multi-line content (like code or rules)
                 // should be "strict". Tools that only take flags/args (like read, ls, glob) should 
                 // allow implicit closing if a new tool start is detected.
-                const strictTools = ['edit', 'write', 'edit_file', 'write_to_file', 'new_rule', 'todo', 'wrap']
+                const strictTools = ['edit', 'write', 'edit_file', 'write', 'new_rule', 'todo', 'wrap']
                 const isStrictTool = strictTools.includes(toolShortName)
 
                 if (isStrictTool) {
@@ -574,12 +624,21 @@ export class MarkdownToolCallParser {
                     }
                 }
 
-                // KILOCODE FIX: Only tools that do NOT consume arbitrary content (like read, ls)
-                // allow implicit closing via a next-tool lookahead.
-                // Content-consuming tools (write, edit) are "Safe Havens" and MUST either
-                // find their explicit closer or wait for the message to be finalized.
-                if (nextToolMatch && !isStrictTool) {
-                    if (!endMatch || (endMatch.index !== undefined && nextToolMatch.index !== undefined && nextToolMatch.index < endMatch.index)) {
+                // Recover when the model forgets to close a strict tool and immediately starts
+                // the next known tool on a fresh line. Without this, the first tool stays
+                // partial forever and swallows the rest of the stream.
+                if (nextToolMatch && nextToolMatch.index !== undefined) {
+                    const nextToolName = nextToolMatch[1].startsWith("tool_")
+                        ? nextToolMatch[1].slice(5)
+                        : nextToolMatch[1]
+                    const isKnownNextTool = knownToolShortNames.includes(nextToolName)
+                        || this.mcpToolNames.has(nextToolName)
+                        || this.mcpToolNames.has(nextToolName.replace(/-/g, '_'))
+
+                    if (
+                        isKnownNextTool &&
+                        (!endMatch || (endMatch.index !== undefined && nextToolMatch.index < endMatch.index))
+                    ) {
                         actualEndMatch = nextToolMatch
                         isImplicitClose = true
                         consumeClosingMatch = false
@@ -742,7 +801,7 @@ export class MarkdownToolCallParser {
                 }
 
                 if (hasMatches) {
-                    if (toolShortName === "write" || toolShortName === "write_to_file") {
+                    if (toolShortName === "write" || toolShortName === "write") {
                         if (regexArgs.length > 1) {
                             const lastIdx = regexArgs.length - 1
                             regexArgs[lastIdx] = regexArgs[lastIdx].replace(/<\/(?:c|co|con|cont|conte|conten|content|w|wr|wri|writ|write)?>?$/, "")
@@ -783,12 +842,12 @@ export class MarkdownToolCallParser {
                 }
             }
 
-            // KILOCODE MOD: Split multi-file or multi-anchor read_file calls
+            // KILOCODE MOD: Split multi-file or multi-anchor read calls
             // Note: Since this logic expands 1 tool into N, we must be careful with finalizedBlockCount.
             // If the original tool was closed, ALL generated tools are closed (and finalized).
             let generatedTools: any[] = []
-            if (toolUse.name === "read_file" && toolUse.nativeArgs?.additional_anchors && toolUse.nativeArgs.additional_anchors.length > 0) {
-                // console.log(`[UnifiedToolCallParser] 🔍 read_file with additional_anchors: ${toolUse.nativeArgs.additional_anchors.length}, files: ${JSON.stringify(toolUse.nativeArgs.files)}`)
+            if (toolUse.name === "read" && toolUse.nativeArgs?.additional_anchors && toolUse.nativeArgs.additional_anchors.length > 0) {
+                // console.log(`[UnifiedToolCallParser] 🔍 read with additional_anchors: ${toolUse.nativeArgs.additional_anchors.length}, files: ${JSON.stringify(toolUse.nativeArgs.files)}`)
                 generatedTools.push(toolUse)
                 toolUse.nativeArgs.additional_anchors.forEach((anchor: number, index: number) => {
                     const newToolUse = {
@@ -799,8 +858,8 @@ export class MarkdownToolCallParser {
                     }
                     generatedTools.push(newToolUse)
                 })
-            } else if (toolUse.name === "read_file" && toolUse.nativeArgs?.files && toolUse.nativeArgs.files.length > 1) {
-                // console.log(`[UnifiedToolCallParser] 🔍 read_file with multiple files: ${toolUse.nativeArgs.files.length}, files: ${JSON.stringify(toolUse.nativeArgs.files)}`)
+            } else if (toolUse.name === "read" && toolUse.nativeArgs?.files && toolUse.nativeArgs.files.length > 1) {
+                // console.log(`[UnifiedToolCallParser] 🔍 read with multiple files: ${toolUse.nativeArgs.files.length}, files: ${JSON.stringify(toolUse.nativeArgs.files)}`)
                 toolUse.nativeArgs.files.forEach((file: any, index: number) => {
                     const newToolUse = {
                         ...toolUse,
@@ -808,14 +867,16 @@ export class MarkdownToolCallParser {
                         params: {
                             ...toolUse.params,
                             path: file.path,
-                            lineRange: (file.lineRanges && file.lineRanges.length > 0) ? file.lineRanges.map((r: any) => `${r.start}-${r.end}`).join(", ") : undefined
+                            lineRange: (file.lineRanges && file.lineRanges.length > 0) ? file.lineRanges.map((r: any) => `${r.start}-${r.end}`).join(", ") : undefined,
+                            head: file.head !== undefined ? String(file.head) : undefined,
+                            tail: file.tail !== undefined ? String(file.tail) : undefined,
                         },
                         nativeArgs: { ...toolUse.nativeArgs, files: [file] }
                     }
                     generatedTools.push(newToolUse)
                 })
             } else {
-                // console.log(`[UnifiedToolCallParser] 🔍 read_file single file: ${toolUse.name}, files: ${JSON.stringify(toolUse.nativeArgs?.files)}, path: ${toolUse.params?.path}`)
+                // console.log(`[UnifiedToolCallParser] 🔍 read single file: ${toolUse.name}, files: ${JSON.stringify(toolUse.nativeArgs?.files)}, path: ${toolUse.params?.path}`)
                 generatedTools.push(toolUse)
             }
 
@@ -899,8 +960,8 @@ export class MarkdownToolCallParser {
 
     private isContentConsumingTool(toolName: string): boolean {
         return [
-            "write_to_file", "edit", "new_rule", "edit_file",
-            "update_todo_list", "todo", "execute_command",
+            "write", "edit", "new_rule", "edit_file",
+            "todo", "todo", "bash",
             "wrap"
         ].includes(toolName)
     }
@@ -925,34 +986,35 @@ export class MarkdownToolCallParser {
 
     private mapShortNameToToolName(shortName: string): ToolName {
         const mapping: Record<string, ToolName> = {
-            "read": "read_file",
+            "read": "read",
             "edit": "edit",
-            "write": "write_to_file",
-            "ls": "list_dir",
+            "write": "write",
+            "ls": "list",
             "glob": "glob",
             "search": "grep",
-            "cmd": "execute_command",
-            "todo": "update_todo_list",
+            "cmd": "bash",
+            "todo": "todo",
             "done": "attempt_completion",
-            "web": "web_search",
+            "web": "web",
             "research": "research_web",
-            "fetch": "web_fetch",
+            "fetch": "fetch",
             "browse": "browser_action",
             "browser": "browser_action",
             "click": "browser_action",
             "type": "browser_action",
             "scroll": "browser_action",
+            "computer": "computer_action",
+            "desktop": "computer_action",
             "image": "generate_image",
-            "ask": "codebase_search",
+            "ask": "ask",
             "edit_file": "edit_file",
             "new_rule": "new_rule",
             "report_bug": "report_bug",
-            "agent": "run_sub_agent",
-            "run_sub_agent": "run_sub_agent",
-            "sub": "run_sub_agent",
+            "agent": "agent",
+            "sub": "agent",
             "condense": "condense",
             "diff": "edit",
-            "execute_command": "execute_command",
+            "bash": "bash",
             "delete": "delete_file",
             "delete_file": "delete_file",
             "fast_context": "fast_context",
@@ -971,6 +1033,99 @@ export class MarkdownToolCallParser {
     private populateToolArgs(shortName: string, argsStr: string, toolUse: any) {
         const params = toolUse.params
         const native = toolUse.nativeArgs
+
+        const splitLeadingToken = (value: string): { first: string, rest: string } => {
+            const trimmed = value.trim()
+            if (!trimmed) return { first: "", rest: "" }
+
+            const match = trimmed.match(
+                /^(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|`((?:[^`\\]|\\.)*)`|(\S+))(?:\s+([\s\S]*))?$/,
+            )
+            if (!match) return { first: trimmed, rest: "" }
+
+            return {
+                first: (match[1] ?? match[2] ?? match[3] ?? match[4] ?? "").trim(),
+                rest: (match[5] ?? "").trim(),
+            }
+        }
+
+        const parseReadRangeSpecs = (
+            value?: string,
+        ): {
+            lineRanges: Array<{ start: number, end: number }>,
+            head?: number,
+            tail?: number,
+            hasOnlySpecs: boolean,
+        } => {
+            if (!value?.trim()) {
+                return { lineRanges: [], hasOnlySpecs: false }
+            }
+
+            const tokens = value
+                .split(/[\s,]+/)
+                .map((token) => token.trim())
+                .filter(Boolean)
+
+            if (tokens.length === 0) {
+                return { lineRanges: [], hasOnlySpecs: false }
+            }
+
+            const lineRanges: Array<{ start: number, end: number }> = []
+            let head: number | undefined
+            let tail: number | undefined
+            let hasOnlySpecs = true
+
+            for (const token of tokens) {
+                const rangeMatch = token.match(/^(\d+)-(\d+)$/)
+                const headMatch = token.match(/^H(\d+)$/i)
+                const tailMatch = token.match(/^T(\d+)$/i)
+
+                if (rangeMatch) {
+                    lineRanges.push({
+                        start: parseInt(rangeMatch[1]),
+                        end: parseInt(rangeMatch[2]),
+                    })
+                    continue
+                }
+
+                if (headMatch) {
+                    head = parseInt(headMatch[1])
+                    continue
+                }
+
+                if (tailMatch) {
+                    tail = parseInt(tailMatch[1])
+                    continue
+                }
+
+                hasOnlySpecs = false
+            }
+
+            return { lineRanges, head, tail, hasOnlySpecs }
+        }
+
+        const applyReadSpecsToEntry = (
+            fileEntry: { lineRanges: Array<{ start: number, end: number }>, head?: number, tail?: number },
+            specs?: {
+                lineRanges: Array<{ start: number, end: number }>,
+                head?: number,
+                tail?: number,
+            },
+        ) => {
+            if (!specs) {
+                return
+            }
+
+            if (specs.lineRanges.length > 0) {
+                fileEntry.lineRanges.push(...specs.lineRanges)
+            }
+            if (specs.head !== undefined) {
+                fileEntry.head = specs.head
+            }
+            if (specs.tail !== undefined) {
+                fileEntry.tail = specs.tail
+            }
+        }
 
         // Helper to parse --flags into a dictionary.
         // Returns both raw (with quotes) and clean (without quotes) values.
@@ -1101,7 +1256,7 @@ export class MarkdownToolCallParser {
             return
         }
 
-        if (shortName === "cmd" || shortName === "execute_command") {
+        if (shortName === "cmd" || shortName === "bash") {
             const command = flags.run || flags.command || argsStr.trim()
             const cwd = flags.cwd
             params.command = this.normalizeCmdCommand(command)
@@ -1119,86 +1274,159 @@ export class MarkdownToolCallParser {
                 // Extract path before any -- flags
                 const beforeFlags = argsStr.split(/\s+--/)[0].trim()
                 const rawPath = getRawFlagValue(argsStr, 'path')
-                const pathStr = rawPath !== undefined ? rawPath : (flags.path || beforeFlags || argsStr.trim())
-                const linesStr = flags.lines
+                let pathStr = rawPath !== undefined
+                    ? rawPath
+                    : (flags.path || (argsStr.includes("\n") ? argsStr.trim() : (beforeFlags || argsStr.trim())))
+                let linesStr = flags.lines
                 const headStr = flags.head
                 const tailStr = flags.tail
 
+                if (
+                    pathStr &&
+                    !linesStr &&
+                    !rawPath &&
+                    !flags.path &&
+                    !pathStr.includes("\n")
+                ) {
+                    const { first, rest } = splitLeadingToken(pathStr)
+                    if (first && rest) {
+                        pathStr = first
+                        linesStr = rest
+                    }
+                }
+
                 if (pathStr) {
-                    // pathStr is the raw flag value (may include outer quotes).
-                    // Two supported formats:
-                    //   1. Multiple individually-quoted tokens: "a, b.txt", "c.ts", "d.md"
-                    //      → split on quoted token boundaries, each token is one path
-                    //   2. Single quoted string with comma+space-separated paths: "game.py, pizza.txt"
-                    //      → strip outer quotes, split on ", " inside
-                    //   3. Unquoted comma+space-separated: game.py, pizza.txt
-                    //      → split on ", "
                     let paths: string[]
+                    let continuationSpecs:
+                        | {
+                            lineRanges: Array<{ start: number, end: number }>,
+                            head?: number,
+                            tail?: number,
+                        }
+                        | undefined
                     const multiQuotedTokens = pathStr.match(/("[^"]+"|'[^']+'|`[^`]+`)/g)
                     if (multiQuotedTokens && multiQuotedTokens.length > 1) {
-                        // Multiple individually-quoted tokens
                         paths = multiQuotedTokens.map(p => p.slice(1, -1)).filter(Boolean)
                     } else {
-                        // Single quoted or unquoted — strip outer quotes then split on ", "
                         let inner = pathStr.trim()
                         if ((inner.startsWith('"') && inner.endsWith('"')) ||
                             (inner.startsWith("'") && inner.endsWith("'")) ||
                             (inner.startsWith("`") && inner.endsWith("`"))) {
                             inner = inner.slice(1, -1)
                         }
-                        paths = inner
-                            .split(/[\r\n]+|, */)
-                            .map(p => p.trim())
+
+                        const logicalLines = inner
+                            .split(/\r?\n/)
+                            .map((line) => line.trim())
                             .filter(Boolean)
+                        const trailingLineSpecs =
+                            logicalLines.length > 1
+                                ? logicalLines
+                                    .slice(1)
+                                    .map((line) => parseReadRangeSpecs(line))
+                                : []
+
+                        if (
+                            logicalLines.length > 1 &&
+                            trailingLineSpecs.every((spec) => spec.hasOnlySpecs)
+                        ) {
+                            paths = [logicalLines[0]]
+                            continuationSpecs = parseReadRangeSpecs(
+                                logicalLines.slice(1).join(" "),
+                            )
+                        } else {
+                            paths = inner
+                                .split(/[\r\n]+|, */)
+                                .map(p => p.trim())
+                                .filter(Boolean)
+                        }
                     }
 
                     native.files = []
+                    const hasPerPathFlagSyntax = paths.some((path) => /\s--(?:lines|head|tail)\b/.test(path))
+                    const sharedLineSpecs =
+                        paths.length === 1 || !hasPerPathFlagSyntax ? parseReadRangeSpecs(linesStr) : undefined
                     paths.forEach((p, idx) => {
-                        let parsedPath = p
-                        let inlineRange: { start: number, end: number } | undefined
+                        const perPathFlags = parseFlags(p)
+                        const beforePerPathFlags = p.split(/\s+--/)[0].trim()
+                        let parsedPath = perPathFlags.path || beforePerPathFlags || p
+                        let inlineSpecs:
+                            | {
+                                lineRanges: Array<{ start: number, end: number }>,
+                                head?: number,
+                                tail?: number,
+                            }
+                            | undefined
 
-                        const inlineRangeMatch = p.match(/^(.*?):L(\d+)-(\d+)$/i)
+                        const inlineRangeMatch = parsedPath.match(/^(.*?):L(\d+)-(\d+)$/i)
+                        const fileEntry: any = { path: parsedPath, lineRanges: [] }
+
                         if (inlineRangeMatch) {
                             parsedPath = inlineRangeMatch[1].trim()
-                            inlineRange = {
-                                start: parseInt(inlineRangeMatch[2]),
-                                end: parseInt(inlineRangeMatch[3])
+                            fileEntry.path = parsedPath
+                            inlineSpecs = {
+                                lineRanges: [{
+                                    start: parseInt(inlineRangeMatch[2]),
+                                    end: parseInt(inlineRangeMatch[3]),
+                                }],
+                            }
+                        } else {
+                            const inlineSpecMatch = parsedPath.match(/^(\S+)\s+([\s\S]+)$/)
+                            if (inlineSpecMatch) {
+                                const parsedInlineSpecs = parseReadRangeSpecs(inlineSpecMatch[2])
+                                if (parsedInlineSpecs.hasOnlySpecs) {
+                                    parsedPath = inlineSpecMatch[1].trim()
+                                    fileEntry.path = parsedPath
+                                    inlineSpecs = parsedInlineSpecs
+                                }
                             }
                         }
 
-                        const fileEntry: any = { path: parsedPath, lineRanges: [] }
+                        const effectiveHeadStr = perPathFlags.head || headStr
+                        const effectiveTailStr = perPathFlags.tail || tailStr
+                        const effectiveLinesStr = perPathFlags.lines
 
-                        if (headStr) {
-                            fileEntry.head = parseInt(headStr)
+                        if (effectiveHeadStr && fileEntry.head === undefined) {
+                            fileEntry.head = parseInt(effectiveHeadStr)
                         }
-                        if (tailStr) {
-                            fileEntry.tail = parseInt(tailStr)
+                        if (effectiveTailStr && fileEntry.tail === undefined) {
+                            fileEntry.tail = parseInt(effectiveTailStr)
                         }
 
-                        if (inlineRange) {
-                            fileEntry.lineRanges.push(inlineRange)
+                        if (inlineSpecs) {
+                            applyReadSpecsToEntry(fileEntry, inlineSpecs)
+                        }
+
+                        if (effectiveLinesStr) {
+                            applyReadSpecsToEntry(fileEntry, parseReadRangeSpecs(effectiveLinesStr))
+                        } else if (sharedLineSpecs) {
+                            applyReadSpecsToEntry(fileEntry, sharedLineSpecs)
                         } else if (linesStr) {
                             const allRanges = linesStr.split(",").map(r => r.trim())
                             const rangeStr = allRanges[idx] || allRanges[0]
                             if (rangeStr) {
-                                const rangeMatch = rangeStr.match(/^(\d+)-(\d+)$/)
-                                if (rangeMatch) {
-                                    fileEntry.lineRanges.push({
-                                        start: parseInt(rangeMatch[1]),
-                                        end: parseInt(rangeMatch[2])
-                                    })
-                                }
+                                applyReadSpecsToEntry(fileEntry, parseReadRangeSpecs(rangeStr))
                             }
+                        }
+                        if (idx === 0 && continuationSpecs) {
+                            applyReadSpecsToEntry(fileEntry, continuationSpecs)
                         }
                         native.files.push(fileEntry)
                     })
 
                     params.path = native.files.map((file: any) => file.path).join(", ")
-                    if (linesStr && !native.files.some((file: any) => file.lineRanges && file.lineRanges.length > 0)) {
+                    const firstFile = native.files[0]
+                    if (firstFile?.lineRanges?.length > 0) {
+                        params.lineRange = firstFile.lineRanges
+                            .map((range: { start: number, end: number }) => `${range.start}-${range.end}`)
+                            .join(", ")
+                    } else if (linesStr && !native.files.some((file: any) => file.lineRanges && file.lineRanges.length > 0)) {
                         params.lineRange = linesStr
                     }
-                    if (headStr) params.head = headStr
-                    if (tailStr) params.tail = tailStr
+                    if (firstFile?.head !== undefined) params.head = firstFile.head.toString()
+                    else if (headStr) params.head = headStr
+                    if (firstFile?.tail !== undefined) params.tail = firstFile.tail.toString()
+                    else if (tailStr) params.tail = tailStr
                 }
                 break
             }
@@ -1211,7 +1439,7 @@ export class MarkdownToolCallParser {
                 break
             }
             case "write":
-            case "write_to_file": {
+            case "write": {
                 // For markdown format: first line is the path (positional), rest is handled by content appending
                 // Extract path from argsStr (first line before any flags or newlines)
                 const pathMatch = argsStr.trim().split(/\s+/)[0]
@@ -1417,7 +1645,7 @@ export class MarkdownToolCallParser {
                 break
             case "agent":
             case "sub":
-            case "run_sub_agent":
+            case "agent":
                 params.prompt = flags.prompt || argsStr.trim()
                 native.prompt = params.prompt
                 if (flags.mode) {
@@ -1443,6 +1671,12 @@ export class MarkdownToolCallParser {
                 if (flags.text) { params.text = flags.text; native.text = flags.text }
                 if (flags.size) { params.size = flags.size; native.size = flags.size }
                 if (flags.path) { params.path = flags.path; native.path = flags.path }
+                break
+            case "computer_action":
+                params.action = flags.action || argsStr.trim()
+                native.action = params.action
+                if (flags.coordinate) { params.coordinate = flags.coordinate; native.coordinate = flags.coordinate }
+                if (flags.text) { params.text = flags.text; native.text = flags.text }
                 break
             case "wrap": {
                 const wrapKeys = ["effect", "emotion", "gui", "color", "bg", "border", "shadow", "style", "intensity"]
@@ -1602,7 +1836,7 @@ export class MarkdownToolCallParser {
         // console.log(`[UnifiedToolCallParser] 🔍 After populateToolParamsFromXmlArgs: native.files=${JSON.stringify(toolUse.nativeArgs?.files)}`)
 
         // Custom post-processing for UnifiedToolCallParser specific logic
-        if (shortName === "edit" || shortName === "write" || shortName === "write_to_file") {
+        if (shortName === "edit" || shortName === "write" || shortName === "write") {
             if (args.length > 1) {
                 this.appendContentToTool(toolUse, args.slice(1).join("\n"))
             }
@@ -1665,13 +1899,13 @@ export class MarkdownToolCallParser {
             if (toolUse.name === "edit") {
                 toolUse.params.edit = (toolUse.params.edit || "") + contentToProcess
                 // KILOCODE FIX: Remove escape backslashes from literals like \/edit``` or \```tool in edit content
-                toolUse.params.edit = toolUse.params.edit.replace(/\\(```[a-zA-Z0-9_-]+|(?:\/)(?:edit|write|edit_file|write_to_file|todo|wrap)(?:`{1,3}))/g, '$1')
+                toolUse.params.edit = toolUse.params.edit.replace(/\\(```[a-zA-Z0-9_-]+|(?:\/)(?:edit|write|edit_file|write|todo|wrap)(?:`{1,3}))/g, '$1')
                 const edits = this.parseEditBlocks(toolUse.params.edit)
                 // Propagate line range hints from the tool call header to individual blocks
                 // If the header has multiple ranges, assign them sequentially
                 if (toolUse.nativeArgs.ranges && toolUse.nativeArgs.ranges.length > 0) {
                     edits.forEach((edit: any, idx: number) => {
-                        // Per-block range (Old (10-20):) takes priority
+                        // Per-block range (SEARCH (10-20):) takes priority
                         if (edit.start_line !== undefined) return
 
                         // Otherwise use range from header if available for this block index
@@ -1693,7 +1927,7 @@ export class MarkdownToolCallParser {
                 toolUse.params.instructions = (toolUse.params.instructions || "") + content
                 toolUse.nativeArgs.instructions = toolUse.params.instructions
             }
-        } else if (toolUse.name === "write_to_file" || toolUse.name === "new_rule") {
+        } else if (toolUse.name === "write" || toolUse.name === "new_rule") {
             let cleanContent = content
             
             // KILOCODE MOD: Support multi-line path (path on next line) - extract before Content: marker
@@ -1744,13 +1978,13 @@ export class MarkdownToolCallParser {
             // KILOCODE MOD: intentionally left out this.sanitizeNestedToolCalls(cleanContent) 
             // so valid AI double-angle tags don't get gobbled/renamed.
             // KILOCODE FIX: Remove escape backslashes from literals like \/write```
-            const unescapedContent = cleanContent.replace(/\\(```[a-zA-Z0-9_-]+|(?:\/)(?:edit|write|edit_file|write_to_file|todo|wrap)(?:`{1,3}))/g, '$1')
+            const unescapedContent = cleanContent.replace(/\\(```[a-zA-Z0-9_-]+|(?:\/)(?:edit|write|edit_file|write|todo|wrap)(?:`{1,3}))/g, '$1')
             toolUse.params.content = (toolUse.params.content || "") + unescapedContent
             toolUse.nativeArgs.content = toolUse.params.content
-        } else if (toolUse.name === "update_todo_list" || toolUse.name === "todo") {
+        } else if (toolUse.name === "todo" || toolUse.name === "todo") {
             toolUse.params.todos = (toolUse.params.todos || "") + content
             toolUse.nativeArgs.todos = toolUse.params.todos
-        } else if (toolUse.name === "execute_command") {
+        } else if (toolUse.name === "bash") {
             const hasExisting = (toolUse.params.command || "").trim().length > 0
             if (hasExisting && content.trim().length > 0) {
                 toolUse.params.command = (toolUse.params.command || "").trimEnd() + " " + content.trimStart()
@@ -1759,7 +1993,7 @@ export class MarkdownToolCallParser {
             }
             toolUse.nativeArgs.command = toolUse.params.command
         } else if (
-            toolUse.name === "web_search" ||
+            toolUse.name === "web" ||
             toolUse.name === "research_web"
         ) {
             let cleanContent = content
@@ -1798,8 +2032,8 @@ export class MarkdownToolCallParser {
         // V4 Regex: Context-Aware Header Matching.
         // Added 'diff_\\d+' to the list of recognized headers.
         // Also updated range matching to support BOTH comma and hyphen separators: (\d+)(?:[-]|,[\t ]*)(\d+)
-        // Support both "Old start-end:" and "Old (start-end):"
-        const headerRegex = /^\s*(?:(Old|Original|SEARCH|New|Updated|REPLACE|diff_\d+)(?:(?:[\t ]*(?:\(?[\t ]*(\d+)(?:(?:[-]|,[\t ]*)(\d+))?[\t ]*\)?))|(?=:))(:|(?=\s*\r?\n))|(rm|remove|delete)[\t ]+(?:(?:\(?[\t ]*(\d+)(?:(?:[-]|,[\t ]*)(\d+))?[\t ]*\)?)))/gim
+        // Support canonical SEARCH/REPLACE headers.
+        const headerRegex = /^\s*(?:(SEARCH|REPLACE|diff_\d+)(?:(?:[\t ]*(?:\(?[\t ]*(\d+)(?:(?:[-]|,[\t ]*)(\d+))?[\t ]*\)?))|(?=:))(:|(?=\s*\r?\n))|(rm|remove|delete)[\t ]+(?:(?:\(?[\t ]*(\d+)(?:(?:[-]|,[\t ]*)(\d+))?[\t ]*\)?)))/gim
 
         let match
         const headers: { index: number; length: number; type: string; start?: string; end?: string; }[] = []
@@ -1829,15 +2063,16 @@ export class MarkdownToolCallParser {
         let currentRange: { start: number, end: number } | undefined
 
         for (const block of blocks) {
-            const isOld = /Old|Original|SEARCH/i.test(block.type)
+            const isOld = /SEARCH/i.test(block.type)
+            const isNew = /REPLACE/i.test(block.type)
             const isDelete = /rm|remove|delete/i.test(block.type)
             const isDiffHeaders = /diff_\d+/i.test(block.type)
 
             const normalizeBlock = (rawContent: string): string => {
                 // KILOCODE FIX: Improved artifact stripping.
                 // When we split the message by headers, the 'content' of a block 
-                // naturally starts with a newline (immediately after "Old:\n")
-                // and ends with one (immediately before "New:\n").
+                // naturally starts with a newline (immediately after "SEARCH:\n")
+                // and ends with one (immediately before "REPLACE:\n").
                 // We MUST remove exactly one leading and one trailing newline if they exist,
                 // but we must NOT strip intentional blank lines or indentation.
 
@@ -1947,10 +2182,10 @@ private cleanTextContent(text: string): string {
     let clean = text
 
     const knownToolShortNames = [
-        "read", "edit", "write", "ls", "glob", "grep", "search", "cmd", "execute_command", "todo", "done",
+        "read", "edit", "write", "ls", "glob", "grep", "search", "cmd", "bash", "todo", "done",
         "web", "research", "fetch", "browse", "click", "type", "scroll", "image", "ask",
-        "edit_file", "new_rule", "report_bug", "agent", "run_sub_agent", "condense", "sub", "diff",
-        "delete", "delete_file", "fast_context", "context", "mv", "move", "rename", "browser_action", "browser", "semgrep", "wrap", "mkdir", "find"
+        "edit_file", "new_rule", "report_bug", "agent", "agent", "condense", "sub", "diff",
+        "delete", "delete_file", "fast_context", "context", "mv", "move", "rename", "browser_action", "browser", "computer_action", "computer", "desktop", "semgrep", "wrap", "mkdir", "find"
     ]
     const escapedToolNames = [...knownToolShortNames, ...this.mcpToolNames.keys()]
         .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))

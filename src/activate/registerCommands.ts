@@ -18,8 +18,7 @@ import { MdmService } from "../services/mdm/MdmService"
 import { t } from "../i18n"
 import { getAppUrl } from "@roo-code/types" // kade_change
 import { generateTerminalCommand } from "../utils/terminalCommandGenerator" // kade_change
-import { AgentManagerProvider } from "../core/kilocode/agent-manager/AgentManagerProvider" // kade_change
-import { GroupChatProvider } from "../core/kilocode/group-chat/GroupChatProvider" // kade_change
+import { NativeAgentManagerProvider } from "../core/kilocode/native-agent-manager/NativeAgentManagerProvider"
 
 /**
  * Helper to get the visible ClineProvider instance or log if not found.
@@ -33,6 +32,24 @@ export function getVisibleProviderOrLog(outputChannel: vscode.OutputChannel): Cl
 	return visibleProvider
 }
 
+export function getSidebarProviderOrLog(outputChannel: vscode.OutputChannel): ClineProvider | undefined {
+	const sidebarProvider = ClineProvider.getSidebarInstance()
+	if (!sidebarProvider) {
+		outputChannel.appendLine("Cannot find a visible Kilo Code sidebar instance.")
+		return undefined
+	}
+	return sidebarProvider
+}
+
+export function getVisibleTabProviderOrLog(outputChannel: vscode.OutputChannel): ClineProvider | undefined {
+	const tabProvider = ClineProvider.getVisibleTabInstance()
+	if (!tabProvider) {
+		outputChannel.appendLine("Cannot find a visible Kilo Code editor tab instance.")
+		return undefined
+	}
+	return tabProvider
+}
+
 import { getPanel, setPanel, getTabPanel, getSidebarPanel } from "./panelUtils"
 
 export type RegisterCommandOptions = {
@@ -42,19 +59,13 @@ export type RegisterCommandOptions = {
 }
 
 // kade_change start - Agent Manager provider
-let agentManagerProvider: AgentManagerProvider | undefined
-let groupChatProvider: GroupChatProvider | undefined // kade_change
+let agentManagerProvider: NativeAgentManagerProvider | undefined
 
 const registerAgentManager = (options: RegisterCommandOptions) => {
 	const { context, outputChannel, provider } = options
 
-	agentManagerProvider = new AgentManagerProvider(context, outputChannel, provider)
+	agentManagerProvider = new NativeAgentManagerProvider(context, outputChannel, provider)
 	context.subscriptions.push(agentManagerProvider)
-
-	// kade_change start - Group Chat provider
-	groupChatProvider = new GroupChatProvider(context, outputChannel, provider)
-	context.subscriptions.push(groupChatProvider)
-	// kade_change end
 }
 // kade_change end
 
@@ -76,14 +87,6 @@ const getCommandsMap = ({ context, outputChannel }: RegisterCommandOptions): Rec
 	// kade_change start
 	agentManagerOpen: () => {
 		agentManagerProvider?.openPanel()
-	},
-	groupChatOpen: () => {
-		// Ensure provider is initialized before trying to open
-		if (groupChatProvider) {
-			groupChatProvider.openPanel()
-		} else {
-			vscode.window.showErrorMessage("Group Chat Provider not initialized. Please try reloading the window.")
-		}
 	},
 	// kade_change end
 	cloudButtonClicked: () => {
@@ -113,7 +116,45 @@ const getCommandsMap = ({ context, outputChannel }: RegisterCommandOptions): Rec
 		// This ensures the focus happens after the view has switched
 		await visibleProvider.postMessageToWebview({ type: "action", action: "focusInput" })
 	},
+	sidebarPlusButtonClicked: async () => {
+		const sidebarProvider = getSidebarProviderOrLog(outputChannel)
+
+		if (!sidebarProvider) {
+			return
+		}
+
+		TelemetryService.instance.captureTitleButtonClicked("plus")
+
+		await sidebarProvider.removeClineFromStack()
+		await sidebarProvider.refreshWorkspace()
+		await sidebarProvider.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
+		await sidebarProvider.postMessageToWebview({ type: "action", action: "focusInput" })
+	},
+	tabPlusButtonClicked: async () => {
+		const tabProvider = getVisibleTabProviderOrLog(outputChannel)
+
+		if (!tabProvider) {
+			return
+		}
+
+		TelemetryService.instance.captureTitleButtonClicked("plus")
+
+		await tabProvider.removeClineFromStack()
+		await tabProvider.refreshWorkspace()
+		await tabProvider.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
+		await tabProvider.postMessageToWebview({ type: "action", action: "focusInput" })
+	},
 	popoutButtonClicked: () => {
+		TelemetryService.instance.captureTitleButtonClicked("popout")
+
+		return openClineInNewTab({ context, outputChannel })
+	},
+	sidebarPopoutButtonClicked: () => {
+		TelemetryService.instance.captureTitleButtonClicked("popout")
+
+		return openClineInNewTab({ context, outputChannel })
+	},
+	tabPopoutButtonClicked: () => {
 		TelemetryService.instance.captureTitleButtonClicked("popout")
 
 		return openClineInNewTab({ context, outputChannel })
@@ -132,6 +173,30 @@ const getCommandsMap = ({ context, outputChannel }: RegisterCommandOptions): Rec
 		// Also explicitly post the visibility message to trigger scroll reliably
 		visibleProvider.postMessageToWebview({ type: "action", action: "didBecomeVisible" })
 	},
+	sidebarSettingsButtonClicked: () => {
+		const sidebarProvider = getSidebarProviderOrLog(outputChannel)
+
+		if (!sidebarProvider) {
+			return
+		}
+
+		TelemetryService.instance.captureTitleButtonClicked("settings")
+
+		sidebarProvider.postMessageToWebview({ type: "action", action: "settingsButtonClicked" })
+		sidebarProvider.postMessageToWebview({ type: "action", action: "didBecomeVisible" })
+	},
+	tabSettingsButtonClicked: () => {
+		const tabProvider = getVisibleTabProviderOrLog(outputChannel)
+
+		if (!tabProvider) {
+			return
+		}
+
+		TelemetryService.instance.captureTitleButtonClicked("settings")
+
+		tabProvider.postMessageToWebview({ type: "action", action: "settingsButtonClicked" })
+		tabProvider.postMessageToWebview({ type: "action", action: "didBecomeVisible" })
+	},
 	historyButtonClicked: () => {
 		const visibleProvider = getVisibleProviderOrLog(outputChannel)
 
@@ -142,6 +207,28 @@ const getCommandsMap = ({ context, outputChannel }: RegisterCommandOptions): Rec
 		TelemetryService.instance.captureTitleButtonClicked("history")
 
 		visibleProvider.postMessageToWebview({ type: "action", action: "historyButtonClicked" })
+	},
+	sidebarHistoryButtonClicked: () => {
+		const sidebarProvider = getSidebarProviderOrLog(outputChannel)
+
+		if (!sidebarProvider) {
+			return
+		}
+
+		TelemetryService.instance.captureTitleButtonClicked("history")
+
+		sidebarProvider.postMessageToWebview({ type: "action", action: "historyButtonClicked" })
+	},
+	tabHistoryButtonClicked: () => {
+		const tabProvider = getVisibleTabProviderOrLog(outputChannel)
+
+		if (!tabProvider) {
+			return
+		}
+
+		TelemetryService.instance.captureTitleButtonClicked("history")
+
+		tabProvider.postMessageToWebview({ type: "action", action: "historyButtonClicked" })
 	},
 	// kade_change begin
 	mcpButtonClicked: () => {
@@ -154,6 +241,28 @@ const getCommandsMap = ({ context, outputChannel }: RegisterCommandOptions): Rec
 		TelemetryService.instance.captureTitleButtonClicked("mcp")
 
 		visibleProvider.postMessageToWebview({ type: "action", action: "mcpButtonClicked" })
+	},
+	sidebarMcpButtonClicked: () => {
+		const sidebarProvider = getSidebarProviderOrLog(outputChannel)
+
+		if (!sidebarProvider) {
+			return
+		}
+
+		TelemetryService.instance.captureTitleButtonClicked("mcp")
+
+		sidebarProvider.postMessageToWebview({ type: "action", action: "mcpButtonClicked" })
+	},
+	tabMcpButtonClicked: () => {
+		const tabProvider = getVisibleTabProviderOrLog(outputChannel)
+
+		if (!tabProvider) {
+			return
+		}
+
+		TelemetryService.instance.captureTitleButtonClicked("mcp")
+
+		tabProvider.postMessageToWebview({ type: "action", action: "mcpButtonClicked" })
 	},
 	promptsButtonClicked: () => {
 		const visibleProvider = getVisibleProviderOrLog(outputChannel)
@@ -176,6 +285,12 @@ const getCommandsMap = ({ context, outputChannel }: RegisterCommandOptions): Rec
 		visibleProvider.postMessageToWebview({ type: "action", action: "profileButtonClicked" })
 	},
 	helpButtonClicked: () => {
+		vscode.env.openExternal(vscode.Uri.parse(getAppUrl()))
+	},
+	sidebarHelpButtonClicked: () => {
+		vscode.env.openExternal(vscode.Uri.parse(getAppUrl()))
+	},
+	tabHelpButtonClicked: () => {
 		vscode.env.openExternal(vscode.Uri.parse(getAppUrl()))
 	},
 	// kade_change end
@@ -364,8 +479,8 @@ export const openClineInNewTab = async ({ context, outputChannel }: Omit<Registe
 	setPanel(newPanel, "tab")
 
 	newPanel.iconPath = {
-		light: vscode.Uri.joinPath(context.extensionUri, "assets", "icons", "kilo.png"),
-		dark: vscode.Uri.joinPath(context.extensionUri, "assets", "icons", "kilo-dark.png"),
+		light: vscode.Uri.joinPath(context.extensionUri, "assets", "icons", "sidebar-icon.png"),
+		dark: vscode.Uri.joinPath(context.extensionUri, "assets", "icons", "sidebar-icon.png"),
 	}
 
 	await tabProvider.resolveWebviewView(newPanel)

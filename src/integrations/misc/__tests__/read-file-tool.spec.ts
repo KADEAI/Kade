@@ -11,7 +11,7 @@ vitest.mock("../line-counter")
 vitest.mock("../read-lines")
 vitest.mock("../extract-text")
 
-describe("read_file tool with maxReadFileLine setting", () => {
+describe("read tool with maxReadFileLine setting", () => {
 	// Mock original implementation first to use in tests
 	let originalCountFileLines: any
 	let originalReadLines: any
@@ -41,7 +41,7 @@ describe("read_file tool with maxReadFileLine setting", () => {
 
 		// Create mock implementation that would simulate the behavior
 		// Note: We're not testing the Cline class directly as it would be too complex
-		// We're testing the logic flow that would happen in the read_file implementation
+		// We're testing the logic flow that would happen in the read implementation
 
 		const filePath = path.resolve("/test", "smallFile.txt")
 		const maxReadFileLine = 500

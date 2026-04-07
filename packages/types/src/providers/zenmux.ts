@@ -11,7 +11,7 @@ export const zenmuxDefaultModelInfo: ModelInfo = {
 	supportsPromptCache: true,
 	// kade_change start
 	supportsNativeTools: true,
-	defaultToolProtocol: "markdown",
+	defaultToolProtocol: "unified",
 	// kade_change end
 	inputPrice: 15.0,
 	outputPrice: 75.0,

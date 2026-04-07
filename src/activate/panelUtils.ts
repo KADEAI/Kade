@@ -22,6 +22,7 @@ export function getSidebarPanel(): vscode.WebviewView | undefined {
 
 /**
  * Set panel references
+ * Both sidebar and tab panels can coexist - don't clear one when setting the other
  */
 export function setPanel(
     newPanel: vscode.WebviewPanel | vscode.WebviewView | undefined,
@@ -29,9 +30,7 @@ export function setPanel(
 ): void {
     if (type === "sidebar") {
         sidebarPanel = newPanel as vscode.WebviewView
-        tabPanel = undefined
     } else {
         tabPanel = newPanel as vscode.WebviewPanel
-        sidebarPanel = undefined
     }
 }

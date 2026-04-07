@@ -9,24 +9,190 @@ import { getReadablePath, resolveRecursivePath } from "../../utils/path";
 import { isPathOutsideWorkspace } from "../../utils/pathUtils";
 import { getBinPath, execRipgrep } from "../../services/ripgrep";
 import { BaseTool, ToolCallbacks } from "./BaseTool";
-import { buildGrepIgnoreGlobs } from "./searchFilesIgnoreGlobs";
+import { buildOrderedGrepGlobs } from "./searchFilesIgnoreGlobs";
 import type { ToolUse } from "../../shared/tools";
 import { findLastIndex } from "../../shared/array";
 
 interface GrepParams {
-  path: string;
+  path?: string | string[];
   query: string | string[]; // Support both single query and multiple queries
   recursive_resolution?: boolean; // Internal flag to indicate if paths have been resolved
-  file_pattern?: string | null;
-  include?: string | null; // kade_change: Support 'include'
-  exclude?: string | null; // kade_change: Support 'exclude'
+  file_pattern?: string | string[] | null;
+  include?: string | string[] | null; // kade_change: Support 'include'
+  exclude?: string | string[] | null; // kade_change: Support 'exclude'
   include_all?: boolean; // Whether to include docs, locales, generated files, assets, etc.
   context_lines?: number; // Configurable context lines
   literal?: boolean; // Whether to treat query as literal string
   whole_word?: boolean; // Whether to match whole words only
   case_insensitive?: boolean; // kade_change: Support 'case_insensitive'
+  case_sensitive?: boolean; // Alias used by native JSON tools
   tests?: boolean; // Whether to include test files while still filtering non-code noise
   multiline?: boolean; // Whether to enable multiline regex matching (-U flag)
+}
+
+interface ParsedSearchLine {
+  line_number: number;
+  content: string;
+  isMatch: boolean;
+}
+
+interface RipgrepSubmatch {
+  start: number;
+  end: number;
+}
+
+interface RipgrepSearchResultData {
+  path: {
+    text: string;
+  };
+  lines: {
+    text?: string;
+  };
+  line_number: number;
+  submatches?: RipgrepSubmatch[];
+}
+
+function wrapMatchedSubstrings(text: string, submatches: RipgrepSubmatch[]): string {
+  if (submatches.length === 0) {
+    return text;
+  }
+
+  let result = "";
+  let cursor = 0;
+
+  for (const submatch of submatches) {
+    const start = Math.max(0, Math.min(submatch.start, text.length));
+    const end = Math.max(start, Math.min(submatch.end, text.length));
+
+    if (start < cursor) {
+      continue;
+    }
+
+    result += text.slice(cursor, start);
+    result += `→${text.slice(start, end)}←`;
+    cursor = end;
+  }
+
+  result += text.slice(cursor);
+  return result;
+}
+
+export function isIdentifierLikeQuery(query: string): boolean {
+  return /^[A-Za-z0-9_]+$/.test(query);
+}
+
+export function shouldUseWholeWordSearch(
+  _query: string,
+  options: { literal: boolean; wholeWord?: boolean },
+): boolean {
+  if (options.wholeWord !== undefined) {
+    return options.wholeWord;
+  }
+
+  return false;
+}
+
+export function resolveCaseInsensitiveSearch(params: Pick<GrepParams, "case_sensitive" | "case_insensitive">): boolean {
+  if (params.case_sensitive === true) {
+    return false;
+  }
+
+  if (params.case_insensitive === false) {
+    return false;
+  }
+
+  return true;
+}
+
+function splitUnescapedPipes(query: string): string[] {
+  const parts: string[] = [];
+  let current = "";
+  let escaped = false;
+
+  for (const char of query) {
+    if (escaped) {
+      current += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      current += char;
+      escaped = true;
+      continue;
+    }
+
+    if (char === "|") {
+      parts.push(current);
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  parts.push(current);
+  return parts;
+}
+
+export function looksLikeRegexIntent(query: string): boolean {
+  return /\\[|(){}+?]|\.\*|\.\+|\[[^\]]+\]|\(\?:|\(\?|\^|\$|\\[bBdDsSwW]|\{(?:\d+,?\d*)\}/.test(
+    query,
+  );
+}
+
+export function normalizeShellRegexQuery(query: string): string {
+  return query.replace(/\\([|(){}+?])/g, "$1");
+}
+
+export function normalizeGrepQueries(
+  query: string | string[],
+  options: { explicitLiteral: boolean; literal?: boolean },
+): { queries: string[]; literal: boolean } {
+  if (Array.isArray(query)) {
+    const normalizedQueries = query
+      .map((entry) =>
+        !options.explicitLiteral || options.literal === false
+          ? normalizeShellRegexQuery(entry)
+          : entry,
+      )
+      .filter((entry) => entry.trim().length > 0);
+    return {
+      queries: normalizedQueries,
+      literal: options.explicitLiteral ? options.literal === true : true,
+    };
+  }
+
+  if (!options.explicitLiteral && looksLikeRegexIntent(query)) {
+    return {
+      queries: [normalizeShellRegexQuery(query)],
+      literal: false,
+    };
+  }
+
+  if (options.explicitLiteral && options.literal === false) {
+    return {
+      queries: [normalizeShellRegexQuery(query)],
+      literal: false,
+    };
+  }
+
+  if (!options.explicitLiteral) {
+    const pipeSplitQueries = splitUnescapedPipes(query)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (pipeSplitQueries.length > 1) {
+      return {
+        queries: pipeSplitQueries,
+        literal: true,
+      };
+    }
+  }
+
+  return {
+    queries: [query],
+    literal: options.explicitLiteral ? options.literal === true : true,
+  };
 }
 
 export class GrepTool extends BaseTool<"grep"> {
@@ -50,31 +216,51 @@ export class GrepTool extends BaseTool<"grep"> {
     maxMatches?: number,
   ): Promise<{ output: string; count: number }> {
     const lines = jsonOutput.split("\n");
-    const matchesByFile = new Map<string, { line_number: number, content: string }[]>();
+    const matchesByFile = new Map<string, ParsedSearchLine[]>();
     const limit = maxMatches ?? this.MAX_TOTAL_MATCHES;
-    let totalMatches = 0; // O(1) running counter — no re-sum on every match
+    let totalMatches = 0; // O(1) running counter of actual match lines
 
     for (const line of lines) {
       const trimmedLine = line.trim();
       if (!trimmedLine || !trimmedLine.startsWith("{")) continue;
 
       try {
-        const parsed = JSON.parse(trimmedLine);
+        const parsed = JSON.parse(trimmedLine) as { type?: string; data?: unknown };
 
         if (parsed.type === "match" || parsed.type === "context") {
+          const resultData = parsed.data as RipgrepSearchResultData;
           const {
             path: ripgrepPath,
             lines: content,
             line_number,
-          } = parsed.data;
+            submatches = [],
+          } = resultData;
           const filePathRaw = ripgrepPath.text;
           const filePath = path.relative(cwd, filePathRaw);
           const rawText = content.text ?? "";
           // We don't trim the start so we can preserve indentation for readability,
           // but we do trim the end to remove trailing newlines.
-          const lineContent = rawText.trimEnd().substring(0, this.MAX_LINE_LENGTH);
+          const trimmedLineContent = rawText.trimEnd();
+          const visibleLineContent = trimmedLineContent.substring(0, this.MAX_LINE_LENGTH);
+          const visibleSubmatches =
+            parsed.type === "match"
+              ? submatches
+                  .map((submatch) => ({
+                    start: submatch.start,
+                    end: submatch.end,
+                  }))
+                  .filter((submatch) => submatch.start < this.MAX_LINE_LENGTH)
+                  .map((submatch) => ({
+                    start: submatch.start,
+                    end: Math.min(submatch.end, this.MAX_LINE_LENGTH),
+                  }))
+              : [];
+          const lineContent =
+            parsed.type === "match"
+              ? wrapMatchedSubstrings(visibleLineContent, visibleSubmatches)
+              : visibleLineContent;
           const truncatedSuffix =
-            rawText.length > this.MAX_LINE_LENGTH ? " [truncated]" : "";
+            trimmedLineContent.length > this.MAX_LINE_LENGTH ? " [truncated]" : "";
 
           if (!matchesByFile.has(filePath)) {
             matchesByFile.set(filePath, []);
@@ -86,9 +272,13 @@ export class GrepTool extends BaseTool<"grep"> {
               .get(filePath)!
               .push({
                 line_number,
-                content: `${lineContent}${truncatedSuffix}`
+                content: `${lineContent}${truncatedSuffix}`,
+                isMatch: parsed.type === "match",
               });
-            totalMatches++;
+
+            if (parsed.type === "match") {
+              totalMatches++;
+            }
           }
 
           if (totalMatches >= limit) break;
@@ -116,13 +306,28 @@ export class GrepTool extends BaseTool<"grep"> {
       
       formattedResults.push(`## ${filePath}|L${lineCount}`);
       
-      // Deduplicate within the same file (context lines can overlap between adjacent matches)
-      const uniqueMatchesStr = [...new Set(fileMatches.map(m => JSON.stringify(m)))];
-      const uniqueMatches = uniqueMatchesStr.map(m => JSON.parse(m));
+      // Deduplicate within the same file (context lines can overlap between adjacent matches).
+      // If the same line appears as both context and match, keep the stronger match marker.
+      const uniqueMatches = [...fileMatches]
+        .sort((a, b) => a.line_number - b.line_number)
+        .reduce<ParsedSearchLine[]>((acc, current) => {
+          const last = acc[acc.length - 1];
+          if (
+            last &&
+            last.line_number === current.line_number &&
+            last.content === current.content
+          ) {
+            last.isMatch = last.isMatch || current.isMatch;
+            return acc;
+          }
+
+          acc.push({ ...current });
+          return acc;
+        }, []);
       
       // Group matches that are within 10 lines of each other
-      const groupedMatches: Array<Array<{ line_number: number; content: string }>> = [];
-      let currentGroup: Array<{ line_number: number; content: string }> = [];
+      const groupedMatches: ParsedSearchLine[][] = [];
+      let currentGroup: ParsedSearchLine[] = [];
       
       uniqueMatches.forEach((match, idx) => {
         if (currentGroup.length === 0) {
@@ -147,7 +352,8 @@ export class GrepTool extends BaseTool<"grep"> {
       groupedMatches.forEach((group, groupIdx) => {
         group.forEach((m) => {
           const paddedLineNum = m.line_number.toString().padStart(maxLineNumLength, " ");
-          formattedResults.push(`  ${paddedLineNum}→${m.content}`);
+          const marker = m.isMatch ? "*" : " ";
+          formattedResults.push(`  ${paddedLineNum}${marker}→${m.content}`);
         });
         
         if (groupIdx < groupedMatches.length - 1) {
@@ -155,9 +361,7 @@ export class GrepTool extends BaseTool<"grep"> {
         }
       });
       
-      formattedResults.push(""); // Spacer between files
-      
-      uniqueCount += uniqueMatches.length;
+      uniqueCount += uniqueMatches.filter((match) => match.isMatch).length;
     }
 
     return { output: formattedResults.join("\n").trim(), count: uniqueCount };
@@ -166,7 +370,7 @@ export class GrepTool extends BaseTool<"grep"> {
   parseLegacy(params: Partial<Record<string, string>>): GrepParams {
     return {
       path: params.path || "",
-      query: params.regex || params.query || "", // Support both old and new param names
+      query: params.regex || params.query || params.pattern || "", // Support both old and new param names
       file_pattern: params.file_pattern || undefined,
       context_lines: params.context_lines
         ? parseInt(params.context_lines)
@@ -184,29 +388,16 @@ export class GrepTool extends BaseTool<"grep"> {
   ): Promise<void> {
     const { askApproval, handleError, pushToolResult } = callbacks;
 
-    const relDirPath = params.path;
+    const rawPathValues = Array.isArray(params.path) ? params.path : [params.path || "."];
     const query = params.query;
     const filePattern = params.file_pattern || params.include || undefined; // kade_change: Support 'include' alias
     const excludePattern = params.exclude; // kade_change: Support 'exclude'
     const contextLines = params.context_lines || 1;
-    const isLiteral = params.literal !== false; // Default to literal search to prevent regex crashes on special chars
-    const isWholeWord = params.whole_word || false;
-    const isCaseInsensitive = params.case_insensitive !== false; // kade_change: Default to case-insensitive (true)
+    const requestedWholeWord = params.whole_word;
+    const isCaseInsensitive = resolveCaseInsensitiveSearch(params);
     const includeAll = params.include_all || false;
     const includeTests = params.tests || false;
     const isMultiline = params.multiline || false;
-
-    // Calculate per-query limit: divide total max by number of queries
-    const queries = Array.isArray(query) ? query : [query];
-    const perQueryLimit = Math.floor(this.MAX_TOTAL_MATCHES / queries.length);
-
-    if (!relDirPath) {
-      task.consecutiveMistakeCount++;
-      task.recordToolError("grep");
-      task.didToolFailInCurrentTurn = true;
-      pushToolResult(await task.sayAndCreateMissingParamError("grep", "path"));
-      return;
-    }
 
     if (!query) {
       task.consecutiveMistakeCount++;
@@ -218,11 +409,29 @@ export class GrepTool extends BaseTool<"grep"> {
 
     task.consecutiveMistakeCount = 0;
 
-    // Split paths by comma and resolve each
-    const rawPaths = relDirPath
-      .split(",")
-      .map((p) => p.trim())
-      .filter(Boolean);
+    const explicitLiteral = params.literal !== undefined;
+    const normalizedQueryConfig = normalizeGrepQueries(query, {
+      explicitLiteral,
+      literal: params.literal,
+    });
+    const queries = normalizedQueryConfig.queries;
+    const isLiteral = normalizedQueryConfig.literal;
+
+    // Calculate per-query limit: divide total max by number of queries
+    const perQueryLimit = Math.max(1, Math.floor(this.MAX_TOTAL_MATCHES / queries.length));
+
+    // Split string paths by pipe/comma and support native string[] multi-path input.
+    const rawPaths = rawPathValues.flatMap((value) =>
+      typeof value === "string"
+        ? value
+            .split(/[|,]/)
+            .map((p) => p.trim())
+            .filter(Boolean)
+        : [],
+    );
+    if (rawPaths.length === 0) {
+      rawPaths.push(".");
+    }
     const resolvedPaths: string[] = [];
 
     for (const p of rawPaths) {
@@ -236,14 +445,18 @@ export class GrepTool extends BaseTool<"grep"> {
       isPathOutsideWorkspace(p),
     );
 
-      const sharedMessageProps: ClineSayTool = {
-        tool: "grep",
-        path: relDirPaths.map((p) => getReadablePath(task.cwd, p)).join(", "),
-        regex: Array.isArray(query) ? query.join("|") : query, // For display purposes
-        filePattern: filePattern,
-        isOutsideWorkspace,
-        id: callbacks.toolCallId,
-      };
+    const displayFilePattern = Array.isArray(filePattern)
+      ? filePattern.join(", ")
+      : (filePattern ?? undefined);
+
+    const sharedMessageProps: ClineSayTool = {
+      tool: "grep",
+      path: relDirPaths.map((p) => getReadablePath(task.cwd, p)).join(", "),
+      regex: Array.isArray(queries) ? queries.join("|") : String(queries[0] || ""), // For display purposes
+      filePattern: displayFilePattern,
+      isOutsideWorkspace,
+      id: callbacks.toolCallId,
+    };
 
     try {
       // Resolve the ripgrep binary path ONCE outside the query loop.
@@ -261,7 +474,11 @@ export class GrepTool extends BaseTool<"grep"> {
        * Keeping this as a local helper makes the parallel Promise.all below tidy.
        */
       const runSingleQuery = async (singleQuery: string): Promise<string> => {
-        const rgArgs: string[] = ["--json", "--no-messages"];
+        const rgArgs: string[] = ["--json", "--no-messages", "--follow"];
+        const useWholeWord = shouldUseWholeWordSearch(singleQuery, {
+          literal: isLiteral,
+          wholeWord: requestedWholeWord,
+        });
 
         if (isLiteral) {
           rgArgs.push("-F");
@@ -271,7 +488,7 @@ export class GrepTool extends BaseTool<"grep"> {
           rgArgs.push("-i");
         }
 
-        if (isWholeWord) {
+        if (useWholeWord) {
           rgArgs.push("-w");
         }
 
@@ -284,17 +501,14 @@ export class GrepTool extends BaseTool<"grep"> {
         // of JSON lines that we would just discard in the JS layer.
         rgArgs.push("--max-count", String(perQueryLimit));
 
-        if (filePattern) {
-          rgArgs.push("--glob", filePattern);
-        }
-
-        if (excludePattern) {
-          rgArgs.push("--glob", `!${excludePattern}`);
-        }
-
         rgArgs.push("--context", contextLines.toString());
 
-        for (const glob of buildGrepIgnoreGlobs({ includeAll, includeTests })) {
+        for (const glob of buildOrderedGrepGlobs({
+          include: filePattern,
+          exclude: excludePattern,
+          includeAll,
+          includeTests,
+        })) {
           rgArgs.push("--glob", glob);
         }
 
@@ -325,7 +539,7 @@ export class GrepTool extends BaseTool<"grep"> {
 
         if (!formattedResult) continue;
 
-        let segment = `Query: "${singleQuery}"\n(${resultCount} matches, max ${perQueryLimit})\n${formattedResult}`;
+        let segment = `Query: "${singleQuery}" (${resultCount} matches, max ${perQueryLimit})\n${formattedResult}`;
 
         if (resultCount >= perQueryLimit) {
           segment += `\n[Reached per-query limit of ${perQueryLimit} results]`;
@@ -334,7 +548,11 @@ export class GrepTool extends BaseTool<"grep"> {
         querySegments.push(segment);
       }
 
-      const searchResults = `(file_name|L = total amount of lines in file)\n\n${querySegments.join("\n\n---\n\n")}`;
+      const searchResults =
+        querySegments.join("\n") ||
+        (queries.length === 1
+          ? `No matches found for query "${queries[0]}".`
+          : `No matches found for queries ${queries.map((entry) => `"${entry}"`).join(", ")}.`);
 
       const completeMessage = JSON.stringify({
         ...sharedMessageProps,
@@ -388,24 +606,42 @@ export class GrepTool extends BaseTool<"grep"> {
     }
 
     const nativeArgs = block.nativeArgs as Partial<GrepParams> | undefined
-    const relDirPath = nativeArgs?.path || block.params.path
+    const relDirPathValue = nativeArgs?.path || block.params.path
     const queryValue = nativeArgs?.query || block.params.query || block.params.regex
     const query = Array.isArray(queryValue) ? queryValue.join("|") : queryValue
     const filePattern = nativeArgs?.file_pattern || nativeArgs?.include || block.params.file_pattern || block.params.include
 
-    if (!relDirPath && !query) {
+    if (!relDirPathValue && !query) {
       return
     }
 
-    const normalizedPath = this.removeClosingTag("path", relDirPath || "", block.partial)
-    const absolutePath = normalizedPath ? path.resolve(task.cwd, normalizedPath) : task.cwd
+    const normalizedPaths = (Array.isArray(relDirPathValue) ? relDirPathValue : [relDirPathValue || ""])
+      .flatMap((value) =>
+        Array.isArray(value)
+          ? value.filter((entry): entry is string => typeof entry === "string")
+          : typeof value === "string"
+            ? [value]
+            : [],
+      )
+      .map((value) => (value ? this.removeClosingTag("path", value, block.partial) : ""))
+      .filter(Boolean)
+
+    const normalizedQuery = Array.isArray(query)
+      ? query.filter((value): value is string => typeof value === "string").join("|")
+      : query || ""
+
+    const displayFilePattern = Array.isArray(filePattern)
+      ? filePattern.join(", ")
+      : (filePattern ?? undefined)
 
     const sharedMessageProps: ClineSayTool = {
       tool: "grep",
-      path: normalizedPath ? getReadablePath(task.cwd, normalizedPath) : "",
-      regex: this.removeClosingTag("query", query || "", block.partial),
-      filePattern,
-      isOutsideWorkspace: normalizedPath ? isPathOutsideWorkspace(absolutePath) : false,
+      path: normalizedPaths.map((value) => getReadablePath(task.cwd, value)).join(", "),
+      regex: this.removeClosingTag("query", normalizedQuery, block.partial),
+      filePattern: displayFilePattern,
+      isOutsideWorkspace: normalizedPaths
+        .map((value) => path.resolve(task.cwd, value))
+        .some((absolutePath) => isPathOutsideWorkspace(absolutePath)),
       id: block.id,
     }
 

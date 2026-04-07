@@ -16,6 +16,9 @@ const mockGetModels = getModels as Mock<typeof getModels>
 const mockClineProvider = {
 	getState: vi.fn(),
 	postMessageToWebview: vi.fn(),
+	getTaskHistory: vi.fn(),
+	updateTaskHistory: vi.fn(),
+	upsertProviderProfile: vi.fn(),
 	customModesManager: {
 		getCustomModes: vi.fn(),
 		deleteCustomMode: vi.fn(),
@@ -178,6 +181,52 @@ describe("webviewMessageHandler - requestOllamaModels", () => {
 			type: "ollamaModels",
 			ollamaModels: mockModels,
 		})
+	})
+})
+
+describe("webviewMessageHandler - upsertApiConfiguration task scope", () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+		mockClineProvider.getCurrentTask = vi.fn().mockReturnValue({
+			taskId: "task-123",
+			apiConfiguration: {
+				apiProvider: "openrouter",
+				apiModelId: "old-model",
+			},
+			updateApiConfiguration: vi.fn(),
+		})
+		mockClineProvider.getTaskHistory = vi.fn().mockReturnValue([
+			{
+				id: "task-123",
+				apiConfiguration: {
+					apiProvider: "openrouter",
+					apiModelId: "old-model",
+				},
+			},
+		])
+	})
+
+	it("persists task-scoped config through task history storage instead of globalState", async () => {
+		await webviewMessageHandler(mockClineProvider, {
+			type: "upsertApiConfiguration",
+			text: "default",
+			scope: "task",
+			apiConfiguration: {
+				apiModelId: "new-model",
+			},
+		} as any)
+
+		expect(mockClineProvider.updateTaskHistory).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: "task-123",
+				apiConfiguration: expect.objectContaining({
+					apiProvider: "openrouter",
+					apiModelId: "new-model",
+				}),
+			}),
+		)
+		expect(mockClineProvider.upsertProviderProfile).not.toHaveBeenCalled()
+		expect(mockClineProvider.contextProxy.setValue).not.toHaveBeenCalledWith("taskHistory", expect.anything())
 	})
 })
 

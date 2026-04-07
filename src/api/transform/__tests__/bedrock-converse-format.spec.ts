@@ -75,7 +75,7 @@ describe("convertToBedrockConverseMessages", () => {
 					{
 						type: "tool_use",
 						id: "test-id",
-						name: "read_file",
+						name: "read",
 						input: {
 							path: "test.txt",
 						},
@@ -96,7 +96,7 @@ describe("convertToBedrockConverseMessages", () => {
 		const textBlock = result[0].content[0] as ContentBlock
 		if ("text" in textBlock) {
 			expect(textBlock.text).toContain("<tool_use>")
-			expect(textBlock.text).toContain("<tool_name>read_file</tool_name>")
+			expect(textBlock.text).toContain("<tool_name>read</tool_name>")
 			expect(textBlock.text).toContain("test.txt")
 		} else {
 			expect.fail("Expected text block with XML content not found")
@@ -111,7 +111,7 @@ describe("convertToBedrockConverseMessages", () => {
 					{
 						type: "tool_use",
 						id: "test-id",
-						name: "read_file",
+						name: "read",
 						input: {
 							path: "test.txt",
 						},
@@ -133,7 +133,7 @@ describe("convertToBedrockConverseMessages", () => {
 		if ("toolUse" in toolBlock && toolBlock.toolUse) {
 			expect(toolBlock.toolUse).toEqual({
 				toolUseId: "test-id",
-				name: "read_file",
+				name: "read",
 				input: { path: "test.txt" },
 			})
 		} else {

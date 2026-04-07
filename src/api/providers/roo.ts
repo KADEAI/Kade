@@ -95,12 +95,18 @@ export class RooHandler extends BaseOpenAiCompatibleProvider<string> {
 
 		const max_tokens = params.maxTokens ?? undefined
 		const temperature = params.temperature ?? this.defaultTemperature
+		const openAiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+			{ role: "system", content: systemPrompt },
+			...convertToOpenAiMessages(messages),
+		]
+
+		this.applyOpenAiPromptCaching(systemPrompt, openAiMessages, info, metadata?.taskId)
 
 		const rooParams: RooChatCompletionParams = {
 			model,
 			max_tokens,
 			temperature,
-			messages: [{ role: "system", content: systemPrompt }, ...convertToOpenAiMessages(messages)],
+			messages: openAiMessages,
 			stream: true,
 			stream_options: { include_usage: true },
 			...(reasoning && { reasoning }),

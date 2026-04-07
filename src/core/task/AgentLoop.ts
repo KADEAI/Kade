@@ -3,7 +3,6 @@ import { Anthropic } from "@anthropic-ai/sdk"
 import { Task } from "./Task"
 import { TelemetryService } from "@roo-code/telemetry"
 import { TelemetryEventName } from "@roo-code/types"
-import { serializeError } from "serialize-error"
 import delay from "delay"
 import { formatResponse } from "../prompts/responses"
 import { findLastIndex } from "../../shared/array"
@@ -22,6 +21,14 @@ import { addOrMergeUserContent, yieldPromise } from "./kilocode"
 import pWaitFor from "p-wait-for"
 import { ApiStream, GroundingSource } from "../../api/transform/stream"
 import { ToolUse, McpToolUse } from "../../shared/tools"
+import { buildStreamingToolShell } from "./streamingToolShell"
+import { getEffectiveStreamingToolUse } from "./groupedNativeStreaming"
+import {
+    collectFailedToolUseIdsFromContentBlocks,
+    serializeAssistantBlocksForTextProtocol,
+} from "./unifiedHistoryTranslation"
+import { extractTrackedReadLineRanges, hasExplicitTrackedReadSpec } from "./readTracking"
+import { stripTextProtocolShadowToolBlocks } from "./textProtocolShadowTools"
 
 /**
  * AgentLoop
@@ -37,7 +44,7 @@ export class AgentLoop {
 
     private streamingToolCallLengths = new Map<string, number>()
     private partialToolHandlers: Record<string, () => Promise<{ handlePartial: (task: Task, block: ToolUse<any>) => Promise<void> }>> = {
-        write_to_file: async () => {
+        write: async () => {
             const { writeToFileTool } = await import("../tools/WriteToFileTool")
             return writeToFileTool
         },
@@ -45,7 +52,7 @@ export class AgentLoop {
             const { editTool } = await import("../tools/EditTool")
             return editTool
         },
-        read_file: async () => {
+        read: async () => {
             const { readFileTool } = await import("../tools/ReadFileTool")
             return readFileTool
         },
@@ -53,7 +60,7 @@ export class AgentLoop {
             const { mkdirTool } = await import("../tools/MkdirTool")
             return mkdirTool
         },
-        list_dir: async () => {
+        list: async () => {
             const { listDirTool } = await import("../tools/ListFilesTool")
             return listDirTool
         },
@@ -69,9 +76,13 @@ export class AgentLoop {
             const { moveFileTool } = await import("../tools/MoveFileTool")
             return moveFileTool
         },
-        execute_command: async () => {
+        bash: async () => {
             const { executeCommandTool } = await import("../tools/ExecuteCommandTool")
             return executeCommandTool
+        },
+        computer_action: async () => {
+            const { computerActionTool } = await import("../tools/ComputerActionTool")
+            return computerActionTool
         },
         fetch_instructions: async () => {
             const { fetchInstructionsTool } = await import("../tools/FetchInstructionsTool")
@@ -85,7 +96,7 @@ export class AgentLoop {
             const { newTaskTool } = await import("../tools/NewTaskTool")
             return newTaskTool
         },
-        run_sub_agent: async () => {
+        agent: async () => {
             const { runSubAgentTool } = await import("../tools/RunSubAgentTool")
             return runSubAgentTool
         },
@@ -101,11 +112,11 @@ export class AgentLoop {
             const { accessMcpResourceTool } = await import("../tools/accessMcpResourceTool")
             return accessMcpResourceTool
         },
-        codebase_search: async () => {
+        ask: async () => {
             const { codebaseSearchTool } = await import("../tools/CodebaseSearchTool")
             return codebaseSearchTool
         },
-        update_todo_list: async () => {
+        todo: async () => {
             const { updateTodoListTool } = await import("../tools/UpdateTodoListTool")
             return updateTodoListTool
         },
@@ -121,6 +132,34 @@ export class AgentLoop {
 
     constructor(task: Task) {
         this.task = task
+    }
+
+    private getTextProtocolFallback(): { config: Task["apiConfiguration"]; targetProtocol: ToolProtocol } {
+        const targetProtocol = TOOL_PROTOCOL.UNIFIED as ToolProtocol
+        return {
+            config: {
+                ...this.task.apiConfiguration,
+                toolProtocol: targetProtocol,
+            },
+            targetProtocol,
+        }
+    }
+
+    private buildEmptyTurnRecoveryMessage(streamProtocol: ToolProtocol | string, modelId: string): string {
+        return `[System: ${modelId} returned an empty ${String(streamProtocol)} response.]`
+    }
+
+    private buildShellRecoveryRetryMessage(streamProtocol: ToolProtocol | string, modelId: string): Anthropic.Messages.ContentBlockParam[] {
+        return [
+            {
+                type: "text",
+                text:
+                    `[System: ${modelId} returned an empty ${String(streamProtocol)} response. ` +
+                    `Retry the exact task you were just attempting. For this retry only, use the bash tool instead of the tool that failed. ` +
+                    `If you were exploring a directory, prefer \`bash: "ls"\` in the current working directory or \`bash: "ls", "path"\` when you already know the target directory. ` +
+                    `Do not answer with prose only. Start by using bash for the recovery step, and after that continue using tools normally in later turns.]`,
+            },
+        ]
     }
 
     private countCompletedToolCalls(blocks: any[]): number {
@@ -158,13 +197,26 @@ export class AgentLoop {
         return blocks
     }
 
+    private prioritizeNativeToolEventsOverShadowTextTools(): void {
+        const filteredBlocks = stripTextProtocolShadowToolBlocks(this.task.assistantMessageContent as any[])
+
+        if (filteredBlocks.length === this.task.assistantMessageContent.length) {
+            return
+        }
+
+        this.task.assistantMessageContent = filteredBlocks
+        this.task.currentStreamingContentIndex = Math.min(
+            this.task.currentStreamingContentIndex,
+            this.task.assistantMessageContent.length,
+        )
+        this.task.assistantMessageParser?.reset()
+    }
+
     /**
      * Optimized streaming simulation with minimal latency.
      * Removed artificial delays for better responsiveness.
      */
     private async simulateStreamingText(text: string, previousLength: number = 0): Promise<void> {
-        console.log(`[simulateStreamingText] Streaming new characters. Total: ${text.length}, Previous: ${previousLength}`)
-
         // Only stream the NEW part of the text
         const newText = text.slice(previousLength)
         if (newText.length === 0) return
@@ -174,14 +226,14 @@ export class AgentLoop {
         const cumulativeText = text
 
         await this.task.say("completion_result", cumulativeText, undefined, false, undefined, undefined, { skipSave: true })
-
-        console.log(`[simulateStreamingText] Finished streaming chunk immediately`)
     }
     /**
      * Handles UI updates for partial tool execution across all protocols.
      */
     private async handlePartialUpdate(partialToolUse: ToolUse | McpToolUse, toolCallId?: string): Promise<void> {
-        if (partialToolUse.type !== "tool_use") {
+        const effectiveToolUse = getEffectiveStreamingToolUse(partialToolUse)
+
+        if (effectiveToolUse.type !== "tool_use") {
             return
         }
 
@@ -191,25 +243,25 @@ export class AgentLoop {
         //    return;
         // }
 
-        if (partialToolUse.name === "edit") {
-            const filePath = (partialToolUse as any).params?.file_path || (partialToolUse as any).params?.path;
-            const nativeEdits = (partialToolUse as any).nativeArgs?.edits;
-            const edits = (partialToolUse as any).params?.edits || nativeEdits || (partialToolUse as any).params?.edit;
+        if (effectiveToolUse.name === "edit") {
+            const filePath = (effectiveToolUse as any).params?.file_path || (effectiveToolUse as any).params?.path;
+            const nativeEdits = (effectiveToolUse as any).nativeArgs?.edits || (effectiveToolUse as any).nativeArgs?.edit;
+            const edits = (effectiveToolUse as any).params?.edits || nativeEdits || (effectiveToolUse as any).params?.edit;
 
-            // If the Unified parser has already parsed edits into nativeArgs.edits (array),
+            // If a parser has already parsed edits into a structured array,
             // copy them to params.edits so handlePartial uses them directly instead of
             // trying to re-parse the raw string through parseLegacy.
             if (Array.isArray(nativeEdits) && nativeEdits.length > 0) {
-                (partialToolUse as any).params.edits = nativeEdits;
+                (effectiveToolUse as any).params.edits = nativeEdits;
             }
             if (!filePath || !edits) {
                 return
             }
         }
 
-        if (partialToolUse.name === "attempt_completion") {
+        if (effectiveToolUse.name === "attempt_completion") {
             if (toolCallId) {
-                const resultContent = (partialToolUse as any).params?.result || "";
+                const resultContent = (effectiveToolUse as any).params?.result || "";
                 const prevLen = this.streamingToolCallLengths.get(toolCallId) || 0;
 
                 if (resultContent.length > prevLen) {
@@ -220,16 +272,16 @@ export class AgentLoop {
             }
         }
 
-        const handlerLoader = this.partialToolHandlers[partialToolUse.name]
+        const handlerLoader = this.partialToolHandlers[effectiveToolUse.name]
         if (!handlerLoader) {
             return
         }
 
         try {
             const handler = await handlerLoader()
-            await handler.handlePartial(this.task, partialToolUse as ToolUse<any>)
+            await handler.handlePartial(this.task, effectiveToolUse as ToolUse<any>)
         } catch (error) {
-            console.error(`[AgentLoop] Error in handlePartial for ${partialToolUse.name}:`, error)
+            console.error(`[AgentLoop] Error in handlePartial for ${effectiveToolUse.name}:`, error)
         }
     }
 
@@ -244,9 +296,29 @@ export class AgentLoop {
         return undefined
     }
 
+    private async emitStreamingToolShell(toolCallId: string, toolName: string): Promise<void> {
+        const payload = buildStreamingToolShell(toolCallId, toolName)
+        if (!payload) {
+            return
+        }
+
+        try {
+            await this.task.ask("tool", JSON.stringify(payload), true)
+        } catch {
+            // Partial ask updates intentionally throw AskIgnoredError after posting the shell row.
+        }
+    }
+
     private stripTextAfterCompletedToolCall(blocks: any[]): any[] {
         if (blocks.length === 0) {
             return blocks
+        }
+
+        const hasAnyToolBlock = blocks.some(
+            (block) => block?.type === "tool_use" || block?.type === "mcp_tool_use",
+        )
+        if (hasAnyToolBlock) {
+            return blocks.filter((block) => block?.type !== "text")
         }
 
         const sanitized: any[] = []
@@ -284,6 +356,9 @@ export class AgentLoop {
             includeFileDetails: boolean
             retryAttempt?: number
             userMessageWasRemoved?: boolean
+            protocolFallbackApplied?: boolean
+            emptyTurnShellRecoveryApplied?: boolean
+            forceAddUserMessage?: boolean
         }
 
         const stack: StackItem[] = [{ userContent, includeFileDetails, retryAttempt: 0 }]
@@ -338,8 +413,11 @@ export class AgentLoop {
             // before the next request is made.
             // 🚀 OPTIMIZATION: Use smart refresh to leverage hot cache from recent read tools
             if (this.task.luxurySpa.activeFileReads.size > 0) {
-                // console.log(`[AgentLoop] 🧖 Starting Luxury Spa Treatment for ${this.task.luxurySpa.activeFileReads.size} files...`)
-                await this.task.luxurySpa.smartRefresh()
+                const externallyModifiedFiles = this.task.fileContextTracker.peekRecentlyModifiedFiles()
+                if (externallyModifiedFiles.length > 0) {
+                    this.task.luxurySpa.markFilesDirty(externallyModifiedFiles)
+                }
+                await this.task.luxurySpa.smartRefresh(externallyModifiedFiles)
             }
 
             // --- 3. Load Context ---
@@ -374,7 +452,9 @@ export class AgentLoop {
             // --- 4. Add User Message to History ---
             const isEmptyUserContent = currentUserContent.length === 0
             const shouldAddUserMessage =
-                ((currentItem.retryAttempt ?? 0) === 0 && !isEmptyUserContent) || currentItem.userMessageWasRemoved
+                ((currentItem.retryAttempt ?? 0) === 0 && !isEmptyUserContent) ||
+                currentItem.userMessageWasRemoved ||
+                currentItem.forceAddUserMessage
 
             if (shouldAddUserMessage) {
                 await this.task.addToApiConversationHistory({ role: "user", content: finalUserContent })
@@ -429,13 +509,13 @@ export class AgentLoop {
                 const streamModelInfo = this.task.cachedStreamingModel.info
                 const streamProtocol = resolveToolProtocol(this.task.apiConfiguration, streamModelInfo)
                 const shouldUseParser = streamProtocol === TOOL_PROTOCOL.UNIFIED || streamProtocol === TOOL_PROTOCOL.MARKDOWN
-                const shouldSkipNativeTools = streamProtocol === TOOL_PROTOCOL.MARKDOWN || streamProtocol === TOOL_PROTOCOL.UNIFIED
-
                 // Start Stream
                 const stream: ApiStream = this.task.attemptApiRequest(currentItem.retryAttempt)
                 let assistantMessage = ""
                 let hasTextContent = false
                 let hasToolUses = false
+                let hasTextProtocolToolUses = false
+                let hasNativeToolUses = false
                 let reasoningMessage = ""
                 let currentReasoningPhase: string | undefined = undefined
                 let reasoningStartTime: number | undefined
@@ -455,13 +535,19 @@ export class AgentLoop {
                     maxToolCalls = 1
                 }
                 // kade_change: The unified parser expands multi-file R blocks into N individual
-                // read_file tool calls — a hard cap would cut off all but the first file.
+                // read tool calls — a hard cap would cut off all but the first file.
                 // Disable the limit entirely for the unified protocol; it uses a single stream turn
                 // per message anyway, so the AI won't see results until the next turn regardless.
                 if (streamProtocol === TOOL_PROTOCOL.UNIFIED) {
                     maxToolCalls = 0
                 }
                 let shouldTerminateStreamForToolLimit = false
+                const canResumeAfterCompletedTool = (candidate: string): boolean => {
+                    const parser = this.task.assistantMessageParser as any
+                    return typeof parser?.canResumeAfterCompletedTool === "function"
+                        ? parser.canResumeAfterCompletedTool(candidate)
+                        : false
+                }
 
                 const antThinkingContent: any[] = []
 
@@ -500,8 +586,8 @@ export class AgentLoop {
                     item = await nextChunkWithAbort()
                     if (!chunk) continue
 
-                    const finalizeReasoning = async () => {
-                        if (reasoningMessage) {
+	                    const finalizeReasoning = async () => {
+	                        if (reasoningMessage) {
                             const lastReasoningIndex = findLastIndex(
                                 this.task.clineMessages,
                                 (m) => m.type === "say" && m.say === "reasoning",
@@ -577,9 +663,16 @@ export class AgentLoop {
                             break
 
                         case "tool_call_partial":
-                            if (shouldSkipNativeTools) break
+                            if (streamProtocol === TOOL_PROTOCOL.MARKDOWN) break
+                            if (
+                                streamProtocol === TOOL_PROTOCOL.UNIFIED &&
+                                hasTextProtocolToolUses &&
+                                !hasNativeToolUses
+                            ) {
+                                this.prioritizeNativeToolEventsOverShadowTextTools()
+                                hasTextProtocolToolUses = false
+                            }
                             await finalizeReasoning()
-                            // console.log(`[AgentLoop] 📦 Received tool_call_partial chunk:`, { ... });
                             const events = NativeToolCallParser.processRawChunk({
                                 index: chunk.index,
                                 id: chunk.id,
@@ -588,9 +681,7 @@ export class AgentLoop {
                             })
 
                             for (const event of events) {
-                                // console.log(`[AgentLoop] 🔄 Processing event:`, event.type, { ... });
                                 if (event.type === "tool_call_start") {
-                                    // console.log(`[AgentLoop] Starting streaming tool call: ${event.name} (${event.id})`);
                                     NativeToolCallParser.startStreamingToolCall(event.id, event.name as ToolName)
                                     // Finalize preceding text block
                                     const lastBlock = this.task.assistantMessageContent[this.task.assistantMessageContent.length - 1]
@@ -603,6 +694,8 @@ export class AgentLoop {
                                     if (this.task.streamingToolCallIndices.has(event.id)) {
                                         console.warn(`[AgentLoop] Duplicate tool_call_start for id ${event.id}. Skipping to avoid collision.`)
                                     } else {
+                                        hasNativeToolUses = true
+                                        hasToolUses = true
                                         const toolUseIndex = this.task.assistantMessageContent.length
                                         this.task.streamingToolCallIndices.set(event.id, toolUseIndex)
 
@@ -616,21 +709,7 @@ export class AgentLoop {
                                         this.task.assistantMessageContent.push(partialToolUse)
                                         this.task.userMessageContentReady = false
 
-                                        // FIXED: Show WriteTool UI immediately for write_to_file calls
-                                        if (event.name === "write_to_file") {
-                                            // console.log(`[AgentLoop] 🚀 Showing WriteTool UI immediately for ${event.name}`);
-                                            // Send an immediate partial message to show the UI with empty content
-                                            this.task.say("tool", JSON.stringify({
-                                                tool: "newFileCreated",
-                                                path: "",
-                                                content: "",
-                                                isOutsideWorkspace: false,
-                                                isProtected: false,
-                                            }), undefined, true).catch(error => {
-                                                console.error("[AgentLoop] Error showing immediate WriteTool UI:", error)
-                                            })
-                                        }
-
+                                        await this.emitStreamingToolShell(event.id, event.name)
                                         presentAssistantMessage(this.task)
                                     }
 
@@ -638,7 +717,6 @@ export class AgentLoop {
                                 } else if (event.type === "tool_call_delta") {
                                     const partialToolUse = NativeToolCallParser.processStreamingChunk(event.id, event.delta)
                                     if (partialToolUse) {
-                                        // console.log(`[AgentLoop] 📝 Got partial tool use: ${partialToolUse.name}`, { ... });
                                         const toolUseIndex = this.task.streamingToolCallIndices.get(event.id)
                                         if (toolUseIndex !== undefined) {
                                             ; (partialToolUse as any).id = event.id
@@ -661,14 +739,11 @@ export class AgentLoop {
                                                 }
                                             }
                                         }
-                                    } else {
-                                        console.log(`[AgentLoop] No partial tool use returned from chunk`);
                                     }
                                 } else if (event.type === "tool_call_end") {
                                     const finalToolUse = NativeToolCallParser.finalizeStreamingToolCall(event.id)
                                     const toolUseIndex = this.task.streamingToolCallIndices.get(event.id)
                                     if (finalToolUse && toolUseIndex !== undefined) {
-                                        // console.log(`[AgentLoop] 🏁 Tool call ended: ${finalToolUse.name}`, { ... });
                                         ; (finalToolUse as any).id = event.id
                                         this.task.assistantMessageContent[toolUseIndex] = finalToolUse
                                         this.task.streamingToolCallIndices.delete(event.id)
@@ -683,14 +758,22 @@ export class AgentLoop {
                                             await this.task.say("completion_result", resultContent, undefined, false, undefined, undefined, { skipSave: true })
                                             this.streamingToolCallLengths.delete(event.id);
                                             // Ensure final state is sent to UI
-                                            await this.handlePartialUpdate(finalToolUse, event.id);
+                                            try {
+                                                await this.handlePartialUpdate(finalToolUse, event.id);
+                                            } catch (error) {
+                                                console.error("[AgentLoop] Error in handlePartialUpdate:", error)
+                                            }
                                         } else {
                                             // kade_change: Call handlePartial for the active streaming tool (Native)
                                             // This ensures that the final "partial: false" state is sent to the tool UI.
-                                            await this.handlePartialUpdate(finalToolUse, event.id);
+                                            try {
+                                                await this.handlePartialUpdate(finalToolUse, event.id);
+                                            } catch (error) {
+                                                console.error("[AgentLoop] Error in handlePartialUpdate:", error)
+                                            }
                                         }
 
-                                        presentAssistantMessage(this.task).catch(error => {
+                                        presentAssistantMessage(this.task).catch(async error => {
                                             console.error("[AgentLoop] Error in presentAssistantMessage:", error)
                                         })
                                     } else if (toolUseIndex !== undefined) {
@@ -701,7 +784,7 @@ export class AgentLoop {
                                         }
                                         this.task.streamingToolCallIndices.delete(event.id)
                                         this.task.userMessageContentReady = false
-                                        presentAssistantMessage(this.task).catch(error => {
+                                        presentAssistantMessage(this.task).catch(async error => {
                                             console.error("[AgentLoop] Error in presentAssistantMessage:", error)
                                         })
                                     }
@@ -710,7 +793,15 @@ export class AgentLoop {
                             break
 
                         case "tool_call": // Legacy
-                            if (shouldSkipNativeTools) break
+                            if (streamProtocol === TOOL_PROTOCOL.MARKDOWN) break
+                            if (
+                                streamProtocol === TOOL_PROTOCOL.UNIFIED &&
+                                hasTextProtocolToolUses &&
+                                !hasNativeToolUses
+                            ) {
+                                this.prioritizeNativeToolEventsOverShadowTextTools()
+                                hasTextProtocolToolUses = false
+                            }
                             await finalizeReasoning()
                             const toolUse = NativeToolCallParser.parseToolCall({
                                 id: chunk.id,
@@ -718,6 +809,8 @@ export class AgentLoop {
                                 arguments: chunk.arguments,
                             })
                             if (toolUse) {
+                                hasNativeToolUses = true
+                                hasToolUses = true
                                 toolUse.id = chunk.id
                                 this.task.assistantMessageContent.push(toolUse)
                                 this.task.userMessageContentReady = false
@@ -734,7 +827,13 @@ export class AgentLoop {
                                 await finalizeReasoning()
                             }
                             hasTextContent = true
-                            if (shouldUseParser && this.task.assistantMessageParser) {
+                            const assistantMessageParser = this.task.assistantMessageParser
+                            const shouldRouteTextThroughParser =
+                                shouldUseParser &&
+                                !!assistantMessageParser &&
+                                !(streamProtocol === TOOL_PROTOCOL.UNIFIED && hasNativeToolUses)
+
+                            if (shouldRouteTextThroughParser && assistantMessageParser) {
                                 // Detect "End Tool use" or "End Tool" case-insensitively
                                 const markerRegex = /End Tool (?:use)?/i
                                 const combined = assistantMessage + chunk.text
@@ -751,12 +850,53 @@ export class AgentLoop {
                                 }
 
                                 const prevBlockCount = this.task.assistantMessageContent.length
+                                const hadCompletedToolBeforeChunk =
+                                    (assistantMessageParser as any).hasCompletedToolCall?.() ?? false
+                                const hasInvalidPostToolContinuation =
+                                    hadCompletedToolBeforeChunk &&
+                                    textToProcess.trim().length > 0 &&
+                                    !canResumeAfterCompletedTool(textToProcess)
                                 
                                 // kade_change: Check how many tools were finalized BEFORE processing this chunk.
                                 const completedBefore = this.countCompletedToolCalls(this.task.assistantMessageContent as any[])
-                                const alreadyHadCompletedTool = (this.task.assistantMessageParser as any).hasCompletedToolCall?.() ?? false
+                                const alreadyHadCompletedTool = (assistantMessageParser as any).hasCompletedToolCall?.() ?? false
 
-                                const result = this.task.assistantMessageParser.processChunk(textToProcess) as { blocks: any[], safeIndex: number }
+                                if (hasInvalidPostToolContinuation) {
+                                    assistantMessageParser.finalizeContentBlocks()
+                                    this.task.assistantMessageContent = this.stripTextAfterCompletedToolCall(
+                                        assistantMessageParser.getContentBlocks(),
+                                    )
+
+                                    if (maxToolCalls > 0) {
+                                        this.task.assistantMessageContent = this.trimBlocksToCompletedToolLimit(
+                                            this.task.assistantMessageContent as any[],
+                                            maxToolCalls,
+                                        )
+                                    }
+
+                                    const activeBlock = this.getLatestToolUseBlock()
+                                    const preBreakPromises: Promise<any>[] = [presentAssistantMessage(this.task).catch(async error => {
+                                        console.error("[AgentLoop] Error in presentAssistantMessage (invalid continuation):", error)
+                                    })]
+                                    if (activeBlock) {
+                                        preBreakPromises.push(this.handlePartialUpdate(activeBlock).catch(async error => {
+                                            console.error("[AgentLoop] Error in handlePartialUpdate:", error)
+                                        }))
+                                    }
+                                    await Promise.all(preBreakPromises)
+
+                                    shouldTerminateStreamForToolLimit = true
+                                    try {
+                                        if (typeof iterator.return === "function") {
+                                            await iterator.return(undefined)
+                                        }
+                                    } catch (error) {
+                                        console.warn("[AgentLoop] Failed to close stream iterator on invalid continuation:", error)
+                                    }
+                                    break
+                                }
+
+                                const result = assistantMessageParser.processChunk(textToProcess) as { blocks: any[], safeIndex: number }
                                 this.task.assistantMessageContent = this.stripTextAfterCompletedToolCall(result.blocks)
                                 
                                 // kade_change: Only accumulate text if we haven't reached the tool limit yet.
@@ -765,9 +905,16 @@ export class AgentLoop {
                                 // We are at limit if we already had a completed tool (and maxToolCalls is 1) or if we hit the limit now.
                                 const isAtLimit = maxToolCalls > 0 && (completedBefore >= maxToolCalls || (maxToolCalls === 1 && alreadyHadCompletedTool))
                                 const justReachedLimit = maxToolCalls > 0 && completedAfter >= maxToolCalls && !alreadyHadCompletedTool
-
+                                const trailingCandidate =
+                                    result.safeIndex < textToProcess.length
+                                        ? textToProcess.slice(result.safeIndex)
+                                        : ""
+                                const hasInvalidTrailingTextAfterCompletedTool =
+                                    ((assistantMessageParser as any).hasCompletedToolCall?.() ?? false) &&
+                                    trailingCandidate.trim().length > 0 &&
+                                    !canResumeAfterCompletedTool(trailingCandidate)
                                 if (!isAtLimit) {
-                                    if (justReachedLimit) {
+                                    if (justReachedLimit || hasInvalidTrailingTextAfterCompletedTool) {
                                         // If we just reached the limit, use safeIndex to include the tool closer but exclude trailing text.
                                         assistantMessage += textToProcess.slice(0, result.safeIndex)
                                     } else {
@@ -780,12 +927,10 @@ export class AgentLoop {
 
                                 // kade_change: If trailing text detected after tool, terminate stream immediately.
                                 // This prevents the AI from seeing its own hallucinated output.
-                                if ((isAtLimit || hasTrailingTextInChunk) && textToProcess.trim()) {
-                                    console.log(`[AgentLoop] ✂️ Stream cut: Trailing text detected after tool call. Terminating stream.`)
-                                    
-                                    this.task.assistantMessageParser.finalizeContentBlocks()
+                                if ((isAtLimit || hasTrailingTextInChunk || hasInvalidTrailingTextAfterCompletedTool) && textToProcess.trim()) {
+                                    assistantMessageParser.finalizeContentBlocks()
                                     this.task.assistantMessageContent = this.stripTextAfterCompletedToolCall(
-                                        this.task.assistantMessageParser.getContentBlocks(),
+                                        assistantMessageParser.getContentBlocks(),
                                     )
                                     
                                     if (maxToolCalls > 0) {
@@ -796,11 +941,13 @@ export class AgentLoop {
                                     }
                                     
                                     const activeBlock = this.getLatestToolUseBlock()
-                                    const preBreakPromises: Promise<any>[] = [presentAssistantMessage(this.task).catch(error => {
+                                    const preBreakPromises: Promise<any>[] = [presentAssistantMessage(this.task).catch(async error => {
                                         console.error("[AgentLoop] Error in presentAssistantMessage (trailing text cut):", error)
                                     })]
                                     if (activeBlock) {
-                                        preBreakPromises.push(this.handlePartialUpdate(activeBlock))
+                                        preBreakPromises.push(this.handlePartialUpdate(activeBlock).catch(async error => {
+                                            console.error("[AgentLoop] Error in handlePartialUpdate:", error)
+                                        }))
                                     }
                                     await Promise.all(preBreakPromises)
                                     
@@ -818,6 +965,9 @@ export class AgentLoop {
                                 if (this.task.assistantMessageContent.length > prevBlockCount) {
                                     this.task.userMessageContentReady = false
                                     hasToolUses = true
+                                    hasTextProtocolToolUses = this.task.assistantMessageContent.some(
+                                        (block: any) => block?.type === "tool_use" || block?.type === "mcp_tool_use",
+                                    )
                                 }
 
                                 if (maxToolCalls > 0) {
@@ -832,11 +982,9 @@ export class AgentLoop {
                                 }
 
                                 if ((maxToolCalls > 0 && completedToolCallCount >= maxToolCalls) || hasEndToolUseMarker) {
-                                    console.log(`[AgentLoop] ✂️ Stream cut: ${hasEndToolUseMarker ? "End Tool use marker detected" : `${completedToolCallCount}/${maxToolCalls} tool calls complete`}. Interrupting stream.`)
-
-                                    this.task.assistantMessageParser.finalizeContentBlocks()
+                                    assistantMessageParser.finalizeContentBlocks()
                                     this.task.assistantMessageContent = this.stripTextAfterCompletedToolCall(
-                                        this.task.assistantMessageParser.getContentBlocks(),
+                                        assistantMessageParser.getContentBlocks(),
                                     )
 
                                     if (maxToolCalls > 0) {
@@ -847,11 +995,13 @@ export class AgentLoop {
                                     }
 
                                     const activeBlock = this.getLatestToolUseBlock()
-                                    const preBreakPromises: Promise<any>[] = [presentAssistantMessage(this.task).catch(error => {
+                                    const preBreakPromises: Promise<any>[] = [presentAssistantMessage(this.task).catch(async error => {
                                         console.error("[AgentLoop] Error in presentAssistantMessage (pre-break):", error)
                                     })]
                                     if (activeBlock) {
-                                        preBreakPromises.push(this.handlePartialUpdate(activeBlock))
+                                        preBreakPromises.push(this.handlePartialUpdate(activeBlock).catch(async error => {
+                                            console.error("[AgentLoop] Error in handlePartialUpdate:", error)
+                                        }))
                                     }
                                     await Promise.all(preBreakPromises)
                                     
@@ -868,13 +1018,20 @@ export class AgentLoop {
 
                                 // Normal update (no interrupt)
                                 const activeBlock = this.getLatestToolUseBlock()
-                                const promises: Promise<any>[] = [presentAssistantMessage(this.task).catch(error => {
+                                const promises: Promise<any>[] = [presentAssistantMessage(this.task).catch(async error => {
                                     console.error("[AgentLoop] Error in presentAssistantMessage (XML/Unified):", error)
                                 })]
                                 if (activeBlock) {
-                                    promises.push(this.handlePartialUpdate(activeBlock))
+                                    promises.push(this.handlePartialUpdate(activeBlock).catch(async error => {
+                                        console.error("[AgentLoop] Error in handlePartialUpdate:", error)
+                                    }))
                                 }
                                 await Promise.all(promises)
+                            } else if (streamProtocol === TOOL_PROTOCOL.UNIFIED && hasNativeToolUses) {
+                                // Once a real native tool call is active, later text chunks are shadow transport
+                                // noise or trailing prose. Do not let them overwrite assistantMessageContent and
+                                // erase the native tool block that still needs execution.
+                                assistantMessage += chunk.text
                             } else {
                                 assistantMessage += chunk.text
                                 const lastBlock = this.task.assistantMessageContent[this.task.assistantMessageContent.length - 1]
@@ -888,7 +1045,7 @@ export class AgentLoop {
                                     })
                                     this.task.userMessageContentReady = false
                                 }
-                                presentAssistantMessage(this.task).catch(error => {
+                                presentAssistantMessage(this.task).catch(async error => {
                                     console.error("[AgentLoop] Error in presentAssistantMessage:", error)
                                 })
                             }
@@ -981,7 +1138,11 @@ export class AgentLoop {
                     // is sent to the tool UI.
                     const activeBlock = this.getLatestToolUseBlock()
                     if (activeBlock) {
-                        await this.handlePartialUpdate(activeBlock);
+                        try {
+                            await this.handlePartialUpdate(activeBlock);
+                        } catch (error) {
+                            console.error("[AgentLoop] Error in handlePartialUpdate:", error)
+                        }
                     }
                 }
 
@@ -1007,8 +1168,8 @@ export class AgentLoop {
                 const partialBlocks = this.task.assistantMessageContent.filter((block: any) => block.partial)
                 partialBlocks.forEach((block: any) => (block.partial = false))
 
-                // Finalize Native Tools (Hybrid Recovery) - skip when text-based protocol handles tools
-                if (!shouldSkipNativeTools) {
+                // Finalize Native Tools (Hybrid Recovery). Markdown streams never use native tool events here.
+                if (streamProtocol !== TOOL_PROTOCOL.MARKDOWN) {
                     const finalEvents = NativeToolCallParser.finalizeRawChunks()
                     for (const event of finalEvents) {
                         if (event.type === "tool_call_end") {
@@ -1020,21 +1181,84 @@ export class AgentLoop {
                                 this.task.userMessageContentReady = false
 
                                 // kade_change: Ensure final update is sent during recovery
-                                await this.handlePartialUpdate(finalToolUse, event.id);
+                                try {
+                                    await this.handlePartialUpdate(finalToolUse, event.id);
+                                } catch (error) {
+                                    console.error("[AgentLoop] Error in handlePartialUpdate:", error)
+                                }
                             }
                         }
-                    }
-                }
+	                    }
+	                }
 
-                // kade_change: Call presentAssistantMessage WITHOUT await!
+                    const isEmptyAssistantTurn =
+                        this.task.assistantMessageContent.length === 0 &&
+                        assistantMessage.trim().length === 0 &&
+                        !this.task.abort
+
+	                if (isEmptyAssistantTurn) {
+                        if (streamProtocol === TOOL_PROTOCOL.JSON && !currentItem.protocolFallbackApplied) {
+                            const { config: fallbackConfig, targetProtocol } = this.getTextProtocolFallback()
+
+                            this.task.updateApiConfiguration(fallbackConfig)
+                            this.task.providerRef.deref()?.debouncedPostStateToWebview()
+                            this.task.emit("modelChanged")
+                            await this.task.say("api_req_finished")
+
+                            stack.push({
+                                userContent: currentUserContent,
+                                includeFileDetails: currentIncludeFileDetails,
+                                retryAttempt: (currentItem.retryAttempt ?? 0) + 1,
+                                protocolFallbackApplied: true,
+                            })
+
+                            continue
+                        }
+
+                        if (!currentItem.emptyTurnShellRecoveryApplied) {
+                            await this.task.say("api_req_finished")
+
+                            stack.push({
+                                userContent: this.buildShellRecoveryRetryMessage(
+                                    streamProtocol,
+                                    this.task.api.getModel().id,
+                                ),
+                                includeFileDetails: false,
+                                retryAttempt: (currentItem.retryAttempt ?? 0) + 1,
+                                protocolFallbackApplied: currentItem.protocolFallbackApplied,
+                                emptyTurnShellRecoveryApplied: true,
+                                forceAddUserMessage: true,
+                            })
+
+                            continue
+                        }
+
+                        const emptyTurnRecoveryMessage = this.buildEmptyTurnRecoveryMessage(
+                            streamProtocol,
+                            this.task.api.getModel().id,
+                        )
+                        assistantMessage = emptyTurnRecoveryMessage
+                        this.task.assistantMessageContent.push({
+                            type: "text",
+                            content: emptyTurnRecoveryMessage,
+                            partial: false,
+                        })
+                    }
+
+	                // kade_change: Call presentAssistantMessage WITHOUT await!
                 // It may block on user interaction (tool approvals), so we let it run async.
                 // The pWaitFor below will wait for userMessageContentReady which 
                 // presentAssistantMessage sets when ALL blocks are processed.
-                presentAssistantMessage(this.task).catch((error) => {
+                presentAssistantMessage(this.task).catch(async (error) => {
                     console.error("[AgentLoop] Error in presentAssistantMessage:", error)
                     this.task.userMessageContentReady = true // Ensure we don't hang
                     this.task.presentAssistantMessageLocked = false // Failsafe unlock
                 })
+
+                // Failsafe: once token streaming is over, clear the request-level
+                // "thinking" state immediately even if tool presentation later stalls.
+                // Tool-specific asks/command-output states will still manage their own UI.
+                await this.task.say("api_req_finished")
 
                 // Reasoning completion
                 if (reasoningMessage) {
@@ -1067,7 +1291,34 @@ export class AgentLoop {
                 const toolProtocol = resolveToolProtocol(this.task.apiConfiguration, this.task.api.getModel().info)
                 const isTextBasedProtocol = (toolProtocol as string) === "unified" || (toolProtocol as string) === "markdown"
                 let assistantHistoryText = assistantMessage
+                const failedToolUseIds = collectFailedToolUseIdsFromContentBlocks(
+                    this.task.userMessageContent as Anthropic.ContentBlockParam[],
+                )
+                const serializedAssistantHistory =
+                    isTextBasedProtocol &&
+                    this.task.assistantMessageContent.some(
+                        (block: any) => block.type === "tool_use" || block.type === "mcp_tool_use",
+                    )
+                        ? serializeAssistantBlocksForTextProtocol(
+                            this.task.assistantMessageContent,
+                            toolProtocol,
+                            {
+                                preserveToolInvocationBodyIds: failedToolUseIds,
+                            },
+                        )
+                        : ""
+
+                if (serializedAssistantHistory) {
+                    assistantHistoryText = serializedAssistantHistory
+                } else
                 if (
+                    isTextBasedProtocol &&
+                    assistantMessageParser &&
+                    "compactMessageForHistory" in assistantMessageParser &&
+                    typeof (assistantMessageParser as any).compactMessageForHistory === "function"
+                ) {
+                    assistantHistoryText = (assistantMessageParser as any).compactMessageForHistory(assistantMessage)
+                } else if (
                     isTextBasedProtocol &&
                     assistantMessageParser &&
                     "trimRawMessageAfterLastCompletedTool" in assistantMessageParser &&
@@ -1121,13 +1372,21 @@ export class AgentLoop {
                                 // and toolUseId (XML protocol internal tracking)
                                 const id = toolUse.id || (toolUse as any).toolUseId
                                 if (id && !id.startsWith("xml_")) {
-                                    const input = toolUse.nativeArgs || toolUse.params
+                                    const input = toolUse.historyInput || toolUse.nativeArgs || toolUse.params
+                                    const compactedInput =
+                                        !failedToolUseIds.has(id)
+                                            ? NativeToolCallParser.compactToolInputForHistory(
+                                                toolUse.originalName ?? toolUse.name,
+                                                input as Record<string, any>,
+                                                { forModel: true },
+                                            )
+                                            : input
                                     const toolNameForHistory = toolUse.originalName ?? toolUse.name
                                     assistantContent.push({
                                         type: "tool_use",
                                         id: id,
                                         name: toolNameForHistory,
-                                        input: input as any
+                                        input: compactedInput as any
                                     })
                                 }
                             }
@@ -1217,21 +1476,20 @@ export class AgentLoop {
                             if (block.type === "text") {
                                 const text = block.text
                                 // Regex to find <file_content path="..."> tags (generated by mentions)
-                                const fileContentRegex = /<file_content\s+path="([^"]+)"/g
-                                let match
-                                while ((match = fileContentRegex.exec(text)) !== null) {
-                                    const filePath = match[1]
-                                    if (filePath) {
-                                        console.log(`[AgentLoop] 🧖 Tracking mentioned file for Luxury Spa: ${filePath}`)
-                                        // Track full file (undefined range) for mentions
-                                        if (!fileMentions.has(filePath)) {
-                                            fileMentions.set(filePath, [])
+                                    const fileContentRegex = /<file_content\s+path="([^"]+)"/g
+                                    let match
+                                    while ((match = fileContentRegex.exec(text)) !== null) {
+                                        const filePath = match[1]
+                                        if (filePath) {
+                                            // Track full file (undefined range) for mentions
+                                            if (!fileMentions.has(filePath)) {
+                                                fileMentions.set(filePath, [])
                                         }
                                     }
                                 }
                             }
 
-                            // 2. Scan for tool use IDs (read_file, edit, etc.)
+                            // 2. Scan for tool use IDs (read, edit, etc.)
                             // kade_change: Get ALL tool IDs - use array if present, fall back to single ID
                             const toolUseIds: string[] = (block as any)._toolUseIds ||
                                 ((block as any).tool_use_id ? [(block as any).tool_use_id] :
@@ -1255,7 +1513,7 @@ export class AgentLoop {
                                         const filePaths = typeof rawPath === 'string' ? rawPath.split(',').map(p => p.trim()).filter(Boolean) : [rawPath]
                                         for (const filePath of filePaths) {
                                             // 1. Handle Reads: Track and prune old context
-                                            if (name === 'read_file' || name === 'read') {
+                                            if (name === 'read' || name === 'read') {
                                                 // kade_change: Extract line ranges from nativeArgs if available
                                                 const nativeArgs = (toolUse as any).nativeArgs || {}
                                                 let lineRanges: { start: number; end: number }[] | undefined
@@ -1275,42 +1533,36 @@ export class AgentLoop {
                                                     if (fileEntry) {
                                                         // Use the clean path from nativeArgs
                                                         cleanFilePath = fileEntry.path
-                                                        if (fileEntry.lineRanges && fileEntry.lineRanges.length > 0) {
-                                                            lineRanges = fileEntry.lineRanges
-                                                                .filter((r: any) => r.start !== undefined && r.end !== undefined)
-                                                                .map((r: any) => ({ start: r.start, end: r.end }))
-                                                        }
+                                                        lineRanges = extractTrackedReadLineRanges(fileEntry, args, block as any)
                                                     }
                                                 } else if (filePaths.length === 1) {
-                                                    // Fallback: Check for legacy/standard params in 'args'
-                                                    if (args.line_range) {
-                                                        const ranges = Array.isArray(args.line_range) ? args.line_range : [args.line_range]
-                                                        const extractedRanges: { start: number; end: number }[] = []
-                                                        for (const range of ranges) {
-                                                            const match = String(range).match(/(\d+)-(\d+)/)
-                                                            if (match) {
-                                                                const start = parseInt(match[1])
-                                                                const end = parseInt(match[2])
-                                                                if (!isNaN(start) && !isNaN(end)) {
-                                                                    extractedRanges.push({ start, end })
-                                                                }
-                                                            }
-                                                        }
-                                                        if (extractedRanges.length > 0) {
-                                                            lineRanges = extractedRanges
-                                                        }
-                                                    } else if (args.start_line && args.end_line) {
-                                                        const start = parseInt(args.start_line)
-                                                        const end = parseInt(args.end_line)
-                                                        if (!isNaN(start) && !isNaN(end)) {
-                                                            lineRanges = [{ start, end }]
-                                                        }
-                                                    }
+                                                    lineRanges = extractTrackedReadLineRanges(undefined, {
+                                                        lineRanges: Array.isArray(args.line_range)
+                                                            ? args.line_range
+                                                                .map((range: any) => {
+                                                                    const match = String(range).match(/(\d+)-(\d+)/)
+                                                                    if (!match) {
+                                                                        return undefined
+                                                                    }
+                                                                    const start = parseInt(match[1], 10)
+                                                                    const end = parseInt(match[2], 10)
+                                                                    return (!isNaN(start) && !isNaN(end)) ? { start, end } : undefined
+                                                                })
+                                                                .filter(Boolean)
+                                                            : args.start_line && args.end_line
+                                                                ? [{
+                                                                    start: parseInt(args.start_line, 10),
+                                                                    end: parseInt(args.end_line, 10),
+                                                                }].filter((range: any) => !isNaN(range.start) && !isNaN(range.end))
+                                                                : undefined,
+                                                        head: args.head,
+                                                        tail: args.tail,
+                                                    }, block as any)
 
                                                     // kade_change: If we still have a range in the path but no lineRanges extracted,
                                                     // strip the range from the path to get a clean filename for tracking
                                                     if (!lineRanges) {
-                                                        const rangeMatch = cleanFilePath.match(/^(.*?)(?::|\s+)(\d+)-(\d+)$/)
+                                                        const rangeMatch = cleanFilePath.match(/^(.*?)(?::(?:L)?|\s+)(\d+)-(\d+)$/)
                                                         if (rangeMatch) {
                                                             cleanFilePath = rangeMatch[1].trim()
                                                             const start = parseInt(rangeMatch[2], 10)
@@ -1318,13 +1570,56 @@ export class AgentLoop {
                                                             if (!isNaN(start) && !isNaN(end)) {
                                                                 lineRanges = [{ start, end }]
                                                             }
+                                                        } else {
+                                                            const headTailMatch = cleanFilePath.match(/^(.*?)(?::|\s+)([HT])(\d+)$/i)
+                                                            if (headTailMatch) {
+                                                                cleanFilePath = headTailMatch[1].trim()
+                                                                const count = parseInt(headTailMatch[3], 10)
+                                                                if (headTailMatch[2].toUpperCase() === 'H' && !isNaN(count)) {
+                                                                    lineRanges = [{ start: 1, end: count }]
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
 
-                                                // Store in Map with line ranges using clean path (merge additive)
-                                                // Collect first, merge later for deterministic ordering
-                                                if (!fileMentions.has(cleanFilePath)) {
+                                                const hadExplicitReadSpec = hasExplicitTrackedReadSpec(
+                                                    cleanFilePath,
+                                                    nativeArgs.files && Array.isArray(nativeArgs.files)
+                                                        ? nativeArgs.files.find((f: any) =>
+                                                            f.path === cleanFilePath ||
+                                                            f.path === filePath ||
+                                                            f.path === rawPath
+                                                        )
+                                                        : undefined,
+                                                    {
+                                                        lineRanges: Array.isArray(args.line_range)
+                                                            ? args.line_range
+                                                                .map((range: any) => {
+                                                                    const match = String(range).match(/(\d+)-(\d+)/)
+                                                                    if (!match) {
+                                                                        return undefined
+                                                                    }
+                                                                    const start = parseInt(match[1], 10)
+                                                                    const end = parseInt(match[2], 10)
+                                                                    return (!isNaN(start) && !isNaN(end)) ? { start, end } : undefined
+                                                                })
+                                                                .filter(Boolean)
+                                                            : args.start_line && args.end_line
+                                                                ? [{
+                                                                    start: parseInt(args.start_line, 10),
+                                                                    end: parseInt(args.end_line, 10),
+                                                                }].filter((range: any) => !isNaN(range.start) && !isNaN(range.end))
+                                                                : undefined,
+                                                        head: args.head,
+                                                        tail: args.tail,
+                                                    },
+                                                )
+
+                                                // Store in Map with line ranges using clean path (merge additive).
+                                                // Only seed an empty array when this was truly a full-file read; if a
+                                                // ranged read failed to parse, preserving the previous scope is safer.
+                                                if (!fileMentions.has(cleanFilePath) && !hadExplicitReadSpec) {
                                                     fileMentions.set(cleanFilePath, [])
                                                 }
                                                 if (lineRanges && lineRanges.length > 0) {
@@ -1334,18 +1629,23 @@ export class AgentLoop {
                                             }
 
                                             // 2. Handle Modifications: Invalidate context and add reminders
-                                            const isModification = name === 'edit' || name === 'write_to_file' || name === 'replace_in_file' || name === 'apply_diff' || name === 'edit_file'
+                                            const isModification = name === 'edit' || name === 'write' || name === 'replace_in_file' || name === 'apply_diff' || name === 'edit_file'
                                             const isDeletion = name === 'delete_file'
 
                                             if (isDeletion) {
                                                 this.task.luxurySpa.activeFileReads.delete(filePath)
                                                 this.task.luxurySpa.fileEditCounts.delete(path.resolve(this.task.cwd, filePath))
+                                                this.task.luxurySpa.fileEditBlockCounts.delete(path.resolve(this.task.cwd, filePath))
                                             } else if (isModification) {
-                                                // kade_change: Modified files get tracked as full-file if not already partial.
-                                                // We normalize the path (e.g. stripping ./ ) to match how reads are tracked.
+                                                // Modified files should refresh if they are already tracked, but should not
+                                                // widen an existing partial read into a full-file read.
                                                 const normalizedPath = filePath.replace(/^(\.\/|\.\\)/, "")
-                                                if (!fileMentions.has(normalizedPath)) {
-                                                    fileMentions.set(normalizedPath, [])
+                                                if (this.task.luxurySpa.activeFileReads.has(normalizedPath)) {
+                                                    const existingRanges = this.task.luxurySpa.activeFileReads.get(normalizedPath)
+                                                    if (!fileMentions.has(normalizedPath)) {
+                                                        // Seed with existing ranges (or [] for full) to ensure it gets refreshed
+                                                        fileMentions.set(normalizedPath, existingRanges ?? [])
+                                                    }
                                                 }
                                             }
                                         }
@@ -1392,33 +1692,17 @@ export class AgentLoop {
             } catch (error: any) {
                 console.error("AgentLoop Error", error)
                 this.task.isStreaming = false
-                
-                if (this.task.abort) {
-                    // Task is fully aborting (background close/delete)
-                    this.task.abortReason = "streaming_failed"
-                    await this.task.say("api_req_finished")
-                    await this.task.abortTask()
-                    return true
-                }
-                
-                // If it's just a stream cancellation from the stop button or network error
-                const isAbort = error.name === "AbortError" || 
-                                error.message?.includes("Abort") || 
-                                error.message?.includes("aborted") ||
-                                error.message?.includes("cancelled by user");
-                                
-                if (isAbort) {
-                    // Clean up partial blocks so they don't break the API on the next turn
+                this.task.didFinishAbortingStream = true
+
+                const sanitizeIncompleteAssistantState = () => {
                     if (this.task.assistantMessageContent) {
                         this.task.assistantMessageContent.forEach((block: any) => {
                             block.partial = false
                         })
-                        // Remove partial tool calls that haven't been completed
                         this.task.assistantMessageContent = this.task.assistantMessageContent.filter((block: any) => {
                             if ((block.type === "tool_use" || block.type === "mcp_tool_use") && (block as any).isComplete === false) {
                                 return false
                             }
-                            // Also remove incomplete Native tool calls
                             if (block.type === "tool_use" && !block.name) {
                                 return false
                             }
@@ -1426,11 +1710,41 @@ export class AgentLoop {
                         })
                     }
 
+                    if (this.task.assistantMessageParser?.reset) {
+                        this.task.assistantMessageParser.reset()
+                    }
+                }
+
+                if (this.task.abort) {
+                    // Task is fully aborting (background close/delete)
+                    sanitizeIncompleteAssistantState()
+                    this.task.abortReason = "streaming_failed"
                     await this.task.say("api_req_finished")
-                    await this.task.say("text", "\n\n[Response interrupted by user]")
+                    await this.task.abortTask()
+                    return true
+                }
+
+                // If it's just a stream cancellation from the stop button or network error
+                const isAbort = error.name === "AbortError" || 
+                                error.message?.includes("Abort") || 
+                                error.message?.includes("aborted") ||
+                                error.message?.includes("cancelled by user");
+
+                if (isAbort) {
+                    // Clean up partial blocks so they don't break the API on the next turn
+                    sanitizeIncompleteAssistantState()
+
+                    await this.task.say(
+                        "api_req_finished",
+                        JSON.stringify({ cancelReason: "user_cancelled" }),
+                    )
+                    await this.task.say("text", "")
+                    this.task.abortReason = undefined
+                    this.task.didFinishInterrupting = false
                     return false
                 }
-                
+
+                sanitizeIncompleteAssistantState()
                 this.task.abortReason = "streaming_failed"
                 await this.task.say("api_req_finished")
                 await this.task.say("error", `Streaming failed: ${error.message}`)

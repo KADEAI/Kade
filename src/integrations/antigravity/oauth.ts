@@ -411,21 +411,23 @@ export class AntigravityOAuthManager {
    */
   private async completeOnboarding(accessToken: string): Promise<{ projectId: string }> {
     const { projectId, tierId } = await this.loadCodeAssist(accessToken)
+    const effectiveProjectId = projectId?.trim() || ANTIGRAVITY_OAUTH_CONFIG.defaultProjectId
+
     if (!projectId) {
-      throw new Error(
-        "No Google Cloud Project found. Please ensure you have a GCP project with Gemini Code Assist enabled.",
+      this.log(
+        `[antigravity-oauth] No project returned by loadCodeAssist. Falling back to default project: ${effectiveProjectId}`,
       )
     }
 
-    this.log(`[antigravity-oauth] Initial project ID: ${projectId}, Tier: ${tierId}. Starting onboarding poll...`)
+    this.log(`[antigravity-oauth] Initial project ID: ${effectiveProjectId}, Tier: ${tierId}. Starting onboarding poll...`)
 
     for (let i = 0; i < 10; i++) {
-      const result = await this.onboardUser(accessToken, projectId, tierId)
+      const result = await this.onboardUser(accessToken, effectiveProjectId, tierId)
       if (result.done === true) {
-        let finalProjectId = projectId
+        let finalProjectId = effectiveProjectId
         if (result.response?.cloudaicompanionProject) {
           const respProject = result.response.cloudaicompanionProject
-          finalProjectId = (typeof respProject === "string" ? respProject : respProject.id)?.trim() ?? projectId
+          finalProjectId = (typeof respProject === "string" ? respProject : respProject.id)?.trim() || effectiveProjectId
         }
         return { projectId: finalProjectId }
       }
@@ -435,6 +437,7 @@ export class AntigravityOAuthManager {
 
     throw new Error("Onboarding timed out after 50 seconds. Please try again.")
   }
+
 
   /**
    * Step 1 of onboarding: Fetches the initial project and tier configuration.

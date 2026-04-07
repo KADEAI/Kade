@@ -9,6 +9,8 @@ export const ovhCloudAiEndpointsDefaultModelInfo: ModelInfo = {
 	contextWindow: 131000,
 	supportsImages: false,
 	supportsPromptCache: false,
+	supportsNativeTools: false,
+	defaultToolProtocol: "unified",
 	inputPrice: 0.08,
 	outputPrice: 0.4,
 	description:

@@ -122,9 +122,9 @@ describe("MessageEnhancer", () => {
 			const calledPrompt = mockSingleCompletionHandler.mock.calls[0][1]
 			expect(calledPrompt).toContain("Improve the component")
 			expect(calledPrompt).toContain("previous conversation context")
-			expect(calledPrompt).toContain("User: Create a React component")
-			expect(calledPrompt).toContain("Assistant: I'll create a React component for you")
-			expect(calledPrompt).toContain("User: Add props to the component")
+			expect(calledPrompt).toContain("Create a React component")
+			expect(calledPrompt).toContain("I'll create a React component for you")
+			expect(calledPrompt).toContain("Add props to the component")
 			expect(calledPrompt).not.toContain("Using tool") // reasoning messages should be filtered
 		})
 
@@ -154,7 +154,7 @@ describe("MessageEnhancer", () => {
 			expect(calledPrompt).not.toContain("Message 5")
 		})
 
-		it("should truncate long messages in task history", async () => {
+		it("should preserve long messages in task history", async () => {
 			const longText = "A".repeat(600) // 600 characters
 			const mockClineMessages: ClineMessage[] = [{ type: "ask", text: longText, ts: 1000 }]
 
@@ -169,9 +169,7 @@ describe("MessageEnhancer", () => {
 
 			const calledPrompt = mockSingleCompletionHandler.mock.calls[0][1]
 
-			// Should truncate to 500 chars + "..."
-			expect(calledPrompt).toContain("A".repeat(500) + "...")
-			expect(calledPrompt).not.toContain("A".repeat(501))
+			expect(calledPrompt).toContain(longText)
 		})
 
 		it("should use custom support prompts when provided", async () => {
@@ -316,9 +314,9 @@ describe("MessageEnhancer", () => {
 			// Access private method through any type assertion for testing
 			const history = (MessageEnhancer as any).extractTaskHistory(messages)
 
-			expect(history).toContain("User: User message 1")
-			expect(history).toContain("Assistant: Assistant message 1")
-			expect(history).toContain("User: User message 2")
+			expect(history).toContain("User message 1")
+			expect(history).toContain("Assistant message 1")
+			expect(history).toContain("User message 2")
 			expect(history).not.toContain("Tool use")
 			expect(history.split("\n").length).toBe(3) // Only 3 valid messages
 		})
@@ -357,7 +355,7 @@ describe("MessageEnhancer", () => {
 			const history = (MessageEnhancer as any).extractTaskHistory(messages)
 
 			// Should handle gracefully
-			expect(history).toBe("User: Test")
+			expect(history).toBe("Test")
 
 			consoleSpy.mockRestore()
 		})

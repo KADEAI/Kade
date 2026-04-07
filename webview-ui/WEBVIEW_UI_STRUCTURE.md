@@ -42,7 +42,7 @@ Library code, often containing utility wrappers or `utils.ts` for class merging 
 
 #### `src/kilocode/`
 Specific Kilocode module integrations.
-- **`agent-manager/`**: Components and logic for the agent manager interface.
+- **`native-agent-manager/`**: Components and logic for the active agent manager interface.
 
 #### `src/i18n/`
 Internationalization files.

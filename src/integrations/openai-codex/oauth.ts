@@ -27,7 +27,6 @@ export const OPENAI_CODEX_OAUTH_CONFIG = {
 // Token storage key (exported for agent-manager to pass credentials to agent processes)
 export const OPENAI_CODEX_CREDENTIALS_KEY = "openai-codex-oauth-credentials"
 // kade_change end
-
 // Credentials schema
 const openAiCodexCredentialsSchema = z.object({
     type: z.literal("openai-codex"),
@@ -39,6 +38,45 @@ const openAiCodexCredentialsSchema = z.object({
     // ChatGPT account ID extracted from JWT claims (for ChatGPT-Account-Id header)
     accountId: z.string().optional(),
 })
+
+type LegacyOpenAiCodexCredentials = {
+    type?: string
+    access_token?: string
+    refresh_token?: string
+    expires?: number | string
+    expired?: string
+    email?: string
+    accountId?: string
+}
+
+function normalizeStoredOpenAiCodexCredentials(raw: unknown): OpenAiCodexCredentials {
+    const candidate = (raw ?? {}) as LegacyOpenAiCodexCredentials
+
+    let expires: number | undefined
+    if (typeof candidate.expires === "number" && Number.isFinite(candidate.expires)) {
+        expires = candidate.expires
+    } else if (typeof candidate.expires === "string") {
+        const parsed = Number(candidate.expires)
+        if (Number.isFinite(parsed)) {
+            expires = parsed
+        }
+    } else if (typeof candidate.expired === "string") {
+        const parsed = new Date(candidate.expired).getTime()
+        if (Number.isFinite(parsed)) {
+            expires = parsed
+        }
+    }
+
+    return openAiCodexCredentialsSchema.parse({
+        type: "openai-codex",
+        access_token: candidate.access_token,
+        refresh_token: candidate.refresh_token,
+        expires,
+        email: candidate.email,
+        accountId: candidate.accountId,
+    })
+}
+
 
 export type OpenAiCodexCredentials = z.infer<typeof openAiCodexCredentialsSchema>
 
@@ -427,20 +465,28 @@ export class OpenAiCodexOAuthManager {
             return null
         }
 
+        const credentialsJson = await this.context.secrets.get(OPENAI_CODEX_CREDENTIALS_KEY)
+        if (!credentialsJson) {
+            return null
+        }
+
         try {
-            const credentialsJson = await this.context.secrets.get(OPENAI_CODEX_CREDENTIALS_KEY)
-            if (!credentialsJson) {
-                return null
+            const parsed = JSON.parse(credentialsJson)
+            const normalized = normalizeStoredOpenAiCodexCredentials(parsed)
+            this.credentials = normalized
+
+            if (JSON.stringify(parsed) !== JSON.stringify(normalized)) {
+                await this.saveCredentials(normalized)
             }
 
-            const parsed = JSON.parse(credentialsJson)
-            this.credentials = openAiCodexCredentialsSchema.parse(parsed)
             return this.credentials
         } catch (error) {
             this.logError("[openai-codex-oauth] Failed to load credentials:", error)
+            await this.clearCredentials()
             return null
         }
     }
+
 
     /**
      * Save credentials to storage

@@ -11,6 +11,13 @@ import React, {
 import { useEvent } from "react-use";
 import debounce from "debounce";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
+import {
+  VirtuosoMessageList,
+  VirtuosoMessageListLicense,
+  type DataWithScrollModifier,
+  type VirtuosoMessageListMethods,
+  type VirtuosoMessageListProps,
+} from "@virtuoso.dev/message-list";
 import removeMd from "remove-markdown";
 import { VSCodeButton as Button } from "@vscode/webview-ui-toolkit/react"; // kade_change: do not use rounded Roo buttons
 import useSound from "use-sound";
@@ -40,6 +47,7 @@ import { ProfileValidator } from "@roo/ProfileValidator";
 import { getLatestTodo } from "@roo/todo";
 
 import { vscode } from "@src/utils/vscode";
+import { reportWebviewDebugEvent } from "@src/utils/webviewDebug";
 import { useAppTranslation } from "@src/i18n/TranslationContext";
 import { useExtensionState } from "../../context/ExtensionStateContext";
 import { useSelectedModel } from "@src/components/ui/hooks/useSelectedModel";
@@ -58,7 +66,9 @@ import HistoryDropdownTopView from "../history/HistoryDropdownTopView";
 import Announcement from "./Announcement";
 import BrowserActionRow from "./BrowserActionRow";
 import BrowserSessionStatusRow from "./BrowserSessionStatusRow";
+import ToolActivitySummaryRow from "./ToolActivitySummaryRow";
 import ChatRow, {
+  MemoizedChatRowContent,
   clearToolResultCache,
   setMessageStore,
   setExtensionStateStore,
@@ -73,6 +83,7 @@ import { ChatTextArea } from "./ChatTextArea";
 // import ProfileViolationWarning from "./ProfileViolationWarning" kade_change: unused
 import { ChatScrollDebugger } from "./ChatScrollDebugger";
 import { CheckpointWarning } from "./CheckpointWarning";
+import { useEmptyStateBackgrounds } from "@/hooks/useEmptyStateBackgrounds";
 // import { IdeaSuggestionsBox } from "../kilocode/chat/IdeaSuggestionsBox" // kade_change
 // import { KilocodeNotifications } from "../kilocode/KilocodeNotifications" // kade_change: unused
 import { Upload, FileText, ImageIcon } from "lucide-react";
@@ -80,6 +91,32 @@ import { QueuedMessages } from "./QueuedMessages";
 import { EditHistoryTracker } from "./EditHistoryTracker";
 import { EmptyState } from "./empty/EmptyState";
 import { useStreamingScrollPin } from "./hooks/useStreamingScrollPin";
+import {
+  shouldFollowStreamingOutput,
+  shouldRetainStreamingPin,
+} from "./scrollPinUtils";
+import {
+  filterResolvedOptimisticUserMessages,
+  getUserRenderableMessageSignature,
+  getUserRenderableRowId,
+} from "./chatMessageMatching";
+import { clearChatToolParseCache, parseCachedTool } from "./chatToolParseCache";
+import {
+  CHAT_SCROLL_ANCHOR_ADJUST_EVENT,
+  shouldAdjustScrollForToolAnimation,
+  type ToolAnimateHeightDetail,
+} from "./scrollAnchorUtils";
+import {
+  buildToolActivitySummaryText,
+  getToolActivitySummaryRunning,
+} from "./toolActivitySummaryUtils";
+import {
+  normalizeToolActivityName,
+  TOOL_ACTIVITY_SUMMARY_TOOL_NAMES,
+} from "./toolActivityLabels";
+import { formatToolActivitySearchSubject } from "./toolActivityTargetFormatting";
+import { RENDERABLE_TOOL_TYPES } from "./apiRequestRowState";
+import { shouldHideToolFollowupErrorMessage } from "./toolFollowupErrorState";
 // import { buildDocLink } from "@/utils/docLinks"
 // import DismissibleUpsell from "../common/DismissibleUpsell" // kade_change: unused
 // import { useCloudUpsell } from "@src/hooks/useCloudUpsell" // kade_change: unused
@@ -90,6 +127,7 @@ export interface ChatViewProps {
   showAnnouncement: boolean;
   hideAnnouncement: () => void;
   historyViewType?: "dropdown" | "dropdown-top" | "view"; // kade_change
+  layout?: "fullscreen" | "embedded";
 }
 
 export interface ChatViewRef {
@@ -97,6 +135,255 @@ export interface ChatViewRef {
   toggleHistory: () => void;
   focusInput: () => void; // kade_change
 }
+
+type OptimisticUserMessage = ClineMessage & { __optimistic: true };
+const TOOL_ACTIVITY_SUMMARY_SAY = "tool_activity_summary";
+const FORCE_STABLE_CHAT_LIST = false;
+const BOTTOM_OFFSET_THRESHOLD = 60;
+const VIRTUOSO_VIEWPORT_OVERSCAN = 1200;
+const SMOOTH_BOTTOM_ANCHOR_DURATION_MS = 220;
+const USER_WHEEL_SCROLL_RELEASE_WINDOW_MS = 450;
+const RENDERABLE_ASK_ROW_TYPES = new Set([
+  "mistake_limit_reached",
+  "command",
+  "use_mcp_server",
+  "completion_result",
+  "followup",
+  "condense",
+  "payment_required_prompt",
+  "invalid_model",
+  "report_bug",
+  "auto_approval_max_req_reached",
+  "tool",
+]);
+const NON_RENDERABLE_SAY_ROW_TYPES = new Set([
+  "api_req_finished",
+  "api_req_retried",
+  "api_req_deleted",
+  "mcp_server_request_started",
+  "command",
+]);
+
+interface ToolActivitySummaryEntry {
+  id: string;
+  label: string;
+  filePath?: string;
+  isDirectory?: boolean;
+}
+
+interface ToolActivitySummaryMetadata {
+  summaryText: string;
+  running: boolean;
+  entries: ToolActivitySummaryEntry[];
+}
+
+interface ToolActivitySummaryMessage
+  extends Omit<ClineMessage, "type" | "say" | "metadata"> {
+  type: "say";
+  say: typeof TOOL_ACTIVITY_SUMMARY_SAY;
+  metadata: ToolActivitySummaryMetadata;
+}
+
+type ChatRenderRow =
+  | {
+      id: string;
+      kind: "message";
+      message: ClineMessage;
+      isStreaming: boolean;
+    }
+  | {
+      id: string;
+      kind: typeof TOOL_ACTIVITY_SUMMARY_SAY;
+      message: ToolActivitySummaryMessage;
+      summary: ToolActivitySummaryMetadata;
+      groupedMessages: Array<{
+        id: string;
+        message: ClineMessage;
+        isStreaming: boolean;
+      }>;
+      isStreaming: boolean;
+    };
+
+const basename = (value?: string) => {
+  if (!value) return "";
+  const parts = value.split(/[\\/]/).filter(Boolean);
+  return parts.at(-1) || value;
+};
+
+const assignRef = <T,>(ref: React.Ref<T> | undefined, value: T | null) => {
+  if (!ref) return;
+  if (typeof ref === "function") {
+    ref(value);
+    return;
+  }
+  (ref as React.MutableRefObject<T | null>).current = value;
+};
+
+const stringifySearchTarget = (
+  value?: string,
+  fallback = "search",
+  path?: string,
+) => {
+  const trimmed = (value || "").replace(/\s+/g, " ").trim();
+  if (!trimmed) return basename(path) || fallback;
+  return trimmed.length > 92 ? `${trimmed.slice(0, 89)}...` : trimmed;
+};
+
+const normalizeToolActivityLabel = (value?: string) =>
+  (value || "").replace(/\s+/g, " ").trim();
+
+const getToolActivityEntrySignature = (entry: {
+  label: string;
+  filePath?: string;
+  isDirectory?: boolean;
+}) => {
+  const normalizedLabel = normalizeToolActivityLabel(entry.label);
+  const normalizedPath = (entry.filePath || "").trim();
+  return `${normalizedLabel}::${normalizedPath}::${entry.isDirectory ? "dir" : "file"}`;
+};
+
+const getToolSignature = (tool: ClineSayTool) => {
+  const toolWithPathAliases = tool as ClineSayTool & {
+    file_path?: string;
+    target_file?: string;
+  };
+
+  const rawPath =
+    tool.path ??
+    toolWithPathAliases.file_path ??
+    toolWithPathAliases.target_file ??
+    tool.source ??
+    tool.destination ??
+    "";
+
+  const normalizedToolName = normalizeToolActivityName(tool.tool as string);
+
+  if (normalizedToolName === "readFile") {
+    const startLine = (tool as any).lineNumber ?? "";
+    const endLine = (tool as any).endLine ?? "";
+    const reason = tool.reason ?? "";
+
+    return [rawPath, startLine, endLine, reason].join("|");
+  }
+
+  return [tool.tool ?? "", rawPath, tool.mode ?? ""].join("|");
+};
+
+const getMutableToolRowFamily = (toolName?: string) => {
+  switch (toolName) {
+    case "editedExistingFile":
+    case "appliedDiff":
+    case "insertContent":
+    case "searchAndReplace":
+    case "newFileCreated":
+    case "deleteFile":
+    case "moveFile":
+    case "mkdir":
+    case "wrap":
+      return "file-mutation";
+    default:
+      return null;
+  }
+};
+
+const dedupeToolActivityEntries = (tools: ClineSayTool[]) => {
+  const seen = new Set<string>();
+  const dedupedTools: ClineSayTool[] = [];
+
+  for (let index = 0; index < tools.length; index++) {
+    const tool = tools[index];
+    const dedupKey = getToolActivityEntrySignature(
+      buildToolActivityEntry(tool, index),
+    );
+    if (seen.has(dedupKey)) {
+      continue;
+    }
+    seen.add(dedupKey);
+    dedupedTools.push(tool);
+  }
+
+  return dedupedTools;
+};
+
+const buildToolActivityEntry = (
+  tool: ClineSayTool,
+  index: number,
+): ToolActivitySummaryEntry => {
+  const rawToolName = tool.tool as string;
+  const toolName = normalizeToolActivityName(rawToolName);
+  const path =
+    tool.path ||
+    (tool as any).file_path ||
+    (tool as any).target_file ||
+    (tool as any).notebook_path ||
+    "";
+
+  switch (toolName) {
+    case "readFile":
+      return {
+        id: `${tool.id || toolName}-${index}`,
+        label: `Read ${basename(path) || "file"}`,
+        filePath: path || undefined,
+      };
+    case "listDirTopLevel":
+    case "listDirRecursive":
+      return {
+        id: `${tool.id || toolName}-${index}`,
+        label: `Explored ${basename(path) || path || "directory"}`,
+        filePath: path || undefined,
+        isDirectory: true,
+      };
+    case "grep":
+      return {
+        id: `${tool.id || toolName}-${index}`,
+        label: `Searched ${formatToolActivitySearchSubject(
+          (tool as any).regex || (tool as any).pattern,
+          path,
+        )}`,
+      };
+    case "glob":
+      return {
+        id: `${tool.id || toolName}-${index}`,
+        label: `Searched ${formatToolActivitySearchSubject(
+          (tool as any).pattern || (tool as any).glob || (tool as any).query,
+          path,
+        )}`,
+      };
+    case "web":
+    case "research_web":
+      return {
+        id: `${tool.id || toolName}-${index}`,
+        label: `Searched ${formatToolActivitySearchSubject(
+          (tool as any).query || (tool as any).searchTerm,
+          path,
+        )}`,
+      };
+    case "fetch":
+      return {
+        id: `${tool.id || toolName}-${index}`,
+        label: `Read ${stringifySearchTarget((tool as any).url || path, "web page")}`,
+      };
+    case "fetchInstructions":
+      return {
+        id: `${tool.id || toolName}-${index}`,
+        label: `Read ${basename(path) || "instructions"}`,
+        filePath: path || undefined,
+      };
+    case "fastContext":
+      return {
+        id: `${tool.id || toolName}-${index}`,
+        label: "Gathered context",
+      };
+    default:
+      return {
+        id: `${tool.id || rawToolName}-${index}`,
+        label: `Used ${rawToolName}`,
+      };
+  }
+};
+
+const isToolMessage = (message: Pick<ClineMessage, "ask" | "say">) =>
+  message.ask === "tool" || message.say === "tool";
 
 export const MAX_IMAGES_PER_MESSAGE = 20; // This is the Anthropic limit.
 
@@ -106,10 +393,17 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   ChatViewRef,
   ChatViewProps
 > = (
-  { isHidden, showAnnouncement, hideAnnouncement, historyViewType },
+  {
+    isHidden,
+    showAnnouncement,
+    hideAnnouncement,
+    historyViewType,
+    layout = "fullscreen",
+  },
   ref,
 ) => {
   const isMountedRef = useRef(true);
+  const stuckPartialDebugKeyRef = useRef<string | null>(null);
 
   const [audioBaseUri] = useState(() => {
     const w = window as any;
@@ -122,6 +416,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   const {
     clineMessages: messages,
     currentTaskItem,
+    currentTaskIsStreaming,
     currentTaskTodos,
     // taskHistoryFullLength, // kade_change: unused
     // taskHistoryVersion, // kade_change: unused
@@ -160,12 +455,30 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     showTimestamps,
     filePaths,
     hideCostBelowThreshold,
+    chatBackground,
+    chatBackgroundUri,
   } = useExtensionState();
+  const { options: backgroundOptions } = useEmptyStateBackgrounds();
 
   const [enableSubAgents, setEnableSubAgents] = useState(
     experiments?.enableSubAgents ?? false,
   );
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
+  const [optimisticUserMessages, setOptimisticUserMessages] = useState<
+    OptimisticUserMessage[]
+  >([]);
+  const resolvedChatBackgroundUri = useMemo(() => {
+    if (chatBackgroundUri) {
+      return chatBackgroundUri;
+    }
+
+    if (!chatBackground) {
+      return undefined;
+    }
+
+    return backgroundOptions.find((option) => option.file === chatBackground)
+      ?.uri;
+  }, [backgroundOptions, chatBackground, chatBackgroundUri]);
 
   useEffect(() => {
     if (experiments?.enableSubAgents !== undefined) {
@@ -173,13 +486,41 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     }
   }, [experiments?.enableSubAgents]);
 
+  const visibleOptimisticUserMessages = useMemo(
+    () =>
+      filterResolvedOptimisticUserMessages(optimisticUserMessages, messages),
+    [optimisticUserMessages, messages],
+  );
+
+  useEffect(() => {
+    setOptimisticUserMessages((prev) => {
+      if (prev.length === 0) {
+        return prev;
+      }
+
+      if (
+        prev.length === visibleOptimisticUserMessages.length &&
+        prev.every(
+          (message, index) => message === visibleOptimisticUserMessages[index],
+        )
+      ) {
+        return prev;
+      }
+
+      return visibleOptimisticUserMessages;
+    });
+  }, [visibleOptimisticUserMessages]);
+
+  useEffect(() => {
+    if (messages.length === 0) {
+      setOptimisticUserMessages([]);
+    }
+  }, [messages.length]);
+
   const messagesRef = useRef(messages);
   const modifiedMessagesRef = useRef<ClineMessage[]>([]);
-  const groupedMessagesRef = useRef<ClineMessage[]>([]);
-
-  // STABLE KEY MAP: Maps tool.id to a stable key that persists across message replacements
-  // This prevents unmount/remount when backend creates new messages with different timestamps
-  const stableKeyMapRef = useRef<Map<string, number>>(new Map());
+  const renderRowsRef = useRef<ChatRenderRow[]>([]);
+  const stableRenderTsRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -271,6 +612,20 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     return combineApiRequests(combineCommandSequences(messages.slice(0)));
   }, [messages]);
 
+  const isLastPartialReadTool = useMemo(() => {
+    const lastMessage = modifiedMessages.at(-1);
+    if (
+      !lastMessage?.partial ||
+      !lastMessage.text ||
+      (lastMessage.ask !== "tool" && lastMessage.say !== "tool")
+    ) {
+      return false;
+    }
+
+    const tool = parseCachedTool(lastMessage.text);
+    return normalizeToolActivityName(tool?.tool as string) === "readFile";
+  }, [modifiedMessages]);
+
   // Keep ref in sync for itemContent callback to use without causing re-renders
   useEffect(() => {
     modifiedMessagesRef.current = modifiedMessages;
@@ -281,6 +636,11 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     () => getApiMetrics(modifiedMessages),
     [modifiedMessages],
   );
+  const hasCheckpointMessage = useMemo(
+    () =>
+      modifiedMessages.some((message) => message.say === "checkpoint_saved"),
+    [modifiedMessages],
+  );
 
   const [inputValue, setInputValue] = useState("");
   const inputValueRef = useRef(inputValue);
@@ -289,6 +649,21 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [chatAreaHeight, setChatAreaHeight] = useState(0); // kade_change
   const chatAreaRef = useRef<HTMLDivElement>(null); // kade_change
+  const chatShellStyle = useMemo(
+    () =>
+      ({
+        "--chat-area-height": `${chatAreaHeight}px`,
+        ...(resolvedChatBackgroundUri
+          ? {
+              backgroundImage: `url("${resolvedChatBackgroundUri}")`,
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+              backgroundSize: "cover",
+            }
+          : {}),
+      }) as any,
+    [chatAreaHeight, resolvedChatBackgroundUri],
+  );
 
   // kade_change start: Measure chat area height for glass layout
   useLayoutEffect(() => {
@@ -321,18 +696,32 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   >(undefined);
   const [didClickCancel, setDidClickCancel] = useState(false);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const messageListRef =
+    useRef<VirtuosoMessageListMethods<ChatRenderRow, unknown>>(null);
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const prevExpandedRowsRef = useRef<Record<number, boolean>>();
+  const expandedRowsRef = useRef<Record<number, boolean>>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const stickyFollowRef = useRef<boolean>(false);
+  const smoothBottomAnchorUntilRef = useRef(0);
+  const smoothBottomAnchorRafRef = useRef<number | null>(null);
+  const userWheelReleaseUntilRef = useRef(0);
   const {
     scrollerRef: streamingScrollerRef,
     scrollerElRef: streamingScrollerElRef,
     pinnedRef: streamingPinnedRef,
+    setPinned: setStreamingPinned,
     forcePin: forcePinToBottom,
-  } = useStreamingScrollPin();
+    syncPinnedFromScroll: syncStreamingPinnedFromScroll,
+  } = useStreamingScrollPin({
+    pinSuppressedUntilRef: smoothBottomAnchorUntilRef,
+    shouldReleasePinFromScroll: () =>
+      !isStreaming || performance.now() < userWheelReleaseUntilRef.current,
+  });
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(false);
+  const showScrollToBottomRef = useRef(showScrollToBottom);
+  const isAtBottomRef = useRef(isAtBottom);
   const lastTtsRef = useRef<string>("");
   const [wasStreaming, setWasStreaming] = useState<boolean>(false);
   const [checkpointWarning, setCheckpointWarning] = useState<
@@ -346,6 +735,13 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   const [pendingSwitchTaskId, setPendingSwitchTaskId] = useState<string | null>(
     null,
   );
+  const prevMessageListRowsRef = useRef<ChatRenderRow[]>([]);
+  const prevMessageListTaskTsRef = useRef<number | undefined>(undefined);
+  const messageListLicenseKey =
+    ((import.meta as any).env?.VITE_VIRTUOSO_MESSAGE_LIST_LICENSE_KEY as
+      | string
+      | undefined) ?? "";
+  const shouldUseMessageList = false;
   const everVisibleMessagesTsRef = useRef<LRUCache<number, boolean>>(
     new LRUCache({
       max: 100,
@@ -357,8 +753,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   const [currentFollowUpTs, setCurrentFollowUpTs] = useState<number | null>(
     null,
   );
-  const [pendingUserMessageScroll, setPendingUserMessageScroll] =
-    useState<boolean>(false);
 
   const clineAskRef = useRef(clineAsk);
   useEffect(() => {
@@ -436,7 +830,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       }
 
       // Web tools (backend maps these to alwaysAllowBrowser)
-      if (["web_search", "web_fetch", "research_web"].includes(name)) {
+      if (["web", "fetch", "research_web"].includes(name)) {
         return !!alwaysAllowBrowser;
       }
 
@@ -446,7 +840,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       }
 
       // Subtask tools
-      if (["newTask", "finishTask", "run_sub_agent"].includes(name)) {
+      if (["newTask", "finishTask", "agent"].includes(name)) {
         return !!alwaysAllowSubtasks;
       }
 
@@ -842,6 +1236,192 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     }
   }, [lastMessage, secondLastMessage]);
 
+  useEffect(() => {
+    if (
+      currentTaskIsStreaming === false &&
+      lastMessage?.say !== "command_output"
+    ) {
+      setSendingDisabled(false);
+    }
+  }, [currentTaskIsStreaming, lastMessage]);
+
+  const isStreaming = useMemo(() => {
+    if (currentTaskIsStreaming === false) {
+      const lastMsg = modifiedMessages.at(-1);
+      if (lastMsg?.say !== "command_output" && lastMsg?.partial !== true) {
+        return false;
+      }
+    }
+
+    // Checking clineAsk isn't enough since messages effect may be called
+    // again for a tool for example, set clineAsk to its value, and if the
+    // next message is not an ask then it doesn't reset. This is likely due
+    // to how much more often we're updating messages as compared to before,
+    // and should be resolved with optimizations as it's likely a rendering
+    // bug. But as a final guard for now, the cancel button will show if the
+    // last message is not an ask.
+    const lastMsg = modifiedMessages.at(-1);
+    if (lastMsg?.say === "command_output") {
+      return true;
+    }
+
+    const isLastAsk = !!lastMsg?.ask;
+
+    const isToolCurrentlyAsking =
+      isLastAsk &&
+      clineAsk !== undefined &&
+      enableButtons &&
+      primaryButtonText !== undefined;
+
+    if (isToolCurrentlyAsking) {
+      return false;
+    }
+
+    // kade_change: Check raw messages for explicit finish signal
+    // regardless of whether combineApiRequests has merged cost yet.
+    // We use findLastIndex to find the absolute last relevant signal.
+    // If the last 'api_req_finished' is after the last 'api_req_started', we are done.
+    {
+      const lastStartedIndex = findLastIndex(
+        messages,
+        (m: ClineMessage) => m.say === "api_req_started",
+      );
+      const lastFinishedIndex = findLastIndex(
+        messages,
+        (m: ClineMessage) => m.say === "api_req_finished",
+      );
+
+      if (lastStartedIndex !== -1 && lastFinishedIndex > lastStartedIndex) {
+        return false;
+      }
+    }
+
+    const isLastMessagePartial = modifiedMessages.at(-1)?.partial === true;
+
+    if (isLastMessagePartial) {
+      return true;
+    } else {
+      const lastApiReqStarted = findLast(
+        modifiedMessages,
+        (message: ClineMessage) => message.say === "api_req_started",
+      );
+
+      if (
+        lastApiReqStarted &&
+        lastApiReqStarted.text !== null &&
+        lastApiReqStarted.text !== undefined &&
+        lastApiReqStarted.say === "api_req_started"
+      ) {
+        const cost = JSON.parse(lastApiReqStarted.text).cost;
+
+        if (cost === undefined) {
+          return true; // API request has not finished yet.
+        }
+      }
+    }
+
+    return false;
+  }, [
+    currentTaskIsStreaming,
+    modifiedMessages,
+    clineAsk,
+    enableButtons,
+    primaryButtonText,
+    messages,
+  ]);
+
+  useEffect(() => {
+    if (currentTaskIsStreaming === false && lastMessage?.partial === true) {
+      reportWebviewDebugEvent({
+        source: "ChatView",
+        event: "stream_ended_with_partial_message",
+        level: "warn",
+        data: {
+          taskId: currentTaskItem?.id,
+          ts: lastMessage.ts,
+          type: lastMessage.type,
+          ask: lastMessage.ask,
+          say: lastMessage.say,
+          textPreview:
+            typeof lastMessage.text === "string"
+              ? lastMessage.text.slice(0, 240)
+              : undefined,
+          metadata: lastMessage.metadata,
+          messageCount: messages.length,
+          modifiedMessageCount: modifiedMessages.length,
+          queueLength: messageQueue.length,
+        },
+      });
+    }
+  }, [
+    currentTaskIsStreaming,
+    currentTaskItem?.id,
+    lastMessage,
+    messageQueue.length,
+    messages.length,
+    modifiedMessages.length,
+  ]);
+
+  useEffect(() => {
+    const lastPartialMessage = modifiedMessages.at(-1);
+    const isDebugStreaming =
+      currentTaskIsStreaming !== false ||
+      lastPartialMessage?.say === "command_output" ||
+      lastPartialMessage?.partial === true;
+
+    if (!isDebugStreaming || lastPartialMessage?.partial !== true) {
+      stuckPartialDebugKeyRef.current = null;
+      return;
+    }
+
+    const debugKey = `${currentTaskItem?.id || "no-task"}:${lastPartialMessage.ts}:${lastPartialMessage.ask || lastPartialMessage.say || lastPartialMessage.type}`;
+
+    if (stuckPartialDebugKeyRef.current === debugKey) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      const latestMessage = modifiedMessages.at(-1);
+      if (
+        latestMessage?.partial === true &&
+        latestMessage.ts === lastPartialMessage.ts &&
+        currentTaskIsStreaming !== false
+      ) {
+        stuckPartialDebugKeyRef.current = debugKey;
+        reportWebviewDebugEvent({
+          source: "ChatView",
+          event: "partial_message_stuck_while_streaming",
+          level: "warn",
+          data: {
+            taskId: currentTaskItem?.id,
+            currentTaskIsStreaming,
+            isStreaming: isDebugStreaming,
+            ts: latestMessage.ts,
+            type: latestMessage.type,
+            ask: latestMessage.ask,
+            say: latestMessage.say,
+            textPreview:
+              typeof latestMessage.text === "string"
+                ? latestMessage.text.slice(0, 240)
+                : undefined,
+            metadata: latestMessage.metadata,
+            messageCount: messages.length,
+            modifiedMessageCount: modifiedMessages.length,
+            queueLength: messageQueue.length,
+          },
+        });
+      }
+    }, 15000);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    currentTaskIsStreaming,
+    currentTaskItem?.id,
+    messageQueue.length,
+    messages.length,
+    modifiedMessages,
+  ]);
+
   // Update button text when messages change (e.g., completion_result is added) for subtasks in resume_task state
   useEffect(() => {
     if (clineAsk === "resume_task" && currentTaskItem?.parentTaskId) {
@@ -883,8 +1463,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     setExpandedRows({});
     everVisibleMessagesTsRef.current.clear(); // Clear for new task
     clearToolResultCache(); // Clear tool result cache to prevent stale results
+    clearChatToolParseCache();
     clearVirtualHeightCache(); // Clear virtual row height cache for new task
-    stableKeyMapRef.current.clear(); // Clear stable key map for new task
+    stableRenderTsRef.current.clear();
     setCurrentFollowUpTs(null); // Clear follow-up answered state for new task
     setIsCondensing(false); // Reset condensing state when switching tasks
     // Note: sendingDisabled is not reset here as it's managed by message effects
@@ -913,7 +1494,11 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
         const el = streamingScrollerElRef.current as HTMLElement | null;
         if (!el) return;
         // Instantly jump to the bottom without the jarring smooth scroll bounce
-        el.scrollTo({ top: 999999999, behavior: "auto" });
+        if (typeof el.scrollTo === "function") {
+          el.scrollTo({ top: 999999999, behavior: "auto" });
+        } else {
+          el.scrollTop = 999999999;
+        }
       });
     });
 
@@ -1004,6 +1589,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   }, [pendingSwitchTaskId, task, isTaskSwitching]);
 
   useEffect(() => {
+    expandedRowsRef.current = expandedRows;
+  }, [expandedRows]);
+
+  useEffect(() => {
     const prev = prevExpandedRowsRef.current;
     let wasAnyRowExpandedByUser = false;
     if (prev) {
@@ -1025,77 +1614,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     prevExpandedRowsRef.current = expandedRows; // Store current state for next comparison
   }, [expandedRows]);
 
-  const isStreaming = useMemo(() => {
-    // Checking clineAsk isn't enough since messages effect may be called
-    // again for a tool for example, set clineAsk to its value, and if the
-    // next message is not an ask then it doesn't reset. This is likely due
-    // to how much more often we're updating messages as compared to before,
-    // and should be resolved with optimizations as it's likely a rendering
-    // bug. But as a final guard for now, the cancel button will show if the
-    // last message is not an ask.
-    const lastMsg = modifiedMessages.at(-1);
-    if (lastMsg?.say === "command_output") {
-      return true;
-    }
-
-    const isLastAsk = !!lastMsg?.ask;
-
-    const isToolCurrentlyAsking =
-      isLastAsk &&
-      clineAsk !== undefined &&
-      enableButtons &&
-      primaryButtonText !== undefined;
-
-    if (isToolCurrentlyAsking) {
-      return false;
-    }
-
-    // kade_change: Check raw messages for explicit finish signal
-    // regardless of whether combineApiRequests has merged cost yet.
-    // We use findLastIndex to find the absolute last relevant signal.
-    // If the last 'api_req_finished' is after the last 'api_req_started', we are done.
-    {
-      const lastStartedIndex = findLastIndex(
-        messages,
-        (m: ClineMessage) => m.say === "api_req_started",
-      );
-      const lastFinishedIndex = findLastIndex(
-        messages,
-        (m: ClineMessage) => m.say === "api_req_finished",
-      );
-
-      if (lastStartedIndex !== -1 && lastFinishedIndex > lastStartedIndex) {
-        return false;
-      }
-    }
-
-    const isLastMessagePartial = modifiedMessages.at(-1)?.partial === true;
-
-    if (isLastMessagePartial) {
-      return true;
-    } else {
-      const lastApiReqStarted = findLast(
-        modifiedMessages,
-        (message: ClineMessage) => message.say === "api_req_started",
-      );
-
-      if (
-        lastApiReqStarted &&
-        lastApiReqStarted.text !== null &&
-        lastApiReqStarted.text !== undefined &&
-        lastApiReqStarted.say === "api_req_started"
-      ) {
-        const cost = JSON.parse(lastApiReqStarted.text).cost;
-
-        if (cost === undefined) {
-          return true; // API request has not finished yet.
-        }
-      }
-    }
-
-    return false;
-  }, [modifiedMessages, clineAsk, enableButtons, primaryButtonText, messages]);
-
   // Scrollbar visibility logic
   const [isScrollbarActive, setIsScrollbarActive] = useState(false);
   const isScrollbarActiveRef = useRef(false);
@@ -1112,7 +1630,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     }
 
     // Throttle the timeout reset to once every 100ms to keep scrolling buttery smooth
-    if (now - lastScrollbarResetRef.current > 0) {
+    if (now - lastScrollbarResetRef.current > 100) {
       if (scrollbarTimeoutRef.current) {
         clearTimeout(scrollbarTimeoutRef.current);
       }
@@ -1138,6 +1656,28 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   const handleScrollAreaInteraction = useCallback(() => {
     showScrollbar();
   }, [showScrollbar]);
+
+  const updateBottomState = useCallback((atBottom: boolean) => {
+    const shouldTreatAsPinned =
+      !atBottom && (stickyFollowRef.current || streamingPinnedRef.current);
+    const resolvedAtBottom = atBottom || shouldTreatAsPinned;
+
+    if (isAtBottomRef.current !== resolvedAtBottom) {
+      isAtBottomRef.current = resolvedAtBottom;
+      setIsAtBottom(resolvedAtBottom);
+    }
+
+    const shouldShowScrollToBottom = !resolvedAtBottom;
+    if (showScrollToBottomRef.current !== shouldShowScrollToBottom) {
+      showScrollToBottomRef.current = shouldShowScrollToBottom;
+      setShowScrollToBottom(shouldShowScrollToBottom);
+    }
+  }, []);
+
+  const shouldAllowStreamingRelease = useCallback(
+    () => !isStreaming || performance.now() < userWheelReleaseUntilRef.current,
+    [isStreaming],
+  );
 
   const markFollowUpAsAnswered = useCallback(() => {
     const lastFollowUpMessage = messagesRef.current.findLast(
@@ -1173,16 +1713,104 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
    * @param text - The message text to send
    * @param images - Array of image data URLs to send with the message
    */
-  // kade_change: Manual scroll helpers
-  const manualScrollToBottom = useCallback(() => {
-    if (virtuosoRef.current) {
-      virtuosoRef.current.scrollToIndex({
-        index: "LAST",
-        align: "end",
-        behavior: "auto",
+  const scrollToRenderRowIndex = useCallback(
+    (
+      index: number | "LAST",
+      align: "start" | "center" | "end" | "start-no-overflow" = "end",
+      behavior: "auto" | "smooth" | "instant" = "auto",
+    ) => {
+      if (shouldUseMessageList) {
+        messageListRef.current?.scrollToItem({
+          index,
+          align,
+          behavior,
+        });
+        return;
+      }
+
+      virtuosoRef.current?.scrollToIndex({
+        index,
+        align: align === "start-no-overflow" ? "start" : align,
+        behavior: behavior === "instant" ? "auto" : behavior,
       });
-    }
-  }, []);
+    },
+    [shouldUseMessageList],
+  );
+
+  // kade_change: Manual scroll helpers
+  const manualScrollToBottom = useCallback(
+    (behavior: "auto" | "smooth" | "instant" = "auto") => {
+      scrollToRenderRowIndex("LAST", "end", behavior);
+    },
+    [scrollToRenderRowIndex],
+  );
+
+  const animateBottomAnchorToBottom = useCallback(
+    (durationMs = SMOOTH_BOTTOM_ANCHOR_DURATION_MS) => {
+      const scroller =
+        streamingScrollerElRef.current ??
+        stableListRef.current ??
+        scrollRootRef.current;
+      if (!scroller) {
+        return false;
+      }
+
+      const startScrollTop = scroller.scrollTop;
+      const startMaxScrollTop = Math.max(
+        0,
+        scroller.scrollHeight - scroller.clientHeight,
+      );
+      const initialDistance = startMaxScrollTop - startScrollTop;
+      if (initialDistance <= 1) {
+        return false;
+      }
+
+      if (smoothBottomAnchorRafRef.current !== null) {
+        cancelAnimationFrame(smoothBottomAnchorRafRef.current);
+        smoothBottomAnchorRafRef.current = null;
+      }
+
+      const startTime = performance.now();
+      smoothBottomAnchorUntilRef.current = startTime + durationMs;
+      updateBottomState(true);
+
+      const tick = (now: number) => {
+        const liveScroller =
+          streamingScrollerElRef.current ??
+          stableListRef.current ??
+          scrollRootRef.current;
+        if (!liveScroller) {
+          smoothBottomAnchorUntilRef.current = 0;
+          smoothBottomAnchorRafRef.current = null;
+          return;
+        }
+
+        const liveMaxScrollTop = Math.max(
+          0,
+          liveScroller.scrollHeight - liveScroller.clientHeight,
+        );
+        const progress = Math.min(1, (now - startTime) / durationMs);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        liveScroller.scrollTop =
+          startScrollTop + (liveMaxScrollTop - startScrollTop) * eased;
+
+        if (progress < 1) {
+          smoothBottomAnchorRafRef.current = requestAnimationFrame(tick);
+          return;
+        }
+
+        liveScroller.scrollTop = liveMaxScrollTop;
+        smoothBottomAnchorUntilRef.current = 0;
+        smoothBottomAnchorRafRef.current = null;
+        stablePrevScrollHeightRef.current = liveScroller.scrollHeight;
+        stableWasAtBottomRef.current = true;
+      };
+
+      smoothBottomAnchorRafRef.current = requestAnimationFrame(tick);
+      return true;
+    },
+    [streamingScrollerElRef, updateBottomState],
+  );
 
   // const smoothScrollToBottom = useCallback(() => {
   // 	if (virtuosoRef.current) {
@@ -1200,6 +1828,37 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
   // handleScroll is handled by Virtuoso's atBottomStateChange
 
+  useLayoutEffect(() => {
+    if (!isStreaming || wasStreaming || showScrollToBottomRef.current) {
+      return;
+    }
+
+    const scroller =
+      streamingScrollerElRef.current ??
+      stableListRef.current ??
+      scrollRootRef.current;
+    if (!scroller) {
+      return;
+    }
+
+    const hadBottomOwnership =
+      stickyFollowRef.current ||
+      streamingPinnedRef.current ||
+      isAtBottomRef.current ||
+      stableWasAtBottomRef.current;
+    if (!hadBottomOwnership) {
+      return;
+    }
+
+    animateBottomAnchorToBottom();
+  }, [
+    animateBottomAnchorToBottom,
+    isStreaming,
+    streamingPinnedRef,
+    streamingScrollerElRef,
+    wasStreaming,
+  ]);
+
   /**
    * Handles sending messages to the extension
    * @param text - The message text to send
@@ -1210,20 +1869,20 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       text = text.trim();
       setDidClickCancel(false);
 
-      // kade_change: Focus user message at top when sending
       if (text || images.length > 0) {
-        // Don't manual scroll to bottom here, as it might fight with the top-snapper
-        stickyFollowRef.current = true;
-        streamingPinnedRef.current = true;
-        setPendingUserMessageScroll(true);
-      }
+        const hasPendingAsk =
+          clineAskRef.current !== undefined && clineAskRef.current !== null;
 
-      if (text || images.length > 0) {
         // Queue message if:
         // - Task is busy (sendingDisabled)
         // - API request in progress (isStreaming)
         // - Queue has items (preserve message order during drain)
-        if (sendingDisabled || isStreaming || messageQueue.length > 0) {
+        // But if the backend is actively waiting for an ask response, send it
+        // immediately instead of parking it in the queue.
+        if (
+          !hasPendingAsk &&
+          (sendingDisabled || isStreaming || messageQueue.length > 0)
+        ) {
           try {
             console.log("queueMessage", text, images);
             vscode.postMessage({ type: "queueMessage", text, images });
@@ -1240,6 +1899,24 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
         // Mark that user has responded - this prevents any pending auto-approvals.
         userRespondedRef.current = true;
+
+        // New user turns should establish their own viewport position.
+        // Pre-pinning to bottom here creates the visible "spawn low, then move"
+        // flash against the composer spacer and can suppress the entry animation.
+        stickyFollowRef.current = false;
+        setStreamingPinned(false);
+
+        setOptimisticUserMessages((prev) => [
+          ...prev,
+          {
+            ts: Date.now() + prev.length,
+            type: "say",
+            say: messagesRef.current.length === 0 ? "task" : "user_feedback",
+            text,
+            images,
+            __optimistic: true,
+          },
+        ]);
 
         if (messagesRef.current.length === 0) {
           vscode.postMessage({
@@ -1427,6 +2104,19 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
       const trimmedInput = text?.trim();
 
+      if (clineAsk === "command_output") {
+        vscode.postMessage({
+          type: "terminalOperation",
+          terminalOperation: "abort",
+        });
+        setSendingDisabled(true);
+        setClineAsk(undefined);
+        setEnableButtons(false);
+        setPrimaryButtonText(undefined);
+        setSecondaryButtonText(undefined);
+        return;
+      }
+
       if (isStreaming) {
         vscode.postMessage({ type: "cancelTask" });
         setDidClickCancel(true);
@@ -1461,12 +2151,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
               askResponse: "noButtonClicked",
             });
           }
-          break;
-        case "command_output":
-          vscode.postMessage({
-            type: "terminalOperation",
-            terminalOperation: "abort",
-          });
           break;
       }
       setSendingDisabled(true);
@@ -1595,24 +2279,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
   // Simple message processing with lightweight tool dedup (per tool.id; keep latest, reuse first ts for stability)
   const visibleMessages = useMemo(() => {
-    const getToolSignature = (tool: ClineSayTool) => {
-      const toolWithPathAliases = tool as ClineSayTool & {
-        file_path?: string;
-        target_file?: string;
-      };
-
-      return [
-        tool.tool ?? "",
-        tool.path ??
-          toolWithPathAliases.file_path ??
-          toolWithPathAliases.target_file ??
-          tool.source ??
-          tool.destination ??
-          "",
-        tool.mode ?? "",
-      ].join("|");
-    };
-
     // Pre-pass: record the latest occurrence for each logical tool row.
     // Prefer `tool.id` when available. If a streamed tool snapshot doesn't have a stable id yet,
     // fall back to turn + tool signature + occurrence order so repeated `E path.txt` calls in the
@@ -1632,14 +2298,25 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       }
 
       if ((msg.ask === "tool" || msg.say === "tool") && msg.text) {
-        const tool = safeJsonParse<ClineSayTool>(msg.text);
+        const tool = parseCachedTool(msg.text);
         if (tool) {
           let identity: string;
+          const normalizedToolName = normalizeToolActivityName(
+            tool.tool as string,
+          );
 
-          if (tool.id) {
+          if (normalizedToolName === "readFile") {
+            identity = tool.id
+              ? `id:${tool.id}`
+              : `read:${currentTurnTs}:${getToolSignature(tool)}`;
+          } else if (tool.id) {
             identity = `id:${tool.id}`;
           } else {
-            const signature = `${currentTurnTs}:${getToolSignature(tool)}`;
+            const mutableToolFamily =
+              getMutableToolRowFamily(normalizedToolName);
+            const signature = mutableToolFamily
+              ? `mutable:${mutableToolFamily}`
+              : `${currentTurnTs}:${getToolSignature(tool)}`;
             const occurrence = occurrenceByTurnAndSignature.get(signature) ?? 0;
             occurrenceByTurnAndSignature.set(signature, occurrence + 1);
             identity = `sig:${signature}:${occurrence}`;
@@ -1658,7 +2335,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       // Filter protocol noise
       if (
         text === "Result:" ||
-        text.startsWith("[execute_command for") ||
+        text.startsWith("[bash for") ||
         text === "---" ||
         text === "***"
       )
@@ -1693,9 +2370,19 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       )
         return false;
 
+      if (
+        shouldHideToolFollowupErrorMessage({
+          messages: modifiedMessages,
+          index,
+          apiProvider: apiConfiguration?.apiProvider,
+        })
+      ) {
+        return false;
+      }
+
       return true;
     });
-  }, [modifiedMessages]);
+  }, [apiConfiguration?.apiProvider, modifiedMessages]);
 
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
@@ -1704,7 +2391,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
         modifiedMessages.map((m: ClineMessage) => m.ts),
       );
       const viewportMessages = visibleMessages.slice(
-        Math.max(0, visibleMessages.length - 100),
+        Math.max(0, visibleMessages.length - 150),
       );
       const viewportMessageIds = new Set(
         viewportMessages.map((m: ClineMessage) => m.ts),
@@ -1824,21 +2511,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
       if (kind === "ask") {
         // Unknown ask variants render null in ChatRow.
-        const renderableAskTypes = new Set([
-          "mistake_limit_reached",
-          "command",
-          "use_mcp_server",
-          "completion_result",
-          "followup",
-          "condense",
-          "payment_required_prompt",
-          "invalid_model",
-          "report_bug",
-          "auto_approval_max_req_reached",
-          "tool",
-        ]);
-
-        if (!renderableAskTypes.has(message.ask as string)) {
+        if (!RENDERABLE_ASK_ROW_TYPES.has(message.ask as string)) {
           return true;
         }
 
@@ -1849,40 +2522,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
         // Tool asks only render for a known subset in ChatRow's tool switch.
         if (message.ask === "tool") {
-          try {
-            const tool = JSON.parse(message.text || "{}");
-            const renderableAskToolTypes = new Set([
-              "editedExistingFile",
-              "appliedDiff",
-              "insertContent",
-              "searchAndReplace",
-              "updateTodoList",
-              "newFileCreated",
-              "web_search",
-              "web_fetch",
-              "research_web",
-              "deleteFile",
-              "readFile",
-              "fetchInstructions",
-              "listDirTopLevel",
-              "listDirRecursive",
-              "grep",
-              "glob",
-              "fastContext",
-              "switchMode",
-              "newTask",
-              "finishTask",
-              "runSlashCommand",
-              "run_sub_agent",
-              "generateImage",
-              "mkdir",
-              "moveFile",
-              "wrap",
-            ]);
-            return !renderableAskToolTypes.has(tool?.tool);
-          } catch (_) {
-            return true;
-          }
+          const tool = parseCachedTool(message.text);
+          return (
+            !tool || !RENDERABLE_TOOL_TYPES.has((tool.tool as string) || "")
+          );
         }
 
         return false;
@@ -1894,54 +2537,15 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
       // These say-types are intentionally non-visual in ChatRow and create
       // zero-height ghost rows if they reach Virtuoso.
-      if (
-        message.say === "api_req_finished" ||
-        message.say === "api_req_retried" ||
-        message.say === "api_req_deleted" ||
-        message.say === "mcp_server_request_started" ||
-        message.say === "command"
-      ) {
+      if (NON_RENDERABLE_SAY_ROW_TYPES.has(message.say as string)) {
         return true;
       }
 
       // say:"tool" rows: let any renderable tool's partial streaming state render.
       if (message.say === "tool") {
-        try {
-          const tool = JSON.parse(message.text || "{}");
-          if (tool?.tool === "runSlashCommand") return false;
-          const renderableSayToolTypes = new Set([
-            "editedExistingFile",
-            "appliedDiff",
-            "insertContent",
-            "searchAndReplace",
-            "updateTodoList",
-            "newFileCreated",
-            "web_search",
-            "web_fetch",
-            "research_web",
-            "deleteFile",
-            "readFile",
-            "fetchInstructions",
-            "listDirTopLevel",
-            "listDirRecursive",
-            "grep",
-            "glob",
-            "fastContext",
-            "switchMode",
-            "newTask",
-            "finishTask",
-            "runSlashCommand",
-            "run_sub_agent",
-            "generateImage",
-            "mkdir",
-            "moveFile",
-            "wrap",
-          ]);
-          if (renderableSayToolTypes.has(tool?.tool)) return false;
-          return true;
-        } catch (_) {
-          return true;
-        }
+        const tool = parseCachedTool(message.text);
+        if (tool?.tool === "runSlashCommand") return false;
+        return !tool || !RENDERABLE_TOOL_TYPES.has((tool.tool as string) || "");
       }
 
       return false;
@@ -1963,16 +2567,14 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     const result: ClineMessage[] = [];
     for (const msg of filtered) {
       if ((msg.ask === "tool" || msg.say === "tool") && msg.text) {
-        try {
-          const tool = JSON.parse(msg.text || "{}");
-          if (tool.id) {
-            if (seenToolIds.has(tool.id)) continue;
-            seenToolIds.add(tool.id);
-          } else if (seenTs.has(msg.ts)) {
-            continue;
-          }
-        } catch (_) {
+        const tool = parseCachedTool(msg.text);
+        if (!tool) {
           if (seenTs.has(msg.ts)) continue;
+        } else if (tool.id) {
+          if (seenToolIds.has(tool.id)) continue;
+          seenToolIds.add(tool.id);
+        } else if (seenTs.has(msg.ts)) {
+          continue;
         }
       } else if (seenTs.has(msg.ts)) {
         continue;
@@ -1982,35 +2584,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       result.push(msg);
     }
 
-    // BUILD STABLE KEY MAP: For tool messages, extract tool.id and map to the FIRST timestamp seen
-    // This ensures that when backend replaces a message with a new timestamp, we still use the original key
-    // CRITICAL FIX: We must also ensure that the message's ts is REWRITTEN to match the stable key
-    // to prevent React from seeing a "new" object when the backend finalizes the message
-    result.forEach((msg) => {
-      if (msg.ask === "tool" || msg.say === "tool") {
-        try {
-          const tool = JSON.parse(msg.text || "{}");
-          if (tool.id) {
-            if (!stableKeyMapRef.current.has(tool.id)) {
-              // First time seeing this tool.id - record its timestamp as the stable key
-              stableKeyMapRef.current.set(tool.id, msg.ts);
-            } else {
-              // We've seen this tool.id before - force this message to use the original ts
-              const originalTs = stableKeyMapRef.current.get(tool.id);
-              if (originalTs !== undefined && msg.ts !== originalTs) {
-                // MUTATE the message to use the stable timestamp
-                (msg as any).ts = originalTs;
-              }
-            }
-          }
-        } catch (_) {
-          // Ignore parse errors
-        }
-      }
-    });
+    if (visibleOptimisticUserMessages.length > 0) {
+      result.push(...visibleOptimisticUserMessages);
+    }
 
-    // Update ref for itemContent callback to use without causing re-renders
-    groupedMessagesRef.current = result;
     if (isCondensing) {
       result.push({
         type: "say",
@@ -2025,7 +2602,258 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     visibleMessages,
     isBrowserSessionMessage,
     isNonRenderableRowMessage,
+    visibleOptimisticUserMessages,
   ]);
+
+  const renderRows = useMemo(() => {
+    const getStableRenderTs = (rowId: string, fallbackTs: number) => {
+      const stableTs = stableRenderTsRef.current.get(rowId);
+      if (stableTs !== undefined) {
+        return stableTs;
+      }
+      stableRenderTsRef.current.set(rowId, fallbackTs);
+      return fallbackTs;
+    };
+
+    const buildToolRowId = (
+      tool: ClineSayTool,
+      turnTs: number,
+      occurrenceByTurnAndSignature: Map<string, number>,
+    ) => {
+      const normalizedToolName = normalizeToolActivityName(tool.tool as string);
+
+      if (normalizedToolName === "readFile") {
+        return tool.id
+          ? `tool:id:${tool.id}`
+          : `tool:read:${turnTs}:${getToolSignature(tool)}`;
+      }
+
+      if (tool.id) {
+        return `tool:id:${tool.id}`;
+      }
+
+      const mutableToolFamily = getMutableToolRowFamily(normalizedToolName);
+      const signature = mutableToolFamily
+        ? `mutable:${mutableToolFamily}`
+        : `${turnTs}:${getToolSignature(tool)}`;
+      const occurrence = occurrenceByTurnAndSignature.get(signature) ?? 0;
+      occurrenceByTurnAndSignature.set(signature, occurrence + 1);
+      return `tool:sig:${signature}:${occurrence}`;
+    };
+
+    const rows: ChatRenderRow[] = [];
+    let currentTurnTs = 0;
+    const occurrenceByTurnAndSignature = new Map<string, number>();
+    const userMessageOccurrences = new Map<string, number>();
+    const assistantMessageOccurrences = new Map<string, number>();
+
+    for (let i = 0; i < groupedMessages.length; i++) {
+      const message = groupedMessages[i];
+
+      if (message.say === "api_req_started") {
+        currentTurnTs = message.ts;
+        occurrenceByTurnAndSignature.clear();
+        assistantMessageOccurrences.clear();
+      }
+
+      if (message.type === "ask" && message.ask === "tool" && message.text) {
+        const segmentMessages: ClineMessage[] = [];
+        const segmentTools: ClineSayTool[] = [];
+        const segmentRowIds: string[] = [];
+        let segmentTurnTs = currentTurnTs;
+        let cursor = i;
+
+        while (cursor < groupedMessages.length) {
+          const candidate = groupedMessages[cursor];
+          if (
+            !(
+              candidate.type === "ask" &&
+              candidate.ask === "tool" &&
+              candidate.text
+            )
+          ) {
+            break;
+          }
+
+          const parsedTool = parseCachedTool(candidate.text);
+          if (
+            !parsedTool ||
+            !TOOL_ACTIVITY_SUMMARY_TOOL_NAMES.has(
+              (parsedTool.tool as string) || "",
+            )
+          ) {
+            break;
+          }
+
+          segmentMessages.push(candidate);
+          segmentTools.push(parsedTool);
+          segmentRowIds.push(
+            buildToolRowId(
+              parsedTool,
+              segmentTurnTs,
+              occurrenceByTurnAndSignature,
+            ),
+          );
+          cursor += 1;
+        }
+
+        const segmentHasFollowingBoundary = cursor < groupedMessages.length;
+        const shouldSummarizeSegment = segmentMessages.length > 1;
+
+        if (shouldSummarizeSegment) {
+          const summarizedTools = dedupeToolActivityEntries(segmentTools);
+          const running = getToolActivitySummaryRunning({
+            hasFollowingBoundary: segmentHasFollowingBoundary,
+            isStreaming,
+            segmentMessages,
+          });
+          const summaryText = buildToolActivitySummaryText(
+            summarizedTools,
+            running,
+          );
+          const entries = summarizedTools
+            .map((tool, entryIndex) => buildToolActivityEntry(tool, entryIndex))
+            .filter((entry, entryIndex, allEntries) => {
+              const signature = getToolActivityEntrySignature(entry);
+              return (
+                allEntries.findIndex(
+                  (candidate) =>
+                    getToolActivityEntrySignature(candidate) === signature,
+                ) === entryIndex
+              );
+            });
+
+          const summaryRowId = `tool-summary:${segmentRowIds[0]}`;
+          const summaryMessage: ToolActivitySummaryMessage = {
+            ...segmentMessages[0],
+            type: "say",
+            say: TOOL_ACTIVITY_SUMMARY_SAY,
+            text: summaryText,
+            metadata: {
+              summaryText,
+              running,
+              entries,
+            },
+          };
+
+          rows.push({
+            id: summaryRowId,
+            kind: TOOL_ACTIVITY_SUMMARY_SAY,
+            message: summaryMessage,
+            summary: summaryMessage.metadata,
+            groupedMessages: segmentMessages.map(
+              (segmentMessage, segmentIndex) => {
+                const rowId = segmentRowIds[segmentIndex];
+                const stableTs = getStableRenderTs(rowId, segmentMessage.ts);
+                const renderMessage =
+                  stableTs === segmentMessage.ts
+                    ? segmentMessage
+                    : { ...segmentMessage, ts: stableTs };
+
+                return {
+                  id: rowId,
+                  message: renderMessage,
+                  isStreaming: Boolean(segmentMessage.partial),
+                };
+              },
+            ),
+            isStreaming: running,
+          });
+
+          i = cursor - 1;
+          continue;
+        }
+      }
+
+      let rowId = `message:${message.type}:${message.ask ?? message.say ?? "unknown"}:${message.ts}`;
+      let renderMessage = message;
+      const isTrailingPartialAssistantMessage =
+        i === groupedMessages.length - 1 &&
+        message.partial === true &&
+        message.type === "say" &&
+        ![
+          "tool",
+          "reasoning",
+          "api_req_started",
+          "browser_action",
+          "browser_action_result",
+          "browser_session_status",
+          "user_feedback",
+          "user_feedback_diff",
+          "task",
+          "checkpoint_saved",
+        ].includes(message.say || "");
+      const userRenderableSignature =
+        getUserRenderableMessageSignature(message);
+
+      if (userRenderableSignature) {
+        const occurrence =
+          userMessageOccurrences.get(userRenderableSignature) ?? 0;
+        userMessageOccurrences.set(userRenderableSignature, occurrence + 1);
+        rowId = getUserRenderableRowId(message, occurrence) ?? rowId;
+        const stableTs = getStableRenderTs(rowId, message.ts);
+        if (stableTs !== message.ts) {
+          renderMessage = { ...message, ts: stableTs };
+        }
+      } else if (isToolMessage(message) && message.text) {
+        const parsedTool = parseCachedTool(message.text);
+        if (parsedTool) {
+          rowId = buildToolRowId(
+            parsedTool,
+            currentTurnTs,
+            occurrenceByTurnAndSignature,
+          );
+          const stableTs = getStableRenderTs(rowId, message.ts);
+          if (stableTs !== message.ts) {
+            renderMessage = { ...message, ts: stableTs };
+          }
+        }
+      } else if (message.type === "say" && message.say === "text") {
+        const assistantOccurrenceKey = `${currentTurnTs}:${message.say}`;
+        const occurrence =
+          assistantMessageOccurrences.get(assistantOccurrenceKey) ?? 0;
+        assistantMessageOccurrences.set(assistantOccurrenceKey, occurrence + 1);
+        rowId = `assistant:${assistantOccurrenceKey}:${occurrence}`;
+        const stableTs = getStableRenderTs(rowId, message.ts);
+        if (stableTs !== message.ts) {
+          renderMessage = { ...message, ts: stableTs };
+        }
+      } else if (isTrailingPartialAssistantMessage) {
+        // Keep the single live assistant row stable while chunks stream in.
+        rowId = `stream:assistant:${task?.ts ?? currentTurnTs}:${
+          message.say ?? "unknown"
+        }`;
+        const stableTs = getStableRenderTs(rowId, message.ts);
+        if (stableTs !== message.ts) {
+          renderMessage = { ...message, ts: stableTs };
+        }
+      }
+
+      rows.push({
+        id: rowId,
+        kind: "message",
+        message: renderMessage,
+        isStreaming: Boolean(message.partial),
+      });
+    }
+
+    return rows;
+  }, [groupedMessages, isStreaming, task?.ts]);
+
+  useEffect(() => {
+    renderRowsRef.current = renderRows;
+  }, [renderRows]);
+
+  const lastCommandMessageTs = useMemo(() => {
+    for (let index = renderRows.length - 1; index >= 0; index--) {
+      const row = renderRows[index];
+      if (row.kind === "message" && row.message.ask === "command") {
+        return row.message.ts;
+      }
+    }
+
+    return null;
+  }, [renderRows]);
 
   useEffect(() => {
     const handleZeroSizedRow = (event: Event) => {
@@ -2052,50 +2880,18 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     setZeroSizedRowTs(new Set());
   }, [task?.ts]);
 
-  // Auto-scroll effect — only handles top-snapping for new user messages.
   // Bottom-pinning during streaming is handled by Virtuoso's followOutput
   // and the MutationObserver in useStreamingScrollPin. Adding manual
   // scrollToBottom calls here creates competing scroll adjustments that
   // cause visible jank.
   useEffect(() => {
-    // kade_change: Top-snapping logic for new turns
-    if (pendingUserMessageScroll && groupedMessages.length > 0) {
-      setPendingUserMessageScroll(false);
-
-      // If we're already at/near the bottom, skip top-snapping — just
-      // stay pinned to bottom. Scrolling to align:"start" when already
-      // at the bottom causes a visible 2px scroll-up jitter before
-      // streaming pushes it back down.
-      if (!isAtBottom) {
-        const lastUserIndex = groupedMessages.findLastIndex(
-          (m) => m.say === "user_feedback" || m.type === "ask",
-        );
-        if (lastUserIndex !== -1) {
-          virtuosoRef.current?.scrollToIndex({
-            index: lastUserIndex,
-            align: "start",
-            behavior: "smooth",
-          });
-          stickyFollowRef.current = false;
-          streamingPinnedRef.current = false;
-          return;
-        }
-      }
-    }
-
     // When streaming starts or new messages arrive, just ensure the
     // pinned state is set. The actual scroll adjustment is done by
     // followOutput + MutationObserver, not by imperative scrollToIndex.
     if (stickyFollowRef.current || (isStreaming && !showScrollToBottom)) {
-      streamingPinnedRef.current = true;
+      setStreamingPinned(true);
     }
-  }, [
-    groupedMessages.length,
-    isStreaming,
-    showScrollToBottom,
-    pendingUserMessageScroll,
-    isAtBottom,
-  ]);
+  }, [renderRows.length, isStreaming, showScrollToBottom]);
 
   // scrolling
 
@@ -2106,24 +2902,182 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       }),
     [manualScrollToBottom],
   );
+  const bottomMagnetRafRef = useRef<number | null>(null);
+  const bottomMagnetUntilRef = useRef(0);
 
-  useEffect(() => {
-    const handleToolAnimateHeight = () => {
-      const shouldFollow = stickyFollowRef.current || isAtBottom;
-      streamingPinnedRef.current = shouldFollow;
-      if (shouldFollow) {
-        // Use forcePin for immediate synchronous scroll (no rAF delay)
-        // This prevents the 1-frame flash when accordions expand
-        forcePinToBottom();
+  const extendBottomMagnet = useCallback((durationMs = 1200) => {
+    bottomMagnetUntilRef.current = Math.max(
+      bottomMagnetUntilRef.current,
+      performance.now() + durationMs,
+    );
+  }, []);
+
+  const releaseBottomMagnet = useCallback(() => {
+    bottomMagnetUntilRef.current = 0;
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!isLastPartialReadTool || showScrollToBottomRef.current) {
+      return;
+    }
+
+    const scroller =
+      streamingScrollerElRef.current ??
+      stableListRef.current ??
+      scrollRootRef.current;
+    if (!scroller) {
+      return;
+    }
+
+    const hadBottomOwnership =
+      stickyFollowRef.current ||
+      streamingPinnedRef.current ||
+      isAtBottomRef.current ||
+      stableWasAtBottomRef.current;
+    if (!hadBottomOwnership) {
+      return;
+    }
+
+    setStreamingPinned(true);
+    extendBottomMagnet(900);
+    forcePinToBottom();
+    stablePrevScrollHeightRef.current = scroller.scrollHeight;
+    stableWasAtBottomRef.current = true;
+    updateBottomState(true);
+  }, [
+    extendBottomMagnet,
+    forcePinToBottom,
+    isLastPartialReadTool,
+    streamingPinnedRef,
+    streamingScrollerElRef,
+    updateBottomState,
+  ]);
+
+  const handleScrollerDistanceFromBottom = useCallback(
+    (distanceFromBottom: number, scrollHeight: number) => {
+      const atBottom = distanceFromBottom <= BOTTOM_OFFSET_THRESHOLD;
+      const userInitiatedRelease = shouldAllowStreamingRelease();
+
+      stablePrevScrollHeightRef.current = scrollHeight;
+      stableWasAtBottomRef.current = atBottom;
+
+      const streamingPinned = syncStreamingPinnedFromScroll(distanceFromBottom);
+      const retainStreamingPinOptions = {
+        isStreaming,
+        stickyFollow: stickyFollowRef.current,
+        streamingPinned,
+        distanceFromBottom,
+        bottomOffsetThreshold: BOTTOM_OFFSET_THRESHOLD,
+        userInitiatedRelease,
+      };
+      const retainStreamingPin = shouldRetainStreamingPin(
+        retainStreamingPinOptions,
+      );
+
+      if (!atBottom && !retainStreamingPin) {
+        stickyFollowRef.current = false;
+        setStreamingPinned(false);
+        releaseBottomMagnet();
+        updateBottomState(false);
+        return;
       }
+
+      updateBottomState(atBottom);
+    },
+    [
+      isStreaming,
+      releaseBottomMagnet,
+      shouldAllowStreamingRelease,
+      syncStreamingPinnedFromScroll,
+      updateBottomState,
+    ],
+  );
+
+  const preserveAnimatedScrollAnchor = useCallback(
+    (detail?: { top: number; bottom: number }) => {
+      const scroller =
+        streamingScrollerElRef.current ??
+        stableListRef.current ??
+        scrollRootRef.current;
+      if (!scroller) {
+        return;
+      }
+
+      const prevScrollHeight =
+        stablePrevScrollHeightRef.current || scroller.scrollHeight;
+      const nextScrollHeight = scroller.scrollHeight;
+      const delta = nextScrollHeight - prevScrollHeight;
+      const isActuallyAtBottom =
+        nextScrollHeight - scroller.scrollTop - scroller.clientHeight <=
+        BOTTOM_OFFSET_THRESHOLD;
+      const hadBottomOwnership =
+        stickyFollowRef.current ||
+        streamingPinnedRef.current ||
+        isAtBottomRef.current ||
+        stableWasAtBottomRef.current;
+      // KILOCODE FIX: Determine bottom state explicitly
+      const animatedDetailNeedsViewportPreservation =
+        !!detail && !isActuallyAtBottom;
+
+      // If we are streaming and we were previously pinned, or if we are at the bottom, stay pinned.
+      // Do not use the detail alone to unpin if we are actively streaming.
+      const shouldPinBottom =
+        (hadBottomOwnership || (isStreaming && streamingPinnedRef.current)) &&
+        !showScrollToBottom;
+
+      setStreamingPinned(shouldPinBottom);
+
+      if (shouldPinBottom) {
+        extendBottomMagnet();
+        if (!isStreaming) {
+          forcePinToBottom();
+        }
+      } else if (
+        delta !== 0 &&
+        shouldAdjustScrollForToolAnimation(
+          detail,
+          scroller.getBoundingClientRect().top,
+        )
+      ) {
+        scroller.scrollTop += delta;
+      }
+
+      stablePrevScrollHeightRef.current = scroller.scrollHeight;
+      stableWasAtBottomRef.current =
+        scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight <=
+        BOTTOM_OFFSET_THRESHOLD;
+    },
+    [
+      forcePinToBottom,
+      isStreaming,
+      showScrollToBottom,
+      streamingPinnedRef,
+      streamingScrollerElRef,
+      extendBottomMagnet,
+    ],
+  );
+
+  const stableLastAnchorDetailRef = useRef<ToolAnimateHeightDetail | undefined>(
+    undefined,
+  );
+  useEffect(() => {
+    const handleToolAnimateHeight = (
+      event: Event | CustomEvent<ToolAnimateHeightDetail>,
+    ) => {
+      const detail = event instanceof CustomEvent ? event.detail : undefined;
+      stableLastAnchorDetailRef.current = detail;
+      preserveAnimatedScrollAnchor(detail);
     };
-    window.addEventListener("tool-animate-height", handleToolAnimateHeight);
+    window.addEventListener(
+      CHAT_SCROLL_ANCHOR_ADJUST_EVENT,
+      handleToolAnimateHeight,
+    );
     return () =>
       window.removeEventListener(
-        "tool-animate-height",
+        CHAT_SCROLL_ANCHOR_ADJUST_EVENT,
         handleToolAnimateHeight,
       );
-  }, [isAtBottom, forcePinToBottom]);
+  }, [preserveAnimatedScrollAnchor]);
 
   // NOTE: The tool-animate-height handler above uses forcePinToBottom()
   // for accordion expand/collapse events because those are discrete,
@@ -2131,7 +3085,64 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   // The MutationObserver + ResizeObserver handle continuous streaming.
 
   useEffect(() => {
+    const tick = () => {
+      bottomMagnetRafRef.current = null;
+
+      const scroller =
+        streamingScrollerElRef.current ??
+        stableListRef.current ??
+        scrollRootRef.current;
+      if (!scroller) {
+        return;
+      }
+
+      const baseMagnetActive =
+        stickyFollowRef.current ||
+        streamingPinnedRef.current ||
+        (isStreaming && !showScrollToBottomRef.current);
+      if (baseMagnetActive) {
+        extendBottomMagnet();
+      }
+
+      const shouldMagnet =
+        baseMagnetActive ||
+        (performance.now() < bottomMagnetUntilRef.current &&
+          !showScrollToBottomRef.current);
+
+      if (!shouldMagnet) {
+        return;
+      }
+
+      if (performance.now() < smoothBottomAnchorUntilRef.current) {
+        bottomMagnetRafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      const maxScrollTop = scroller.scrollHeight - scroller.clientHeight;
+      if (maxScrollTop > 0 && maxScrollTop - scroller.scrollTop > 1) {
+        scroller.scrollTop = scroller.scrollHeight;
+        stablePrevScrollHeightRef.current = scroller.scrollHeight;
+        stableWasAtBottomRef.current = true;
+        if (!isAtBottomRef.current) {
+          updateBottomState(true);
+        }
+      }
+
+      bottomMagnetRafRef.current = requestAnimationFrame(tick);
+    };
+
+    bottomMagnetRafRef.current = requestAnimationFrame(tick);
+
     return () => {
+      if (bottomMagnetRafRef.current !== null) {
+        cancelAnimationFrame(bottomMagnetRafRef.current);
+        bottomMagnetRafRef.current = null;
+      }
+      if (smoothBottomAnchorRafRef.current !== null) {
+        cancelAnimationFrame(smoothBottomAnchorRafRef.current);
+        smoothBottomAnchorRafRef.current = null;
+      }
+      smoothBottomAnchorUntilRef.current = 0;
       if (
         scrollToBottomSmooth &&
         typeof (scrollToBottomSmooth as any).cancel === "function"
@@ -2139,10 +3150,17 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
         (scrollToBottomSmooth as any).cancel();
       }
     };
-  }, [scrollToBottomSmooth]);
+  }, [
+    extendBottomMagnet,
+    isStreaming,
+    scrollToBottomSmooth,
+    streamingScrollerElRef,
+    updateBottomState,
+  ]);
 
   const scrollToBottomAuto = useCallback(() => {
-    manualScrollToBottom();
+    // Use instant behavior to prevent the "bounce" during layout shifts like typing
+    manualScrollToBottom("instant");
   }, [manualScrollToBottom]);
 
   // kade_change start
@@ -2160,13 +3178,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     if (highlightedMessageIndex === null) return;
     const index = highlightedMessageIndex;
 
-    if (virtuosoRef.current) {
-      virtuosoRef.current.scrollToIndex({
-        index,
-        align: "end",
-        behavior: "smooth",
-      });
-    }
+    scrollToRenderRowIndex(index, "end", "smooth");
 
     // Clear existing timer if present
     if (highlightClearTimerRef.current) {
@@ -2176,7 +3188,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       setHighlightedMessageIndex(null);
       highlightClearTimerRef.current = undefined;
     }, 1000);
-  }, [highlightedMessageIndex]);
+  }, [highlightedMessageIndex, scrollToRenderRowIndex]);
 
   // Cleanup highlight timer on unmount
   useEffect(() => {
@@ -2219,14 +3231,34 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
   // Disable sticky follow when user scrolls up inside the chat container
   // Virtuoso handles this internaly mostly, but we keep this for wheel events on window
-  const handleWheel = useCallback((event: Event) => {
-    const wheelEvent = event as WheelEvent;
-    // KILOCODE FIX: If user scrolls up (deltaY < 0), immediately release the scroll lock.
-    if (wheelEvent.deltaY < 0) {
-      stickyFollowRef.current = false;
-      streamingPinnedRef.current = false;
-    }
-  }, []);
+  const handleWheel = useCallback(
+    (event: Event) => {
+      const wheelEvent = event as WheelEvent;
+      const eventTarget = wheelEvent.target;
+      const scroller =
+        streamingScrollerElRef.current ??
+        stableListRef.current ??
+        scrollRootRef.current;
+      if (!(eventTarget instanceof Node) || !scroller?.contains(eventTarget)) {
+        return;
+      }
+
+      // KILOCODE FIX: If user scrolls up (deltaY < 0), immediately release the scroll lock.
+      if (wheelEvent.deltaY < 0) {
+        userWheelReleaseUntilRef.current =
+          performance.now() + USER_WHEEL_SCROLL_RELEASE_WINDOW_MS;
+        stickyFollowRef.current = false;
+        setStreamingPinned(false);
+        releaseBottomMagnet();
+        return;
+      }
+
+      if (wheelEvent.deltaY > 0) {
+        userWheelReleaseUntilRef.current = 0;
+      }
+    },
+    [releaseBottomMagnet],
+  );
   useEvent("wheel", handleWheel, window, { passive: true });
 
   // Also disable sticky follow when the chat container is scrolled away from bottom
@@ -2344,14 +3376,61 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   // kade_change end
 
   const itemContent = useCallback(
-    (index: number, messageOrGroup: ClineMessage) => {
-      // Use refs to avoid callback recreation when messages change
+    (index: number, row: ChatRenderRow) => {
       const currentModifiedMessages = modifiedMessagesRef.current;
-      const hasCheckpoint = currentModifiedMessages.some(
-        (message) => message.say === "checkpoint_saved",
-      );
+      const currentExpandedRows = expandedRowsRef.current;
+      const currentRenderRows = renderRowsRef.current;
+      const isLastRow = index === currentRenderRows.length - 1;
 
-      // Check if this is a browser action message
+      if (row.kind === TOOL_ACTIVITY_SUMMARY_SAY) {
+        return (
+          <ToolActivitySummaryRow
+            key={row.id}
+            data={row.summary}
+            shouldAnimate={isLastRow}
+          >
+            {row.groupedMessages
+              .filter(
+                (groupedRow) =>
+                  !(
+                    groupedRow.message.type === "say" &&
+                    groupedRow.message.say === "error"
+                  ),
+              )
+              .map((groupedRow) => (
+              <MemoizedChatRowContent
+                key={groupedRow.id}
+                message={groupedRow.message}
+                isExpanded={
+                  currentExpandedRows[groupedRow.message.ts] !== undefined
+                    ? currentExpandedRows[groupedRow.message.ts]
+                    : groupedRow.message.say === "reasoning"
+                      ? isLastRow && groupedRow.isStreaming
+                        ? true
+                        : !reasoningBlockCollapsed
+                      : !historyPreviewCollapsed
+                }
+                isLast={false}
+                isStreaming={groupedRow.isStreaming}
+                onToggleExpand={toggleRowExpansion}
+                onSuggestionClick={handleSuggestionClickInRow}
+                onBatchFileResponse={handleBatchFileResponse}
+                onFollowUpUnmount={undefined}
+                enableCheckpoints={enableCheckpoints}
+                isFollowUpAnswered={false}
+                isFollowUpAutoApprovalPaused={false}
+                isAskingToProceed={false}
+                showResponseActions={false}
+                allowCommandAutoScroll={!showScrollToBottom}
+                compactToolSpacing
+              />
+            ))}
+          </ToolActivitySummaryRow>
+        );
+      }
+
+      const messageOrGroup = row.message;
+
       if (
         messageOrGroup.type === "say" &&
         messageOrGroup.say === "browser_action"
@@ -2371,7 +3450,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
         return (
           <BrowserActionRow
-            key={stableKeyMapRef.current.get((messageOrGroup as any).tool?.id) || messageOrGroup.ts}
+            key={row.id}
             message={messageOrGroup}
             nextMessage={nextMessage}
             actionIndex={actionIndex}
@@ -2403,32 +3482,18 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
       // kade_change: Check if asking to proceed
       // Use ref to avoid callback recreation
-      const currentGroupedMessages = groupedMessagesRef.current;
       const isLastCommand =
         messageOrGroup.ask === "command" &&
-        messageOrGroup ===
-          currentGroupedMessages.filter((m) => m.ask === "command").at(-1);
+        messageOrGroup.ts === lastCommandMessageTs;
 
       // regular message
-      const isLastRow = index === currentGroupedMessages.length - 1;
       return (
         <ChatRow
-          key={(() => {
-            if (messageOrGroup.ask === "tool" || messageOrGroup.say === "tool") {
-              try {
-                const tool = JSON.parse(messageOrGroup.text || "{}");
-                const toolId = tool.id;
-                if (toolId) {
-                  return stableKeyMapRef.current.get(toolId) || `tool-${toolId}`;
-                }
-              } catch (_) {}
-            }
-            return messageOrGroup.ts;
-          })()}
+          key={row.id}
           message={messageOrGroup}
           isExpanded={
-            expandedRows[messageOrGroup.ts] !== undefined
-              ? expandedRows[messageOrGroup.ts]
+            currentExpandedRows[messageOrGroup.ts] !== undefined
+              ? currentExpandedRows[messageOrGroup.ts]
               : messageOrGroup.say === "reasoning"
                 ? isLastRow && isStreaming
                   ? true
@@ -2452,14 +3517,11 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
             messageOrGroup.type === "ask" &&
             messageOrGroup.ask === "tool" &&
             (() => {
-              let tool: any = {};
-              try {
-                tool = JSON.parse(messageOrGroup.text || "{}");
-              } catch (_) {
-                if (messageOrGroup.text?.includes("updateTodoList")) {
-                  tool = { tool: "updateTodoList" };
-                }
-              }
+              const tool: any =
+                parseCachedTool(messageOrGroup.text) ??
+                (messageOrGroup.text?.includes("updateTodoList")
+                  ? { tool: "updateTodoList" }
+                  : {});
               if (tool.tool === "updateTodoList" && alwaysAllowUpdateTodoList) {
                 return false;
               }
@@ -2470,7 +3532,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
               );
             })()
           }
-          hasCheckpoint={hasCheckpoint}
+          hasCheckpoint={hasCheckpointMessage}
           isAskingToProceed={isLastCommand && clineAsk === "command_output"}
           allowCommandAutoScroll={!showScrollToBottom}
           showResponseActions={(() => {
@@ -2496,7 +3558,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
             if (!isAssistantText) return false;
 
-            const nextMsg = currentGroupedMessages[index + 1];
+            const nextMsg = currentRenderRows[index + 1]?.message;
             if (!nextMsg) return true;
 
             return (
@@ -2510,13 +3572,13 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       );
     },
     [
-      expandedRows,
       toggleRowExpansion,
       // REMOVED: modifiedMessages, groupedMessages - now uses refs to avoid callback recreation
       handleRowHeightChange,
       isStreaming,
       handleSuggestionClickInRow,
       handleBatchFileResponse,
+      hasCheckpointMessage,
       highlightedMessageIndex, // kade_change: add highlightedMessageIndex
       enableCheckpoints, // kade_change
       currentFollowUpTs,
@@ -2526,8 +3588,136 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       primaryButtonText,
       clineAsk,
       historyPreviewCollapsed,
+      lastCommandMessageTs,
       reasoningBlockCollapsed,
     ],
+  );
+
+  const messageListData = useMemo<DataWithScrollModifier<ChatRenderRow>>(() => {
+    const previousRows = prevMessageListRowsRef.current;
+    const previousIds = previousRows.map((row) => row.id);
+    const nextIds = renderRows.map((row) => row.id);
+
+    if (renderRows.length === 0) {
+      prevMessageListRowsRef.current = renderRows;
+      prevMessageListTaskTsRef.current = task?.ts;
+      return { data: renderRows };
+    }
+
+    const appended =
+      previousIds.length > 0 &&
+      nextIds.length >= previousIds.length &&
+      previousIds.every((id, index) => nextIds[index] === id);
+    const sameItemsChanged =
+      previousIds.length === nextIds.length &&
+      previousIds.every((id, index) => nextIds[index] === id);
+
+    let scrollModifier: DataWithScrollModifier<ChatRenderRow>["scrollModifier"];
+
+    if (appended) {
+      scrollModifier = {
+        type: "auto-scroll-to-bottom",
+        autoScroll: ({ atBottom, scrollInProgress }) => {
+          const shouldFollow =
+            stickyFollowRef.current ||
+            (isStreaming && (atBottom || streamingPinnedRef.current));
+          if (!shouldFollow) {
+            return false;
+          }
+
+          if (isStreaming && !wasStreaming && !showScrollToBottomRef.current) {
+            return false;
+          }
+
+          return {
+            index: "LAST",
+            align: "end",
+            behavior: atBottom || scrollInProgress ? "auto" : "smooth",
+          };
+        },
+      };
+    } else if (sameItemsChanged && isStreaming && !showScrollToBottom) {
+      scrollModifier = {
+        type: "items-change",
+        behavior: "auto",
+      };
+    }
+
+    prevMessageListRowsRef.current = renderRows;
+    prevMessageListTaskTsRef.current = task?.ts;
+
+    return {
+      data: renderRows,
+      scrollModifier,
+    };
+  }, [
+    isStreaming,
+    renderRows,
+    showScrollToBottom,
+    task?.ts,
+    streamingPinnedRef,
+    wasStreaming,
+  ]);
+
+  const messageListKey = useMemo(
+    () => `message-list:${task?.ts ?? "no-task"}`,
+    [task?.ts],
+  );
+
+  const MessageListItem = useMemo<
+    NonNullable<VirtuosoMessageListProps<ChatRenderRow, unknown>["ItemContent"]>
+  >(
+    () =>
+      function MessageListItem({ data, index }) {
+        return <div style={{ minHeight: 1 }}>{itemContent(index, data)}</div>;
+      },
+    [itemContent],
+  );
+
+  const MessageListFooter = useMemo<
+    NonNullable<VirtuosoMessageListProps<ChatRenderRow, unknown>["Footer"]>
+  >(
+    () =>
+      function MessageListFooter() {
+        return (
+          <div
+            style={{
+              height: footerSpacerHeight,
+              minHeight: footerSpacerHeight,
+            }}
+          >
+            <div className="scroll-anchor" style={{ height: "1px" }} />
+          </div>
+        );
+      },
+    [footerSpacerHeight],
+  );
+
+  const MessageListScrollElement = useMemo<
+    NonNullable<
+      VirtuosoMessageListProps<ChatRenderRow, unknown>["ScrollElement"]
+    >
+  >(
+    () =>
+      forwardRef(function MessageListScrollElement(
+        {
+          context: _context,
+          ...props
+        }: React.HTMLProps<HTMLDivElement> & { context?: unknown },
+        ref: React.Ref<HTMLDivElement>,
+      ) {
+        return (
+          <div
+            {...props}
+            ref={(el) => {
+              assignRef(ref, el);
+              streamingScrollerRef(el);
+              scrollRootRef.current = el;
+            }}
+          />
+        );
+      }),
+    [streamingScrollerRef],
   );
 
   // Function to handle mode switching
@@ -2571,12 +3761,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("wheel", handleWheel, { passive: true }); // kade_change
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("wheel", handleWheel); // kade_change
     };
-  }, [handleKeyDown, handleWheel]); // kade_change
+  }, [handleKeyDown]); // kade_change
 
   useImperativeHandle(ref, () => ({
     toggleHistory: () => {
@@ -2617,7 +3805,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   const showTelemetryBanner = telemetrySetting === "unset"; // kade_change
 
   const SCROLL_DEBUG = false; // Disabled debug overlay
-  const FORCE_STABLE_CHAT_LIST = false; // Re-enabled Virtuoso for better performance
   const stableListRef = useRef<HTMLDivElement | null>(null);
   const scrollRootRef = useRef<HTMLElement | null>(null);
   const stablePrevScrollHeightRef = useRef(0);
@@ -2625,18 +3812,18 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
 
   const virtualRowKeys = useMemo(
-    () =>
-      groupedMessages.map((item, index) => {
-        const kind = item.type || (item.ask ? "ask" : item.say ? "say" : "msg");
-        const subtype = kind === "ask" ? item.ask || "" : item.say || "";
-        return `${item.ts}-${kind}-${subtype}-${index}`;
-      }),
-    [groupedMessages],
+    () => renderRows.map((row) => row.id),
+    [renderRows],
+  );
+
+  const virtualRowStreamingStates = useMemo(
+    () => renderRows.map((row) => row.isStreaming),
+    [renderRows],
   );
 
   const renderRow = useCallback(
     (index: number) => {
-      const item = groupedMessagesRef.current[index];
+      const item = renderRowsRef.current[index];
       if (!item) return null;
       return itemContent(index, item);
     },
@@ -2774,7 +3961,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     if (!el) return;
 
     const isAtBottomNow = () =>
-      el.scrollHeight - el.scrollTop - el.clientHeight <= 60;
+      el.scrollHeight - el.scrollTop - el.clientHeight <=
+      BOTTOM_OFFSET_THRESHOLD;
     stableWasAtBottomRef.current = isAtBottomNow();
     stablePrevScrollHeightRef.current = el.scrollHeight;
     const applyAnchor = () => {
@@ -2785,11 +3973,22 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
       // KILOCODE FIX: If user has scrolled up, do not pin.
       const isActuallyAtBottom =
-        el.scrollHeight - el.scrollTop - el.clientHeight <= 60;
+        el.scrollHeight - el.scrollTop - el.clientHeight <=
+        BOTTOM_OFFSET_THRESHOLD;
+      const hadBottomOwnership =
+        stickyFollowRef.current ||
+        streamingPinnedRef.current ||
+        isAtBottomRef.current ||
+        stableWasAtBottomRef.current;
       const shouldPinBottom =
-        (isActuallyAtBottom || stickyFollowRef.current) &&
+        (hadBottomOwnership || isActuallyAtBottom) &&
         isStreaming &&
-        !showScrollToBottom;
+        !showScrollToBottom &&
+        (!stableLastAnchorDetailRef.current ||
+          shouldAdjustScrollForToolAnimation(
+            stableLastAnchorDetailRef.current,
+            el.getBoundingClientRect().top,
+          ));
 
       if (shouldPinBottom) {
         el.scrollTop = el.scrollHeight;
@@ -2805,10 +4004,21 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
     let raf = 0;
     const scheduleAnchor = () => {
       const isActuallyAtBottom =
-        el.scrollHeight - el.scrollTop - el.clientHeight <= 60;
+        el.scrollHeight - el.scrollTop - el.clientHeight <=
+        BOTTOM_OFFSET_THRESHOLD;
+      const hadBottomOwnership =
+        stickyFollowRef.current ||
+        streamingPinnedRef.current ||
+        isAtBottomRef.current ||
+        stableWasAtBottomRef.current;
       const shouldPinBottom =
-        (stickyFollowRef.current || (isStreaming && isActuallyAtBottom)) &&
-        !showScrollToBottom;
+        (hadBottomOwnership || (isStreaming && isActuallyAtBottom)) &&
+        !showScrollToBottom &&
+        (!stableLastAnchorDetailRef.current ||
+          shouldAdjustScrollForToolAnimation(
+            stableLastAnchorDetailRef.current,
+            el.getBoundingClientRect().top,
+          ));
       if (!shouldPinBottom) {
         // User is browsing away from bottom — skip anchor adjustments to avoid jitter.
         return;
@@ -2838,10 +4048,25 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       // KILOCODE FIX: Only pin if we are genuinely at the bottom or in sticky mode,
       // AND the user hasn't manually scrolled away.
       const isActuallyAtBottom =
-        el.scrollHeight - el.scrollTop - el.clientHeight <= 60;
+        el.scrollHeight - el.scrollTop - el.clientHeight <=
+        BOTTOM_OFFSET_THRESHOLD;
+
+      const magnetActive = performance.now() < bottomMagnetUntilRef.current;
+      const hadBottomOwnership =
+        stickyFollowRef.current ||
+        streamingPinnedRef.current ||
+        isAtBottomRef.current ||
+        stableWasAtBottomRef.current;
       const shouldPinBottom =
-        (stickyFollowRef.current || (isStreaming && isActuallyAtBottom)) &&
-        !showScrollToBottom;
+        (hadBottomOwnership ||
+          (isStreaming && isActuallyAtBottom) ||
+          magnetActive) &&
+        !showScrollToBottom &&
+        (!stableLastAnchorDetailRef.current ||
+          shouldAdjustScrollForToolAnimation(
+            stableLastAnchorDetailRef.current,
+            el.getBoundingClientRect().top,
+          ));
 
       if (shouldPinBottom) {
         // Use scrollTo with top: scrollHeight to let the browser handle the clamping
@@ -2849,7 +4074,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
         stablePrevScrollHeightRef.current = el.scrollHeight;
         stableWasAtBottomRef.current = true;
       } else if (isStreaming && !isActuallyAtBottom) {
-        streamingPinnedRef.current = false;
+        setStreamingPinned(false);
       }
       pinRaf = window.requestAnimationFrame(pinLoop);
     };
@@ -2865,6 +4090,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
   const hasPendingSwitch = !!pendingSwitchTaskId;
   const showTaskShell = !!task || (hasPendingSwitch && isTaskSwitching);
   const showTaskTransitionLoader = hasPendingSwitch && isTaskSwitching;
+  const isModalHistoryDropdownOpen =
+    showHistoryDropdown && historyViewType !== "dropdown-top";
 
   return (
     <div
@@ -2872,7 +4099,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       className={
         isHidden
           ? "hidden"
-          : `fixed top-0 left-0 right-0 bottom-0 flex flex-col overflow-hidden ${!showTaskShell ? "empty-state-active" : ""}`
+          : `${layout === "embedded" ? "relative h-full min-h-0 min-w-0 w-full" : "fixed top-0 left-0 right-0 bottom-0"} flex flex-col overflow-hidden ${!showTaskShell ? "empty-state-active" : ""} ${isModalHistoryDropdownOpen ? "history-dropdown-open" : ""}`
       }
       onDragEnter={handleViewDragEnter}
       onDragLeave={handleViewDragLeave}
@@ -2906,7 +4133,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
           isAtBottom={isAtBottom}
           stickyFollow={stickyFollowRef.current}
           isStreaming={isStreaming}
-          itemCount={groupedMessages.length}
+          itemCount={renderRows.length}
           chatAreaHeight={chatAreaHeight}
         />
       )}
@@ -2924,14 +4151,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       )}
       {showTaskShell ? (
         <>
-          {showHistoryDropdown &&
-            (historyViewType === "dropdown-top" ? (
-              <HistoryDropdownTopView
-                onClose={() => setShowHistoryDropdown(false)}
-              />
-            ) : (
-              <HistoryDropdown onClose={() => setShowHistoryDropdown(false)} />
-            ))}
+          {showHistoryDropdown && historyViewType !== "dropdown-top" && (
+            <HistoryDropdown onClose={() => setShowHistoryDropdown(false)} />
+          )}
           {/* kade_change start */}
           {/* <TaskHeader
 						task={task}
@@ -2955,7 +4177,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
           )}
         </>
       ) : (
-        <div className="flex-1 min-h-0 relative">
+        <div
+          className={`flex-1 min-h-0 relative ${isModalHistoryDropdownOpen ? "history-dropdown-blur-target" : ""}`}
+        >
           {showHistoryDropdown &&
             (historyViewType === "dropdown-top" ? (
               <HistoryDropdownTopView
@@ -3016,17 +4240,18 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
       {showTaskShell && !showTaskTransitionLoader && (
         <>
           <div
-            className={`grow flex flex-col min-h-0 relative px-[1px] ${isScrollbarActive ? "scrollbar-visible" : ""}`}
-            style={
-              {
-                "--chat-area-height": `${chatAreaHeight}px`,
-                paddingTop:
-                  showHistoryDropdown && historyViewType === "dropdown-top"
-                    ? "6px"
-                    : undefined,
-              } as any
-            }
+            className={`grow flex flex-col min-h-0 relative px-[1px] ${isScrollbarActive ? "scrollbar-visible" : ""} ${isModalHistoryDropdownOpen ? "history-dropdown-blur-target" : ""}`}
+            style={chatShellStyle}
           >
+            {showHistoryDropdown && historyViewType === "dropdown-top" && (
+              <div className="absolute top-[6px] left-0 right-0 z-20 pointer-events-none">
+                <div className="pointer-events-auto">
+                  <HistoryDropdownTopView
+                    onClose={() => setShowHistoryDropdown(false)}
+                  />
+                </div>
+              </div>
+            )}
             {/* Prestigious bottom fade gradient removed to fix phantom lines */}
             {FORCE_STABLE_CHAT_LIST ? (
               <div
@@ -3052,32 +4277,49 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
                     target.scrollHeight -
                     target.scrollTop -
                     target.clientHeight;
-                  const atBottom = distanceFromBottom <= 60;
-                  stableWasAtBottomRef.current = atBottom;
-                  stablePrevScrollHeightRef.current = target.scrollHeight;
-                  setIsAtBottom(atBottom);
-                  setShowScrollToBottom(!atBottom);
-
-                  // KILOCODE FIX: If user scrolls up, kill the sticky follow immediately
-                  if (!atBottom) {
-                    stickyFollowRef.current = false;
-                    streamingPinnedRef.current = false;
-                  }
+                  handleScrollerDistanceFromBottom(
+                    distanceFromBottom,
+                    target.scrollHeight,
+                  );
                 }}
               >
                 <VirtualChatList
                   rowKeys={virtualRowKeys}
+                  rowStreamingStates={virtualRowStreamingStates}
                   scrollEl={scrollEl}
                   isStreaming={isStreaming}
                   renderRow={renderRow}
                   footerHeight={footerSpacerHeight}
                 />
               </div>
+            ) : shouldUseMessageList ? (
+              <VirtuosoMessageListLicense licenseKey={messageListLicenseKey}>
+                <VirtuosoMessageList
+                  key={messageListKey}
+                  ref={messageListRef}
+                  className={`w-full h-full will-change-transform scrollable virtuoso-smooth-items`}
+                  data={messageListData}
+                  initialLocation={{ index: "LAST", align: "end" }}
+                  itemIdentity={(row) => row.id}
+                  computeItemKey={({ data }) => data.id}
+                  ItemContent={MessageListItem}
+                  Footer={MessageListFooter}
+                  ScrollElement={MessageListScrollElement}
+                  increaseViewportBy={VIRTUOSO_VIEWPORT_OVERSCAN}
+                  onScroll={(location) => {
+                    handleScrollAreaInteraction();
+                    handleScrollerDistanceFromBottom(
+                      location.bottomOffset,
+                      location.scrollHeight,
+                    );
+                  }}
+                />
+              </VirtuosoMessageListLicense>
             ) : (
               <Virtuoso
                 ref={virtuosoRef}
                 scrollerRef={streamingScrollerRef}
-                className={`w-full h-full will-change-transform scrollable`}
+                className={`w-full h-full will-change-transform scrollable virtuoso-smooth-items`}
                 onScroll={(event) => {
                   handleScrollAreaInteraction();
                   const target = event.currentTarget as HTMLElement;
@@ -3085,38 +4327,27 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
                     target.scrollHeight -
                     target.scrollTop -
                     target.clientHeight;
-                  const atBottom = distanceFromBottom <= 60;
-
-                  setIsAtBottom(atBottom);
-                  setShowScrollToBottom(!atBottom);
-
-                  if (!atBottom) {
-                    stickyFollowRef.current = false;
-                    streamingPinnedRef.current = false;
-                  }
+                  handleScrollerDistanceFromBottom(
+                    distanceFromBottom,
+                    target.scrollHeight,
+                  );
                 }}
-                data={groupedMessages}
+                data={renderRows}
                 components={virtuosoComponents}
                 itemContent={itemContent}
-                computeItemKey={(index, item) => {
-                  if (item.ask === "tool" || item.say === "tool") {
-                    try {
-                      const tool = JSON.parse(item.text || "{}");
-                      if (tool.id) {
-                        return stableKeyMapRef.current.get(tool.id) || `tool-${tool.id}`;
-                      }
-                    } catch (_) {}
-                  }
-                  return item.ts;
-                }}
-                increaseViewportBy={2240}
+                computeItemKey={(_index, item) => item.id}
+                increaseViewportBy={VIRTUOSO_VIEWPORT_OVERSCAN}
                 atBottomStateChange={(atBottom) => {
-                  if (!atBottom && isStreaming && streamingPinnedRef.current) {
+                  if (
+                    !atBottom &&
+                    isStreaming &&
+                    (stickyFollowRef.current || streamingPinnedRef.current) &&
+                    !shouldAllowStreamingRelease()
+                  ) {
                     return;
                   }
 
-                  setIsAtBottom(atBottom);
-                  setShowScrollToBottom(!atBottom);
+                  updateBottomState(atBottom);
                   // Only disengage the scroll pin when the user
                   // has genuinely scrolled away. During streaming,
                   // Virtuoso can transiently report atBottom=false
@@ -3125,20 +4356,32 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
                   // scroll to suddenly stop following.
                   if (!atBottom && !isStreaming) {
                     stickyFollowRef.current = false;
-                    streamingPinnedRef.current = false;
+                    setStreamingPinned(false);
+                    releaseBottomMagnet();
                   }
                 }}
-                atBottomThreshold={60}
+                atBottomThreshold={BOTTOM_OFFSET_THRESHOLD}
                 followOutput={(isAtBottom) => {
-                  const shouldFollow =
-                    stickyFollowRef.current || (isStreaming && isAtBottom);
-                  streamingPinnedRef.current = shouldFollow;
+                  const shouldFollow = shouldFollowStreamingOutput({
+                    isStreaming,
+                    isAtBottom,
+                    streamingPinned: streamingPinnedRef.current,
+                    hadBottomOwnership:
+                      stickyFollowRef.current ||
+                      streamingPinnedRef.current ||
+                      isAtBottomRef.current ||
+                      stableWasAtBottomRef.current,
+                    showScrollToBottom: showScrollToBottomRef.current,
+                  });
+                  setStreamingPinned(shouldFollow);
                   if (shouldFollow) {
-                    if (!isAtBottom) {
-                      setIsAtBottom(true);
-                    }
-                    if (showScrollToBottom) {
-                      setShowScrollToBottom(false);
+                    updateBottomState(true);
+                    if (
+                      isStreaming &&
+                      !wasStreaming &&
+                      !showScrollToBottomRef.current
+                    ) {
+                      return false;
                     }
                     return "auto";
                   }
@@ -3152,7 +4395,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
       <div
         ref={chatAreaRef}
-        className="absolute bottom-0 left-0 right-0 z-[100]"
+        className="absolute left-0 right-0 z-[100]"
+        style={{ bottom: layout === "embedded" ? 0 : "-0.4%" }}
       >
         {showTaskShell && !showTaskTransitionLoader && (
           <>
@@ -3172,12 +4416,14 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
                       className="flex-[2]"
                       onClick={() => {
                         // Engage sticky follow until user scrolls up
+                        userWheelReleaseUntilRef.current = 0;
                         stickyFollowRef.current = true;
-                        streamingPinnedRef.current = true;
+                        setStreamingPinned(true);
+                        extendBottomMagnet();
                         // Pin immediately to avoid lag during fast streaming
                         manualScrollToBottom();
                         // Hide button immediately to prevent flash
-                        setShowScrollToBottom(false);
+                        updateBottomState(true);
                       }}
                     >
                       <span className="codicon codicon-chevron-down"></span>
@@ -3191,25 +4437,34 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
 
         <QueuedMessages
           queue={messageQueue}
-          onRemove={(index) => {
-            if (messageQueue[index]) {
-              vscode.postMessage({
-                type: "removeQueuedMessage",
-                text: messageQueue[index].id,
-              });
-            }
+          onRemove={(messageId) => {
+            vscode.postMessage({
+              type: "removeQueuedMessage",
+              payload: { id: messageId },
+            });
           }}
-          onUpdate={(index, newText) => {
-            if (messageQueue[index]) {
-              vscode.postMessage({
-                type: "editQueuedMessage",
-                payload: {
-                  id: messageQueue[index].id,
-                  text: newText,
-                  images: messageQueue[index].images,
-                },
-              });
+          onUpdate={(messageId, newText) => {
+            const queuedMessage = messageQueue.find(({ id }) => id === messageId);
+            if (!queuedMessage) {
+              return;
             }
+
+            vscode.postMessage({
+              type: "editQueuedMessage",
+              payload: {
+                id: messageId,
+                text: newText,
+                images: queuedMessage.images,
+              },
+            });
+          }}
+          onSendNow={(messageId) => {
+            vscode.postMessage({
+              type: "sendQueuedMessageNow",
+              payload: {
+                id: messageId,
+              },
+            });
           }}
         />
         <EditHistoryTracker />
@@ -3228,7 +4483,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<
           onSelectImages={selectImages}
           shouldDisableImages={shouldDisableImages}
           onHeightChange={() => {
-            if (isAtBottom) {
+            if (isAtBottomRef.current) {
               scrollToBottomAuto();
             }
           }}

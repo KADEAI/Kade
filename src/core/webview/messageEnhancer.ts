@@ -113,10 +113,8 @@ export class MessageEnhancer {
 
 			return relevantMessages
 				.map((msg) => {
-					const role = msg.type === "ask" ? "User" : "Assistant"
 					const content = msg.text || ""
-					// Truncate long messages
-					return `${role}: ${content.slice(0, 500)}${content.length > 500 ? "..." : ""}`
+					return content
 				})
 				.join("\n")
 		} catch (error) {

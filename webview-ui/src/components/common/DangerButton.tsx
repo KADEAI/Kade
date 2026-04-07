@@ -1,12 +1,12 @@
-import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
+import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 
-type DangerButtonProps = React.ComponentProps<typeof VSCodeButton>
+type DangerButtonProps = React.ComponentProps<typeof VSCodeButton>;
 
 const DangerButton: React.FC<DangerButtonProps> = (props) => {
-	return (
-		<VSCodeButton
-			{...props}
-			className={`
+  return (
+    <VSCodeButton
+      {...props}
+      className={`
 				!bg-[#c42b2b]
 				!border-[#c42b2b]
 				!text-white
@@ -16,8 +16,8 @@ const DangerButton: React.FC<DangerButtonProps> = (props) => {
 				active:!border-[#8f1f1f]
 				${props.className || ""}
 			`}
-		/>
-	)
-}
+    />
+  );
+};
 
-export default DangerButton
+export default DangerButton;

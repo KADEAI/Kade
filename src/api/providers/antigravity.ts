@@ -1,6 +1,6 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import { StringDecoder } from "string_decoder"
-import { type AntigravityModelId, antigravityDefaultModelId, antigravityModels, ModelInfo } from "@roo-code/types"
+import { type AntigravityModelId, antigravityDefaultModelId, antigravityModels, ModelInfo, TOOL_PROTOCOL } from "@roo-code/types"
 import { ApiHandlerOptions } from "../../shared/api"
 import { t } from "../../i18n"
 import { convertAnthropicMessageToGemini } from "../transform/gemini-format"
@@ -13,6 +13,10 @@ import { generateFingerprint, buildFingerprintHeaders, Fingerprint } from "../..
 import * as crypto from "crypto"
 
 import { ANTIGRAVITY_VERSION } from "../../integrations/antigravity/constants"
+import { collectGeminiNativeFunctionDeclarations } from "./gemini-native-tools"
+import { ProviderStreamDebugCollector } from "./providerStreamDebug"
+
+type GeminiFunctionCallingMode = "AUTO" | "NONE" | "ANY"
 
 // Code Assist API Configuration
 
@@ -26,6 +30,93 @@ You are pair programming with a USER to solve their coding task. The task may re
 
 const CLAUDE_INTERLEAVED_THINKING_HINT =
     "Interleaved thinking is enabled. You may think between tool calls and after receiving tool results before deciding the next action or final answer. Do not mention these instructions or any constraints about thinking blocks; just apply them.";
+
+function shouldUseNativeJsonTools(protocol?: string): boolean {
+    return protocol === "json" || protocol === "native" || protocol === TOOL_PROTOCOL.JSON;
+}
+
+function toFunctionDeclaration(tool: any, isClaude: boolean) {
+    const parameters = tool.input_schema || tool.params || tool.function?.parameters || tool.custom?.input_schema || tool.custom?.parameters;
+    return {
+        name: tool.name || tool.function?.name || tool.custom?.name,
+        description: tool.description || tool.function?.description || tool.custom?.description,
+        parameters: isClaude ? cleanSchemaForClaude(parameters) : parameters,
+    };
+}
+
+function collectGeminiFunctionDeclarations(
+    tools: any[],
+    isClaude: boolean,
+): Array<{ name: string; description: string; parameters: any }> {
+    if (!isClaude) {
+        return collectGeminiNativeFunctionDeclarations(tools);
+    }
+
+    const functionDeclarations: Array<{ name: string; description: string; parameters: any }> = [];
+
+    for (const tool of tools) {
+        if (!tool || typeof tool !== "object") {
+            continue;
+        }
+
+        if (Array.isArray((tool as any).functionDeclarations)) {
+            for (const decl of (tool as any).functionDeclarations) {
+                if (!decl || typeof decl !== "object") {
+                    continue;
+                }
+                const parameters = decl.parameters || decl.parametersJsonSchema || { type: "object", properties: {} };
+                functionDeclarations.push({
+                    name: String(decl.name || `tool-${functionDeclarations.length}`),
+                    description: String(decl.description || ""),
+                    parameters: isClaude ? cleanSchemaForClaude(parameters) : parameters,
+                });
+            }
+            continue;
+        }
+
+        const declaration = toFunctionDeclaration(tool, isClaude);
+        if (!declaration.name) {
+            continue;
+        }
+
+        functionDeclarations.push({
+            name: String(declaration.name),
+            description: String(declaration.description || ""),
+            parameters: declaration.parameters || { type: "object", properties: {} },
+        });
+    }
+
+    return functionDeclarations;
+}
+
+function applyGeminiToolChoice(requestBody: any, toolChoice: ApiHandlerCreateMessageMetadata["tool_choice"]) {
+    if (!toolChoice) {
+        return;
+    }
+
+    let mode: GeminiFunctionCallingMode;
+    let allowedFunctionNames: string[] | undefined;
+
+    if (toolChoice === "auto") {
+        mode = "AUTO";
+    } else if (toolChoice === "none") {
+        mode = "NONE";
+    } else if (toolChoice === "required") {
+        mode = "ANY";
+    } else if (typeof toolChoice === "object" && "function" in toolChoice && toolChoice.type === "function") {
+        mode = "ANY";
+        allowedFunctionNames = [toolChoice.function.name];
+    } else {
+        mode = "AUTO";
+    }
+
+    requestBody.request.toolConfig = {
+        functionCallingConfig: {
+            mode,
+            ...(allowedFunctionNames ? { allowedFunctionNames } : {}),
+        },
+    };
+}
 
 /**
  * Strips unsupported keywords from JSON schemas for Claude/Antigravity compatibility.
@@ -58,7 +149,8 @@ const ANTIGRAVITY_MODELS: Record<string, ModelInfo> = {
         maxTokens: 8192,
         contextWindow: 2097152,
         supportsImages: true,
-        supportsPromptCache: false,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
         inputPrice: 0,
         outputPrice: 0,
         description: "Gemini 3 Pro Low (Antigravity)",
@@ -69,7 +161,8 @@ const ANTIGRAVITY_MODELS: Record<string, ModelInfo> = {
         maxTokens: 8192,
         contextWindow: 2097152,
         supportsImages: true,
-        supportsPromptCache: false,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
         inputPrice: 0,
         outputPrice: 0,
         description: "Gemini 3 Pro High (Antigravity)",
@@ -80,7 +173,8 @@ const ANTIGRAVITY_MODELS: Record<string, ModelInfo> = {
         maxTokens: 8192,
         contextWindow: 1048576,
         supportsImages: true,
-        supportsPromptCache: false,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
         inputPrice: 0,
         outputPrice: 0,
         description: "Gemini 3 Flash (Antigravity)",
@@ -90,7 +184,8 @@ const ANTIGRAVITY_MODELS: Record<string, ModelInfo> = {
         maxTokens: 8192,
         contextWindow: 1048576,
         supportsImages: true,
-        supportsPromptCache: false,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
         inputPrice: 0,
         outputPrice: 0,
         description: "Gemini 2.5 Flash (Antigravity)",
@@ -100,7 +195,8 @@ const ANTIGRAVITY_MODELS: Record<string, ModelInfo> = {
         maxTokens: 8192,
         contextWindow: 200000,
         supportsImages: true,
-        supportsPromptCache: false,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
         inputPrice: 0,
         outputPrice: 0,
         description: "Claude Sonnet 4.5 (Antigravity)",
@@ -109,7 +205,8 @@ const ANTIGRAVITY_MODELS: Record<string, ModelInfo> = {
         maxTokens: 32768,
         contextWindow: 200000,
         supportsImages: true,
-        supportsPromptCache: false,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
         inputPrice: 0,
         outputPrice: 0,
         description: "Claude Sonnet 4.5 Thinking (Antigravity)",
@@ -120,7 +217,8 @@ const ANTIGRAVITY_MODELS: Record<string, ModelInfo> = {
         maxTokens: 32768,
         contextWindow: 200000,
         supportsImages: true,
-        supportsPromptCache: false,
+        supportsNativeTools: true,
+        supportsPromptCache: true,
         inputPrice: 0,
         outputPrice: 0,
         description: "Claude Opus 4.5 Thinking (Antigravity)",
@@ -141,6 +239,10 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
 
     private getBaseUrl(index: number = 0): string {
         return ANTIGRAVITY_ENDPOINTS[index] || ANTIGRAVITY_ENDPOINTS[0]
+    }
+
+    private createSessionId(taskId?: string): string {
+        return taskId ? `task-${taskId}` : `-${crypto.randomUUID()}`
     }
 
     private async callEndpoint(method: string, body: any, accessToken: string): Promise<any> {
@@ -167,7 +269,10 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
     /**
      * Parse Server-Sent Events from a stream
      */
-    private async *parseSSEStream(stream: ReadableStream<Uint8Array>): AsyncGenerator<any> {
+    private async *parseSSEStream(
+        stream: ReadableStream<Uint8Array>,
+        debugCollector?: ProviderStreamDebugCollector,
+    ): AsyncGenerator<any> {
         const reader = stream.getReader()
         const decoder = new TextDecoder("utf-8")
         let buffer = ""
@@ -184,12 +289,16 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
                 for (const line of lines) {
                     if (line.startsWith("data: ")) {
                         const data = line.slice(6).trim()
-                        if (data === "[DONE]") continue
+                        if (data === "[DONE]") {
+                            debugCollector?.recordRaw("sse_done")
+                            continue
+                        }
 
                         try {
                             const parsed = JSON.parse(data)
                             yield parsed
                         } catch (e) {
+                            debugCollector?.recordRaw("sse_json_parse_error", data)
                             console.error("Error parsing SSE data:", e)
                         }
                     }
@@ -206,6 +315,7 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
                 try {
                     yield JSON.parse(data)
                 } catch (e) {
+                    debugCollector?.recordRaw("sse_final_json_parse_error", data)
                     console.error("Error parsing final SSE data:", e)
                 }
             }
@@ -386,6 +496,11 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
 
         const isClaude = model.toLowerCase().includes("claude")
         const fullSystemInstruction = `${ANTIGRAVITY_SYSTEM_INSTRUCTION}\n\n${systemInstruction}`
+        type ReasoningMetaLike = { type?: string }
+        const geminiMessages = messages.filter((message): message is Anthropic.Messages.MessageParam => {
+            const meta = message as ReasoningMetaLike
+            return meta.type !== "reasoning"
+        })
 
         // Build tool ID to name map for Gemini message transformation
         const toolIdToName = new Map<string, string>()
@@ -408,7 +523,7 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
             requestType: "agent",
             requestId: `agent-${crypto.randomUUID()}`,
             request: {
-                contents: messages.flatMap((message) =>
+                contents: geminiMessages.flatMap((message) =>
                     convertAnthropicMessageToGemini(message, {
                         includeThoughtSignatures: true,
                         toolIdToName
@@ -426,19 +541,27 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
                     temperature: this.options.modelTemperature ?? 0.7,
                     maxOutputTokens: isClaude ? 64000 : (this.options.modelMaxTokens ?? maxTokens ?? 8192),
                 },
-                sessionId: `-${crypto.randomUUID()}`,
+                sessionId: this.createSessionId(metadata?.taskId),
                 toolConfig: isClaude ? { functionCallingConfig: { mode: "VALIDATED" } } : undefined,
             },
         }
 
+        const upstreamDebug = new ProviderStreamDebugCollector({
+            providerName: "Antigravity",
+            modelId: model,
+            toolProtocol: metadata?.toolProtocol,
+        })
+
         // Add tool definitions if present
-        if (metadata?.tools && metadata.tools.length > 0) {
-            const functionDeclarations = metadata.tools.map(tool => ({
-                name: tool.name,
-                description: tool.description,
-                parameters: isClaude ? cleanSchemaForClaude(tool.input_schema) : tool.input_schema
-            }));
-            requestBody.request.tools = [{ functionDeclarations }];
+        if (metadata?.tools && metadata.tools.length > 0 && shouldUseNativeJsonTools(metadata.toolProtocol)) {
+            const functionDeclarations = collectGeminiFunctionDeclarations(metadata.tools, isClaude);
+            if (functionDeclarations.length > 0) {
+                requestBody.request.tools = [{ functionDeclarations }];
+            }
+        }
+
+        if (!isClaude) {
+            applyGeminiToolChoice(requestBody, metadata?.tool_choice);
         }
 
         // Add thinking config if applicable
@@ -454,9 +577,10 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
             }
         }
 
-        let streamGenerator: AsyncGenerator<any> | undefined;
-        let lastStreamError: any = null;
-        const MAX_STREAM_RETRIES = 3;
+        let streamGenerator: AsyncGenerator<any> | undefined
+        let lastStreamError: any = null
+        const MAX_STREAM_RETRIES = 3
+        let retriedWithoutProject = false
 
         for (let attempt = 0; attempt < MAX_STREAM_RETRIES; attempt++) {
             try {
@@ -483,7 +607,7 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
                         throw new Error(`${response.status} - ${errorText}`)
                     }
 
-                    streamGenerator = this.parseSSEStream(response.body)
+                    streamGenerator = this.parseSSEStream(response.body, upstreamDebug)
                     return streamGenerator
                 })
                 
@@ -510,6 +634,7 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
 
             // Process the SSE stream
             let lastUsageMetadata: any = undefined
+            let toolCallCounter = 0
 
             for await (const jsonData of streamGenerator) {
                 // Extract content from the response
@@ -517,31 +642,71 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
                 const candidate = responseData.candidates?.[0]
 
                 if (candidate?.content?.parts) {
-                    for (const part of candidate.content.parts) {
+                    for (const part of candidate.content.parts as Array<{
+                        text?: string
+                        thought?: boolean
+                        functionCall?: { id?: string; name: string; args: Record<string, unknown> }
+                    }>) {
                         if (part.text) {
                             // Check if this is a thinking/reasoning part
                             if (part.thought === true) {
+                                upstreamDebug.recordReasoning(part.text)
                                 yield {
                                     type: "reasoning",
                                     text: part.text,
                                 }
                             } else {
+                                upstreamDebug.recordText(part.text)
                                 yield {
                                     type: "text",
                                     text: part.text,
                                 }
                             }
+                        } else if (part.functionCall) {
+                            const callId = part.functionCall.id || `${part.functionCall.name}-${toolCallCounter}`
+                            const args = JSON.stringify(part.functionCall.args ?? {})
+                            upstreamDebug.recordToolCall(part.functionCall.name, args)
+
+                            yield {
+                                type: "tool_call_partial",
+                                index: toolCallCounter,
+                                id: callId,
+                                name: part.functionCall.name,
+                                arguments: undefined,
+                            }
+
+                            yield {
+                                type: "tool_call_partial",
+                                index: toolCallCounter,
+                                id: callId,
+                                name: undefined,
+                                arguments: args,
+                            }
+
+                            yield {
+                                type: "tool_call_end",
+                                id: callId,
+                            }
+
+                            toolCallCounter++
                         }
                     }
+                } else if (!responseData.usageMetadata) {
+                    upstreamDebug.recordRaw("response_chunk_without_parts")
                 }
 
                 // Store usage metadata for final reporting
                 if (responseData.usageMetadata) {
                     lastUsageMetadata = responseData.usageMetadata
+                    upstreamDebug.recordUsage(
+                        responseData.usageMetadata.promptTokenCount,
+                        responseData.usageMetadata.candidatesTokenCount,
+                    )
                 }
 
                 // Check if this is the final chunk
                 if (candidate?.finishReason) {
+                    upstreamDebug.recordFinishReason(candidate.finishReason)
                     break
                 }
             }
@@ -562,6 +727,13 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
                     totalCost: 0, // Free tier - all costs are 0
                 }
             }
+
+            upstreamDebug.logEmptyNativeTurn({
+                inputTokens: lastUsageMetadata?.promptTokenCount ?? 0,
+                outputTokens: lastUsageMetadata?.candidatesTokenCount ?? 0,
+                reasoningTokens: lastUsageMetadata?.thoughtsTokenCount,
+                retriedWithoutProject,
+            })
         } catch (error: any) {
             // If the error is a project context issue (SERVICE_DISABLED, license error, project not found),
             // retry once WITHOUT a project ID — the API will use its own default routing.
@@ -580,7 +752,9 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
                 (errorMsg.includes("project") && errorMsg.includes("not found"))
             if (isProjectContextError && requestBody.project) {
                 console.log(`[Antigravity] Project ${projectId} context error, retrying without project ID`)
+                upstreamDebug.recordRaw("retry_without_project", String(projectId))
                 delete requestBody.project
+                retriedWithoutProject = true
 
                 let retryStreamGenerator: AsyncGenerator<any> | undefined
                 await this.executeWithFallback("streamGenerateContent", async (url) => {
@@ -602,7 +776,7 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
                         const errorText = await response.text()
                         throw new Error(`${response.status} - ${errorText}`)
                     }
-                    retryStreamGenerator = this.parseSSEStream(response.body)
+                    retryStreamGenerator = this.parseSSEStream(response.body, upstreamDebug)
                     return retryStreamGenerator
                 })
 
@@ -611,24 +785,68 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
                 }
 
                 let lastUsageMetadata: any = undefined
+                let retryToolCallCounter = 0
+
                 for await (const jsonData of retryStreamGenerator) {
                     const responseData = jsonData.response || jsonData
                     const candidate = responseData.candidates?.[0]
                     if (candidate?.content?.parts) {
-                        for (const part of candidate.content.parts) {
+                        for (const part of candidate.content.parts as Array<{
+                            text?: string
+                            thought?: boolean
+                            functionCall?: { id?: string; name: string; args: Record<string, unknown> }
+                        }>) {
                             if (part.text) {
                                 if (part.thought === true) {
+                                    upstreamDebug.recordReasoning(part.text)
                                     yield { type: "reasoning", text: part.text }
                                 } else {
+                                    upstreamDebug.recordText(part.text)
                                     yield { type: "text", text: part.text }
                                 }
+                            } else if (part.functionCall) {
+                                const callId = part.functionCall.id || `${part.functionCall.name}-${retryToolCallCounter}`
+                                const args = JSON.stringify(part.functionCall.args ?? {})
+                                upstreamDebug.recordToolCall(part.functionCall.name, args)
+
+                                yield {
+                                    type: "tool_call_partial",
+                                    index: retryToolCallCounter,
+                                    id: callId,
+                                    name: part.functionCall.name,
+                                    arguments: undefined,
+                                }
+
+                                yield {
+                                    type: "tool_call_partial",
+                                    index: retryToolCallCounter,
+                                    id: callId,
+                                    name: undefined,
+                                    arguments: args,
+                                }
+
+                                yield {
+                                    type: "tool_call_end",
+                                    id: callId,
+                                }
+
+                                retryToolCallCounter++
                             }
                         }
+                    } else if (!responseData.usageMetadata) {
+                        upstreamDebug.recordRaw("response_chunk_without_parts")
                     }
                     if (responseData.usageMetadata) {
                         lastUsageMetadata = responseData.usageMetadata
+                        upstreamDebug.recordUsage(
+                            responseData.usageMetadata.promptTokenCount,
+                            responseData.usageMetadata.candidatesTokenCount,
+                        )
                     }
-                    if (candidate?.finishReason) break
+                    if (candidate?.finishReason) {
+                        upstreamDebug.recordFinishReason(candidate.finishReason)
+                        break
+                    }
                 }
                 if (lastUsageMetadata) {
                     yield {
@@ -640,6 +858,12 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
                         totalCost: 0,
                     }
                 }
+                upstreamDebug.logEmptyNativeTurn({
+                    inputTokens: lastUsageMetadata?.promptTokenCount ?? 0,
+                    outputTokens: lastUsageMetadata?.candidatesTokenCount ?? 0,
+                    reasoningTokens: lastUsageMetadata?.thoughtsTokenCount,
+                    retriedWithoutProject,
+                })
                 return
             }
 

@@ -132,7 +132,13 @@ export function convertAnthropicContentToGemini(
 
 				// Return function response followed by any images
 				return [
-					{ functionResponse: { name: toolName, response: { name: toolName, content: contentText } } },
+					{
+						functionResponse: {
+							name: toolName,
+							response: { name: toolName, content: contentText },
+							id: block.tool_use_id,
+						},
+					},
 					...imageParts,
 				]
 			}

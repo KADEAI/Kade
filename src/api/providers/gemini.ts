@@ -32,6 +32,7 @@ import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from ".
 import { BaseProvider } from "./base-provider"
 import { throwMaxCompletionTokensReachedError } from "./kilocode/verifyFinishReason"
 import { getGeminiModels } from "./fetchers/gemini" // kade_change
+import { collectGeminiNativeFunctionDeclarations } from "./gemini-native-tools"
 
 type GeminiHandlerOptions = ApiHandlerOptions & {
 	isVertex?: boolean
@@ -88,6 +89,13 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 							}
 						}
 					})
+
+		if (!this.isVertex) {
+			this.modelsLoading = this.loadModels().finally(() => {
+				this.modelsLoaded = true
+				this.modelsLoading = undefined
+			})
+		}
 	}
 
 	// kade_change start
@@ -121,6 +129,18 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 			this.models = { ...geminiModels }
 		}
 	}
+
+	private shouldAwaitDynamicModels(requestedId = this.options.apiModelId) {
+		if (this.isVertex || !requestedId) {
+			return false
+		}
+
+		if (requestedId in this.models || requestedId in geminiModels) {
+			return false
+		}
+
+		return !this.modelsLoaded
+	}
 	// kade_change end
 
 	async *createMessage(
@@ -128,7 +148,9 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 		messages: Anthropic.Messages.MessageParam[],
 		metadata?: ApiHandlerCreateMessageMetadata,
 	): ApiStream {
-		await this.ensureModelsLoaded() // kade_change
+		if (this.shouldAwaitDynamicModels()) {
+			await this.ensureModelsLoaded()
+		}
 		const { id: model, info, reasoning: thinkingConfig, maxTokens } = this.getModel()
 		// Reset per-request metadata that we persist into apiConversationHistory.
 		this.lastThoughtSignature = undefined
@@ -189,19 +211,7 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 		// "Tool use with function calling is unsupported" (HTTP 400) errors.
 		if (metadata?.tools && metadata.tools.length > 0) {
 			tools.push({
-				functionDeclarations: metadata.tools.map((tool) => {
-					// Support both standardized Tool format (KiloCode) and OpenAI format
-					const name = tool.name || (tool as any).function?.name
-					const description = tool.description || (tool as any).function?.description
-					// Support both new 'params' and legacy 'parameters' in the tool definition
-					const parameters = tool.input_schema || tool.params || (tool as any).function?.parameters
-
-					return {
-						name,
-						description,
-						parametersJsonSchema: parameters,
-					}
-				}),
+				functionDeclarations: collectGeminiNativeFunctionDeclarations(metadata.tools),
 			})
 		} else {
 			if (this.options.enableUrlContext) {
@@ -500,7 +510,9 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 
 	async completePrompt(prompt: string): Promise<string> {
 		try {
-			await this.ensureModelsLoaded() // kade_change
+			if (this.shouldAwaitDynamicModels()) {
+				await this.ensureModelsLoaded()
+			}
 			const { id: model, info } = this.getModel()
 
 			const tools: GenerateContentConfig["tools"] = []

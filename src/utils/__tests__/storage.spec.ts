@@ -152,4 +152,19 @@ describe("getStorageBasePath - customStoragePath", () => {
 		expect(result).toBe(defaultPath)
 		expect(showErrorSpy).toHaveBeenCalledTimes(1)
 	})
+
+	it("uses workspace-local .kilocode storage for tasks when no custom path is configured", async () => {
+		vi.spyOn(vscode.workspace, "getConfiguration").mockReturnValue({
+			get: vi.fn().mockReturnValue(""),
+		} as any)
+
+		const fsPromises = await import("fs/promises")
+		const { getTaskStorageBasePath } = await import("../storage")
+
+		const result = await getTaskStorageBasePath(defaultPath, "/test/workspace")
+
+		expect(result).toBe("/test/workspace/.kilocode")
+		expect((fsPromises as any).mkdir).toHaveBeenCalledWith("/test/workspace/.kilocode", { recursive: true })
+	})
+
 })

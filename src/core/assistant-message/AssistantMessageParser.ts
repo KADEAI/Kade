@@ -126,7 +126,7 @@ export class AssistantMessageParser {
 				}
 			}
 
-			// KILOCODE FIX: Positional content accumulation for write_to_file/edit_file shorthand.
+			// KILOCODE FIX: Positional content accumulation for write/edit_file shorthand.
 			// When in positional content accumulation mode, every character (including < and >)
 			// is treated as file content, NOT as tag delimiters.
 			// IMPORTANT: We must still check for the tool closing tag to know when to stop.
@@ -179,7 +179,7 @@ export class AssistantMessageParser {
 							const tagContent = this.accumulator.slice(lastOpenBracket + 1, -1)
 							// If it's not a known closing tag, starts with /, or is a known parameter, treat as positional
 							if (tagContent && !tagContent.startsWith("/") && !toolParamNames.includes(tagContent as ToolParamName)) {
-								if (this.currentToolUse.name === "read_file") {
+								if (this.currentToolUse.name === "read") {
 									this.kiloHandler.handleReadVariadic(tagContent, this.currentToolUse)
 									continue
 								}
@@ -188,11 +188,11 @@ export class AssistantMessageParser {
 								if (primaryParams && this.kiloHandler.positionalParamIndex < primaryParams.length) {
 									const paramName = primaryParams[this.kiloHandler.positionalParamIndex++] as ToolParamName
 
-									// KILOCODE FIX: For content-heavy params (write_to_file content, edit_file edit),
+									// KILOCODE FIX: For content-heavy params (write content, edit_file edit),
 									// switch to content accumulation mode instead of treating each > as a delimiter.
 									// The content param is the LAST positional param and contains the file body.
 									const isContentParam =
-										(this.currentToolUse.name === "write_to_file" && paramName === "content") ||
+										(this.currentToolUse.name === "write" && paramName === "content") ||
 										(this.currentToolUse.name === "edit_file" && paramName === "edit")
 
 									if (isContentParam) {
@@ -330,7 +330,7 @@ export class AssistantMessageParser {
 			partial: block.partial,
 			...(block.type === "tool_use" ? {
 				paramsKeys: Object.keys((block as any).params || {}),
-				...((block as any).name === "write_to_file" ? {
+				...((block as any).name === "write" ? {
 					contentLength: (block as any).params?.content?.length || 0,
 					contentLineCount: (block as any).params?.content ? (block as any).params.content.split('\n').length : 0,
 					path: (block as any).params?.path

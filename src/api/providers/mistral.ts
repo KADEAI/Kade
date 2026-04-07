@@ -87,7 +87,7 @@ export class MistralHandler extends BaseProvider implements SingleCompletionHand
 
 		// Add tools if provided and toolProtocol is not 'xml' and model supports native tools
 		const supportsNativeTools = info.supportsNativeTools ?? false
-		if (metadata?.tools && metadata.tools.length > 0 && 			metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN && supportsNativeTools) {
+		if (metadata?.tools && metadata.tools.length > 0 && metadata?.toolProtocol === TOOL_PROTOCOL.JSON && supportsNativeTools) {
 			requestOptions.tools = this.convertToolsForMistral(metadata.tools)
 			// Always use "any" to require tool use
 			requestOptions.toolChoice = "any"

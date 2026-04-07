@@ -5,14 +5,14 @@
 
 /** Edit-specific error patterns from the backend EditTool.ts */
 const EDIT_ERROR_PATTERNS = [
-    "The tool execution failed",
-    "Could not find a unique match",
-    "Could not find text to replace_all",
-    "Overlapping edits detected",
-    "error while editing",
-    "File not found",
-    "Invalid edit block",
-    "Failed to read file",
+  "The tool execution failed",
+  "Could not find a unique match",
+  "Could not find text to replace_all",
+  "Overlapping edits detected",
+  "error while editing",
+  "File not found",
+  "Invalid edit block",
+  "Failed to read file",
 ] as const;
 
 /**
@@ -25,20 +25,20 @@ const EDIT_ERROR_PATTERNS = [
  * to do with the edit itself.
  */
 export function getEditErrorMessage(toolResult: any): string | null {
-    if (!toolResult) return null;
+  if (!toolResult) return null;
 
-    const content =
-        typeof toolResult.content === "string"
-            ? toolResult.content
-            : JSON.stringify(toolResult.content);
+  const content =
+    typeof toolResult.content === "string"
+      ? toolResult.content
+      : JSON.stringify(toolResult.content);
 
-    for (const pattern of EDIT_ERROR_PATTERNS) {
-        if (content.includes(pattern)) {
-            return content;
-        }
+  for (const pattern of EDIT_ERROR_PATTERNS) {
+    if (content.includes(pattern)) {
+      return content;
     }
+  }
 
-    return null;
+  return null;
 }
 
 export { EDIT_ERROR_PATTERNS };

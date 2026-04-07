@@ -565,7 +565,7 @@ ${testFile.content}\nAssume the file exists and you can modify it directly.`,
 The file already exists with this content:
 ${testFile.content}
 
-IMPORTANT: The search pattern "This content does not exist" is NOT in the file. When apply_diff cannot find the search pattern, it should fail gracefully and the file content should remain unchanged. Do NOT try to use write_to_file or any other tool to modify the file. Only use apply_diff, and if the search pattern is not found, report that it could not be found.
+IMPORTANT: The search pattern "This content does not exist" is NOT in the file. When apply_diff cannot find the search pattern, it should fail gracefully and the file content should remain unchanged. Do NOT try to use write or any other tool to modify the file. Only use apply_diff, and if the search pattern is not found, report that it could not be found.
 
 Assume the file exists and you can modify it directly.`,
 			})

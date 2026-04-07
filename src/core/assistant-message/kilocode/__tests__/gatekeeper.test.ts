@@ -102,7 +102,7 @@ describe("gatekeeper", () => {
 		it("should return true when no gatekeeper is configured", async () => {
 			mockState.yoloGatekeeperApiConfigId = undefined
 
-			const result = await evaluateGatekeeperApproval(mockTask as Task, "read_file", { path: "test.ts" })
+			const result = await evaluateGatekeeperApproval(mockTask as Task, "read", { path: "test.ts" })
 
 			expect(result).toBe(true)
 		})
@@ -110,7 +110,7 @@ describe("gatekeeper", () => {
 		it("should return true when listApiConfigMeta is not available", async () => {
 			mockState.listApiConfigMeta = undefined
 
-			const result = await evaluateGatekeeperApproval(mockTask as Task, "read_file", { path: "test.ts" })
+			const result = await evaluateGatekeeperApproval(mockTask as Task, "read", { path: "test.ts" })
 
 			expect(result).toBe(true)
 		})
@@ -118,7 +118,7 @@ describe("gatekeeper", () => {
 		it("should return true when listApiConfigMeta is not an array", async () => {
 			mockState.listApiConfigMeta = "not-an-array"
 
-			const result = await evaluateGatekeeperApproval(mockTask as Task, "read_file", { path: "test.ts" })
+			const result = await evaluateGatekeeperApproval(mockTask as Task, "read", { path: "test.ts" })
 
 			expect(result).toBe(true)
 		})
@@ -131,7 +131,7 @@ describe("gatekeeper", () => {
 				},
 			]
 
-			const result = await evaluateGatekeeperApproval(mockTask as Task, "read_file", { path: "test.ts" })
+			const result = await evaluateGatekeeperApproval(mockTask as Task, "read", { path: "test.ts" })
 
 			expect(result).toBe(true)
 		})
@@ -139,7 +139,7 @@ describe("gatekeeper", () => {
 		it("should return true when profile cannot be loaded", async () => {
 			mockProviderRef.deref().providerSettingsManager.getProfile.mockResolvedValue(null)
 
-			const result = await evaluateGatekeeperApproval(mockTask as Task, "read_file", { path: "test.ts" })
+			const result = await evaluateGatekeeperApproval(mockTask as Task, "read", { path: "test.ts" })
 
 			expect(result).toBe(true)
 		})
@@ -149,7 +149,7 @@ describe("gatekeeper", () => {
 				apiProvider: undefined,
 			})
 
-			const result = await evaluateGatekeeperApproval(mockTask as Task, "read_file", { path: "test.ts" })
+			const result = await evaluateGatekeeperApproval(mockTask as Task, "read", { path: "test.ts" })
 
 			expect(result).toBe(true)
 		})
@@ -167,7 +167,7 @@ describe("gatekeeper", () => {
 				},
 			})
 
-			const result = await evaluateGatekeeperApproval(mockTask as Task, "write_to_file", {
+			const result = await evaluateGatekeeperApproval(mockTask as Task, "write", {
 				path: "test.ts",
 				content: "test",
 			})
@@ -195,7 +195,7 @@ describe("gatekeeper", () => {
 				},
 			})
 
-			const result = await evaluateGatekeeperApproval(mockTask as Task, "read_file", { path: "test.ts" })
+			const result = await evaluateGatekeeperApproval(mockTask as Task, "read", { path: "test.ts" })
 
 			expect(result).toBe(true)
 		})
@@ -211,7 +211,7 @@ describe("gatekeeper", () => {
 				},
 			})
 
-			const result = await evaluateGatekeeperApproval(mockTask as Task, "read_file", { path: "test.ts" })
+			const result = await evaluateGatekeeperApproval(mockTask as Task, "read", { path: "test.ts" })
 
 			expect(result).toBe(true)
 		})
@@ -227,7 +227,7 @@ describe("gatekeeper", () => {
 				},
 			})
 
-			const result = await evaluateGatekeeperApproval(mockTask as Task, "execute_command", {
+			const result = await evaluateGatekeeperApproval(mockTask as Task, "bash", {
 				command: "rm -rf /",
 			})
 
@@ -254,7 +254,7 @@ describe("gatekeeper", () => {
 				},
 			})
 
-			const result = await evaluateGatekeeperApproval(mockTask as Task, "read_file", { path: "test.ts" })
+			const result = await evaluateGatekeeperApproval(mockTask as Task, "read", { path: "test.ts" })
 
 			expect(result).toBe(true)
 		})
@@ -272,7 +272,7 @@ describe("gatekeeper", () => {
 				},
 			})
 
-			await evaluateGatekeeperApproval(mockTask as Task, "write_to_file", {
+			await evaluateGatekeeperApproval(mockTask as Task, "write", {
 				path: "test.ts",
 				content: "test",
 			})
@@ -305,7 +305,7 @@ describe("gatekeeper", () => {
 				},
 			})
 
-			await evaluateGatekeeperApproval(mockTask as Task, "write_to_file", {
+			await evaluateGatekeeperApproval(mockTask as Task, "write", {
 				path: "test.ts",
 				content: "test",
 			})
@@ -333,7 +333,7 @@ describe("gatekeeper", () => {
 				},
 			})
 
-			await evaluateGatekeeperApproval(mockTask as Task, "write_to_file", {
+			await evaluateGatekeeperApproval(mockTask as Task, "write", {
 				path: "test.ts",
 				content: "test",
 			})
@@ -366,7 +366,7 @@ describe("gatekeeper", () => {
 				},
 			})
 
-			await evaluateGatekeeperApproval(mockTask as Task, "write_to_file", {
+			await evaluateGatekeeperApproval(mockTask as Task, "write", {
 				path: "test.ts",
 				content: "test",
 			})
@@ -399,7 +399,7 @@ describe("gatekeeper", () => {
 				},
 			})
 
-			await evaluateGatekeeperApproval(mockTask as Task, "write_to_file", {
+			await evaluateGatekeeperApproval(mockTask as Task, "write", {
 				path: "test.ts",
 				content: "test",
 			})
@@ -427,7 +427,7 @@ describe("gatekeeper", () => {
 				},
 			})
 
-			await evaluateGatekeeperApproval(mockTask as Task, "write_to_file", {
+			await evaluateGatekeeperApproval(mockTask as Task, "write", {
 				path: "test.ts",
 				content: "test",
 			})
@@ -449,7 +449,7 @@ describe("gatekeeper", () => {
 
 			const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
 
-			const result = await evaluateGatekeeperApproval(mockTask as Task, "write_to_file", {
+			const result = await evaluateGatekeeperApproval(mockTask as Task, "write", {
 				path: "test.ts",
 				content: "test",
 			})
@@ -464,33 +464,33 @@ describe("gatekeeper", () => {
 		})
 
 		describe("buildGatekeeperPrompt", () => {
-			it("should build prompt for write_to_file tool", async () => {
+			it("should build prompt for write tool", async () => {
 				const { streamResponseFromHandler } = await import("../../../../utils/single-completion-handler")
 				vi.mocked(streamResponseFromHandler).mockResolvedValue({
 					text: "yes",
 					usage: { type: "usage", inputTokens: 100, outputTokens: 10 },
 				})
 
-				await evaluateGatekeeperApproval(mockTask as Task, "write_to_file", {
+				await evaluateGatekeeperApproval(mockTask as Task, "write", {
 					path: "test.ts",
 					content: "const x = 1;",
 				})
 
 				expect(streamResponseFromHandler).toHaveBeenCalledWith(
 					expect.any(Object),
-					expect.stringContaining("Tool: write_to_file"),
+					expect.stringContaining("Tool: write"),
 					expect.stringContaining("WORKSPACE CONTEXT"),
 				)
 			})
 
-			it("should build prompt for execute_command tool", async () => {
+			it("should build prompt for bash tool", async () => {
 				const { streamResponseFromHandler } = await import("../../../../utils/single-completion-handler")
 				vi.mocked(streamResponseFromHandler).mockResolvedValue({
 					text: "yes",
 					usage: { type: "usage", inputTokens: 100, outputTokens: 10 },
 				})
 
-				await evaluateGatekeeperApproval(mockTask as Task, "execute_command", {
+				await evaluateGatekeeperApproval(mockTask as Task, "bash", {
 					command: "npm test",
 					cwd: "/test/dir",
 				})
@@ -502,26 +502,26 @@ describe("gatekeeper", () => {
 				)
 			})
 
-			it("should pre-approve read_file tool", async () => {
-				const result = await evaluateGatekeeperApproval(mockTask as Task, "read_file", {
+			it("should pre-approve read tool", async () => {
+				const result = await evaluateGatekeeperApproval(mockTask as Task, "read", {
 					path: "test.ts",
 				})
 
 				expect(result).toBe(true)
-				// read_file is pre-approved, so streamResponseFromHandler should not be called
+				// read is pre-approved, so streamResponseFromHandler should not be called
 				const { streamResponseFromHandler } = await import("../../../../utils/single-completion-handler")
 				expect(streamResponseFromHandler).not.toHaveBeenCalled()
 			})
 
-			it("should pre-approve read_file tool with multiple paths", async () => {
-				const result = await evaluateGatekeeperApproval(mockTask as Task, "read_file", {
+			it("should pre-approve read tool with multiple paths", async () => {
+				const result = await evaluateGatekeeperApproval(mockTask as Task, "read", {
 					args: {
 						file: [{ path: "test1.ts" }, { path: "test2.ts" }],
 					},
 				})
 
 				expect(result).toBe(true)
-				// read_file is pre-approved, so streamResponseFromHandler should not be called
+				// read is pre-approved, so streamResponseFromHandler should not be called
 				const { streamResponseFromHandler } = await import("../../../../utils/single-completion-handler")
 				expect(streamResponseFromHandler).not.toHaveBeenCalled()
 			})
@@ -564,11 +564,11 @@ describe("gatekeeper", () => {
 				)
 			})
 
-			it("should pre-approve update_todo_list", async () => {
-				const result = await evaluateGatekeeperApproval(mockTask as Task, "update_todo_list", {})
+			it("should pre-approve todo", async () => {
+				const result = await evaluateGatekeeperApproval(mockTask as Task, "todo", {})
 
 				expect(result).toBe(true)
-				// update_todo_list is pre-approved, so streamResponseFromHandler should not be called
+				// todo is pre-approved, so streamResponseFromHandler should not be called
 				const { streamResponseFromHandler } = await import("../../../../utils/single-completion-handler")
 				expect(streamResponseFromHandler).not.toHaveBeenCalled()
 			})
@@ -581,7 +581,7 @@ describe("gatekeeper", () => {
 				})
 
 				const longContent = "x".repeat(300)
-				await evaluateGatekeeperApproval(mockTask as Task, "write_to_file", {
+				await evaluateGatekeeperApproval(mockTask as Task, "write", {
 					path: "test.ts",
 					content: longContent,
 				})
@@ -601,7 +601,7 @@ describe("gatekeeper", () => {
 					usage: { type: "usage", inputTokens: 100, outputTokens: 10 },
 				})
 
-				await evaluateGatekeeperApproval(mockTask as Task, "write_to_file", {
+				await evaluateGatekeeperApproval(mockTask as Task, "write", {
 					path: "test.ts",
 					content: "test",
 				})
@@ -623,7 +623,7 @@ describe("gatekeeper", () => {
 					usage: { type: "usage", inputTokens: 100, outputTokens: 10 },
 				})
 
-				await evaluateGatekeeperApproval(mockTask as Task, "write_to_file", {
+				await evaluateGatekeeperApproval(mockTask as Task, "write", {
 					path: "test.ts",
 					content: "test",
 				})
@@ -642,7 +642,7 @@ describe("gatekeeper", () => {
 					usage: { type: "usage", inputTokens: 100, outputTokens: 10 },
 				})
 
-				await evaluateGatekeeperApproval(mockTask as Task, "write_to_file", {
+				await evaluateGatekeeperApproval(mockTask as Task, "write", {
 					path: "test.ts",
 					content: "test",
 				})
@@ -665,7 +665,7 @@ describe("gatekeeper", () => {
 					usage: { type: "usage", inputTokens: 100, outputTokens: 10 },
 				})
 
-				await evaluateGatekeeperApproval(mockTask as Task, "execute_command", {
+				await evaluateGatekeeperApproval(mockTask as Task, "bash", {
 					command: "rm test.ts",
 				})
 
@@ -687,7 +687,7 @@ describe("gatekeeper", () => {
 					usage: { type: "usage", inputTokens: 100, outputTokens: 10 },
 				})
 
-				await evaluateGatekeeperApproval(mockTask as Task, "execute_command", {
+				await evaluateGatekeeperApproval(mockTask as Task, "bash", {
 					command: "rm -f test.ts",
 				})
 

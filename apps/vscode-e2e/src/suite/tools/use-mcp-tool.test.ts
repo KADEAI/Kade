@@ -112,7 +112,7 @@ suite.skip("Roo Code use_mcp_tool Tool", function () {
 		await sleep(100)
 	})
 
-	test("Should request MCP filesystem read_file tool and complete successfully", async function () {
+	test("Should request MCP filesystem read tool and complete successfully", async function () {
 		const api = globalThis.api
 		const messages: ClineMessage[] = []
 		let taskStarted = false
@@ -199,7 +199,7 @@ suite.skip("Roo Code use_mcp_tool Tool", function () {
 			const currentContent = document.getText()
 			const modifiedContent = currentContent.replace(
 				'"alwaysAllow": []',
-				'"alwaysAllow": ["read_file", "read_multiple_files", "write_file", "edit_file", "create_directory", "list_directory", "directory_tree", "move_file", "search_files", "get_file_info", "list_allowed_directories"]',
+				'"alwaysAllow": ["read", "read_multiple_files", "write_file", "edit_file", "create_directory", "listectory", "directory_tree", "move_file", "search_files", "get_file_info", "list_allowed_directories"]',
 			)
 
 			const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(document.getText().length))
@@ -221,7 +221,7 @@ suite.skip("Roo Code use_mcp_tool Tool", function () {
 		await sleep(5000) // Wait for MCP servers to initialize
 		let taskId: string
 		try {
-			// Start task requesting to use MCP filesystem read_file tool
+			// Start task requesting to use MCP filesystem read tool
 			const fileName = path.basename(testFiles.simple)
 			taskId = await api.startNewTask({
 				configuration: {
@@ -230,11 +230,11 @@ suite.skip("Roo Code use_mcp_tool Tool", function () {
 					alwaysAllowMcp: true, // Enable MCP auto-approval
 					mcpEnabled: true,
 				},
-				text: `Use the MCP filesystem server's read_file tool to read the file "${fileName}". The file exists in the workspace and contains "Initial content for MCP test".`,
+				text: `Use the MCP filesystem server's read tool to read the file "${fileName}". The file exists in the workspace and contains "Initial content for MCP test".`,
 			})
 
 			console.log("Task ID:", taskId)
-			console.log("Requesting MCP filesystem read_file for:", fileName)
+			console.log("Requesting MCP filesystem read for:", fileName)
 
 			// Wait for task to start
 			await waitFor(() => taskStarted, { timeout: 45_000 })
@@ -246,7 +246,7 @@ suite.skip("Roo Code use_mcp_tool Tool", function () {
 			assert.ok(mcpToolRequested, "The use_mcp_tool should have been requested")
 
 			// Verify the correct tool was used
-			assert.strictEqual(mcpToolName, "read_file", "Should have used the read_file tool")
+			assert.strictEqual(mcpToolName, "read", "Should have used the read tool")
 
 			// Verify we got a response from the MCP server
 			assert.ok(mcpServerResponse, "Should have received a response from the MCP server")
@@ -281,7 +281,7 @@ suite.skip("Roo Code use_mcp_tool Tool", function () {
 			// Check that no errors occurred
 			assert.strictEqual(errorOccurred, null, "No errors should have occurred")
 
-			console.log("Test passed! MCP read_file tool used successfully and task completed")
+			console.log("Test passed! MCP read tool used successfully and task completed")
 		} finally {
 			// Clean up
 			api.off(RooCodeEventName.Message, messageHandler)
@@ -418,7 +418,7 @@ suite.skip("Roo Code use_mcp_tool Tool", function () {
 		}
 	})
 
-	test("Should request MCP filesystem list_directory tool and complete successfully", async function () {
+	test("Should request MCP filesystem listectory tool and complete successfully", async function () {
 		const api = globalThis.api
 		const messages: ClineMessage[] = []
 		let _taskCompleted = false
@@ -484,7 +484,7 @@ suite.skip("Roo Code use_mcp_tool Tool", function () {
 
 		let taskId: string
 		try {
-			// Start task requesting MCP filesystem list_directory tool
+			// Start task requesting MCP filesystem listectory tool
 			taskId = await api.startNewTask({
 				configuration: {
 					mode: "code",
@@ -492,7 +492,7 @@ suite.skip("Roo Code use_mcp_tool Tool", function () {
 					alwaysAllowMcp: true,
 					mcpEnabled: true,
 				},
-				text: `Use the MCP filesystem server's list_directory tool to list the contents of the current directory. I want to see the files in the workspace.`,
+				text: `Use the MCP filesystem server's listectory tool to list the contents of the current directory. I want to see the files in the workspace.`,
 			})
 
 			// Wait for attempt_completion to be called (indicating task finished)
@@ -502,7 +502,7 @@ suite.skip("Roo Code use_mcp_tool Tool", function () {
 			assert.ok(mcpToolRequested, "The use_mcp_tool should have been requested")
 
 			// Verify the correct tool was used
-			assert.strictEqual(mcpToolName, "list_directory", "Should have used the list_directory tool")
+			assert.strictEqual(mcpToolName, "listectory", "Should have used the listectory tool")
 
 			// Verify we got a response from the MCP server
 			assert.ok(mcpServerResponse, "Should have received a response from the MCP server")
@@ -549,7 +549,7 @@ suite.skip("Roo Code use_mcp_tool Tool", function () {
 			// Check that no errors occurred
 			assert.strictEqual(errorOccurred, null, "No errors should have occurred")
 
-			console.log("Test passed! MCP list_directory tool used successfully and task completed")
+			console.log("Test passed! MCP listectory tool used successfully and task completed")
 		} finally {
 			// Clean up
 			api.off(RooCodeEventName.Message, messageHandler)

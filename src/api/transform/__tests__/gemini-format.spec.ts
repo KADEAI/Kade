@@ -132,6 +132,7 @@ describe("convertAnthropicMessageToGemini", () => {
 						functionCall: {
 							name: "calculator",
 							args: { operation: "add", numbers: [2, 3] },
+							id: "calc-123",
 						},
 						thoughtSignature: "skip_thought_signature_validator",
 					},
@@ -170,6 +171,7 @@ describe("convertAnthropicMessageToGemini", () => {
 								name: "calculator",
 								content: "The result is 5",
 							},
+							id: "calculator-123",
 						},
 					},
 				],
@@ -226,6 +228,7 @@ describe("convertAnthropicMessageToGemini", () => {
 								name: "search",
 								content: "First result\n\nSecond result",
 							},
+							id: "search-123",
 						},
 					},
 				],
@@ -279,6 +282,7 @@ describe("convertAnthropicMessageToGemini", () => {
 								name: "search",
 								content: "Search results:\n\n(See next part for image)",
 							},
+							id: "search-123",
 						},
 					},
 					{
@@ -335,6 +339,7 @@ describe("convertAnthropicMessageToGemini", () => {
 								name: "imagesearch",
 								content: "\n\n(See next part for image)",
 							},
+							id: "imagesearch-123",
 						},
 					},
 					{
@@ -376,6 +381,7 @@ describe("convertAnthropicMessageToGemini", () => {
 								name: "search-files",
 								content: "found files",
 							},
+							id: "search-files-123",
 						},
 					},
 				],

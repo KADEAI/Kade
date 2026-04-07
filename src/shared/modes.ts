@@ -13,6 +13,7 @@ import {
 
 import { EXPERIMENT_IDS } from "./experiments"
 import { TOOL_GROUPS, ALWAYS_AVAILABLE_TOOLS } from "./tools"
+import { parseMcpToolName } from "../utils/mcp-name"
 
 export type Mode = string
 
@@ -178,9 +179,9 @@ export function isToolAllowedForMode(
 		return true
 	}
 
-	// Check if this is a dynamic MCP tool (mcp_serverName_toolName)
+	// Check if this is a dynamic MCP tool (mcp--serverName--toolName)
 	// These should be allowed if the mcp group is allowed for the mode
-	const isDynamicMcpTool = tool.startsWith("mcp_")
+	const isDynamicMcpTool = parseMcpToolName(tool) !== null
 	if (experiments && Object.values(EXPERIMENT_IDS).includes(tool as any)) {
 		if (!experiments[tool]) {
 			return false

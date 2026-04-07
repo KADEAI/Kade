@@ -43,11 +43,16 @@ describe("TerminalProcess", () => {
 
 		// Create a process for testing
 		terminalProcess = new TerminalProcess(mockTerminalInfo)
+		mockTerminalInfo.process = terminalProcess
 
 		TerminalRegistry["terminals"].push(mockTerminalInfo)
 
 		// Reset event listeners
 		terminalProcess.removeAllListeners()
+	})
+
+	afterEach(() => {
+		vi.useRealTimers()
 	})
 
 	describe("run", () => {
@@ -165,6 +170,42 @@ describe("TerminalProcess", () => {
 			await completePromise
 			expect(terminalProcess.isHot).toBe(false)
 		})
+
+		it("flushes buffered lines after the stream goes idle", async () => {
+			vi.useFakeTimers()
+
+			let releaseStream!: () => void
+			const closeStream = new Promise<void>((resolve) => {
+				releaseStream = resolve
+			})
+
+			const lineSpy = vi.fn()
+			terminalProcess.on("line", lineSpy)
+
+			mockStream = (async function* () {
+				yield "\x1b]633;C\x07"
+				yield "ready in 100ms\n"
+				yield "Local: http://localhost:3000/\n"
+				await closeStream
+			})()
+
+			mockTerminal.shellIntegration.executeCommand.mockReturnValue({
+				read: vi.fn().mockReturnValue(mockStream),
+			})
+
+			const runPromise = terminalProcess.run("npm run dev")
+			terminalProcess.emit("stream_available", mockStream)
+
+			await vi.advanceTimersByTimeAsync(100)
+
+			const emittedOutput = lineSpy.mock.calls.map(([line]) => line).join("")
+			expect(emittedOutput).toContain("ready in 100ms\n")
+			expect(emittedOutput).toContain("Local: http://localhost:3000/\n")
+
+			releaseStream()
+			terminalProcess.emit("shell_execution_complete", { exitCode: 0 })
+			await runPromise
+		})
 	})
 
 	describe("continue", () => {
@@ -176,6 +217,54 @@ describe("TerminalProcess", () => {
 
 			expect(continueSpy).toHaveBeenCalled()
 			expect(terminalProcess["isListening"]).toBe(false)
+		})
+	})
+
+	describe("abort", () => {
+		it("sends raw ctrl+c without an extra newline", () => {
+			terminalProcess.abort()
+
+			expect(mockTerminal.sendText).toHaveBeenCalledWith("\x03", false)
+		})
+
+		it("still sends ctrl+c after continue()", () => {
+			terminalProcess.continue()
+			terminalProcess.abort()
+
+			expect(mockTerminal.sendText).toHaveBeenCalledWith("\x03", false)
+		})
+
+		it("synthesizes SIGINT completion when abort closes the stream without a shell completion event", async () => {
+			let releaseStream!: () => void
+			const closeStream = new Promise<void>((resolve) => {
+				releaseStream = resolve
+			})
+
+			mockStream = (async function* () {
+				yield "\x1b]633;C\x07"
+				yield "Local: http://localhost:3000\n"
+				await closeStream
+			})()
+
+			mockTerminal.shellIntegration.executeCommand.mockReturnValue({
+				read: vi.fn().mockReturnValue(mockStream),
+			})
+
+			const shellExecutionCompleteSpy = vi.fn()
+			terminalProcess.on("shell_execution_complete", shellExecutionCompleteSpy)
+
+			const runPromise = terminalProcess.run("npm run dev")
+			terminalProcess.emit("stream_available", mockStream)
+
+			await Promise.resolve()
+			terminalProcess.abort()
+			releaseStream()
+
+			await expect(runPromise).resolves.toBeUndefined()
+			expect(mockTerminal.sendText).toHaveBeenCalledWith("\x03", false)
+			expect(shellExecutionCompleteSpy).toHaveBeenCalledWith(
+				expect.objectContaining({ exitCode: 130, signalName: "SIGINT" }),
+			)
 		})
 	})
 

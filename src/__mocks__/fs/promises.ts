@@ -126,7 +126,7 @@ const mockFs = {
 
 	access: vi.fn().mockImplementation(async (path: string) => {
 		// Check if the path exists in either files or directories
-		if (mockFiles.has(path) || mockDirectories.has(path) || path.startsWith("/test")) {
+		if (mockFiles.has(path) || mockDirectories.has(path)) {
 			return Promise.resolve()
 		}
 		const error = new Error(`ENOENT: no such file or directory, access '${path}'`)
@@ -148,6 +148,47 @@ const mockFs = {
 		const error = new Error(`ENOENT: no such file or directory, rename '${oldPath}'`)
 		;(error as any).code = "ENOENT"
 		throw error
+	}),
+
+	cp: vi.fn().mockImplementation(async (sourcePath: string, destinationPath: string) => {
+		if (mockFiles.has(sourcePath)) {
+			mockFiles.set(destinationPath, mockFiles.get(sourcePath))
+			return Promise.resolve()
+		}
+
+		for (const directory of Array.from(mockDirectories) as string[]) {
+			if (directory === sourcePath || directory.startsWith(`${sourcePath}/`)) {
+				const migratedDirectory = directory.replace(sourcePath, destinationPath)
+				mockDirectories.add(migratedDirectory)
+			}
+		}
+
+		for (const [filePath, content] of Array.from(mockFiles.entries())) {
+			if (filePath.startsWith(`${sourcePath}/`)) {
+				const migratedFilePath = filePath.replace(sourcePath, destinationPath)
+				mockFiles.set(migratedFilePath, content)
+			}
+		}
+
+		return Promise.resolve()
+	}),
+
+	rm: vi.fn().mockImplementation(async (targetPath: string) => {
+		mockFiles.delete(targetPath)
+
+		for (const filePath of Array.from(mockFiles.keys())) {
+			if (filePath.startsWith(`${targetPath}/`)) {
+				mockFiles.delete(filePath)
+			}
+		}
+
+		for (const directory of Array.from(mockDirectories) as string[]) {
+			if (directory === targetPath || directory.startsWith(`${targetPath}/`)) {
+				mockDirectories.delete(directory)
+			}
+		}
+
+		return Promise.resolve()
 	}),
 
 	constants: require("fs").constants,

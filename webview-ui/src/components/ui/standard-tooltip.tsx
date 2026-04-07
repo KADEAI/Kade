@@ -1,26 +1,26 @@
-import { ReactNode } from "react"
+import { ReactNode } from "react";
 
-import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
-export const STANDARD_TOOLTIP_DELAY = 300
+export const STANDARD_TOOLTIP_DELAY = 300;
 
 interface StandardTooltipProps {
-	/** The element(s) that trigger the tooltip */
-	children: ReactNode
-	/** The content to display in the tooltip */
-	content: ReactNode
-	/** The preferred side of the trigger to render the tooltip */
-	side?: "top" | "right" | "bottom" | "left"
-	/** The preferred alignment against the trigger */
-	align?: "start" | "center" | "end"
-	/** Distance in pixels from the trigger */
-	sideOffset?: number
-	/** Additional CSS classes for the tooltip content */
-	className?: string
-	/** Whether the trigger should be rendered as a child */
-	asChild?: boolean
-	/** Maximum width of the tooltip content */
-	maxWidth?: number | string
+  /** The element(s) that trigger the tooltip */
+  children: ReactNode;
+  /** The content to display in the tooltip */
+  content: ReactNode;
+  /** The preferred side of the trigger to render the tooltip */
+  side?: "top" | "right" | "bottom" | "left";
+  /** The preferred alignment against the trigger */
+  align?: "start" | "center" | "end";
+  /** Distance in pixels from the trigger */
+  sideOffset?: number;
+  /** Additional CSS classes for the tooltip content */
+  className?: string;
+  /** Whether the trigger should be rendered as a child */
+  asChild?: boolean;
+  /** Maximum width of the tooltip content */
+  maxWidth?: number | string;
 }
 
 /**
@@ -43,28 +43,36 @@ interface StandardTooltipProps {
  * @note Do not nest StandardTooltip components as this can cause UI issues.
  */
 export function StandardTooltip({
-	children,
-	content,
-	side = "top",
-	align = "center",
-	sideOffset = 4,
-	className,
-	asChild = true,
-	maxWidth,
+  children,
+  content,
+  side = "top",
+  align = "center",
+  sideOffset = 4,
+  className,
+  asChild = true,
+  maxWidth,
 }: StandardTooltipProps) {
-	// Don't render tooltip if content is empty or only whitespace.
-	if (!content || (typeof content === "string" && !content.trim())) {
-		return <>{children}</>
-	}
+  // Don't render tooltip if content is empty or only whitespace.
+  if (!content || (typeof content === "string" && !content.trim())) {
+    return <>{children}</>;
+  }
 
-	const style = maxWidth ? { maxWidth: typeof maxWidth === "number" ? `${maxWidth}px` : maxWidth } : undefined
+  const style = maxWidth
+    ? { maxWidth: typeof maxWidth === "number" ? `${maxWidth}px` : maxWidth }
+    : undefined;
 
-	return (
-		<Tooltip>
-			<TooltipTrigger asChild={asChild}>{children}</TooltipTrigger>
-			<TooltipContent side={side} align={align} sideOffset={sideOffset} className={className} style={style}>
-				{content}
-			</TooltipContent>
-		</Tooltip>
-	)
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild={asChild}>{children}</TooltipTrigger>
+      <TooltipContent
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+        className={className}
+        style={style}
+      >
+        {content}
+      </TooltipContent>
+    </Tooltip>
+  );
 }

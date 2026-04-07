@@ -1,56 +1,56 @@
 {
-	"greeting": "Hi, I'm Kade!",
-	"introduction": "<strong>Kade is the premiere autonomous coding agent.</strong> Get ready to architect, code, debug, and boost your productivity like you've never seen before. To continue, Kade requires an API key.",
-	"notice": "To get started, this extension needs an API provider.",
-	"start": "Let's go!",
-	"routers": {
-		"requesty": {
-			"description": "Your optimized LLM router",
-			"incentive": "$1 free credit"
-		},
-		"openrouter": {
-			"description": "A unified interface for LLMs"
-		},
-		"roo": {
-			"description": "The best free models to get started",
-			"incentive": "Try Roo out for free"
-		}
-	},
-	"chooseProvider": "To do its magic, Kade needs an API key.",
-	"providerSignup": {
-		"rooCloudProvider": "Roo Code Cloud Provider",
-		"rooCloudDescription": "The simplest way to use Roo. A curated mix of free and paid models at a low cost",
-		"learnMore": "learn more",
-		"useAnotherProvider": "Use another provider",
-		"useAnotherProviderDescription": "Enter an API key and get going.",
-		"noApiKeys": "Don't want to deal with keys? Go with the Roo Code Cloud Provider.",
-		"getStarted": "Get started"
-	},
-	"waitingForCloud": {
-		"heading": "Taking you to Roo Code Cloud...",
-		"description": "We'll take you to your browser to sign up for Roo Code Cloud. We'll then bring you back here to finish.",
-		"noPrompt": "If you don't get prompted to open a URL, <clickHere>click here</clickHere>.",
-		"havingTrouble": "If you've completed sign up but are having trouble, <clickHere>click here</clickHere>.",
-		"pasteUrl": "Paste the callback URL shown in your browser:",
-		"invalidURL": "That doesn't look like a valid callback URL. Please copy what Roo Code Cloud is showing in your browser.",
-		"goBack": "Go back"
-	},
-	"startRouter": "We recommend using an LLM Router:",
-	"startCustom": "Or you can bring your provider API key:",
-	"telemetry": {
-		"helpImprove": "Help Improve Kade",
-		"helpImproveMessage": "Kade collects error and usage data to help us fix bugs and improve the extension. This telemetry does not collect code, prompts or personal information. You can turn this off in <settingsLink>settings</settingsLink>."
-	},
-	"welcome": {
-		"message": "Get ready to architect, code, debug, and boost your productivity like you've never seen before!"
-	},
-	"provider": {
-		"message": "Select your AI provider in Settings to unlock Kade's full potential! 🤖",
-		"actionText": "Open Settings"
-	},
-	"toolProtocol": {
-		"proTipMessage": "Enable the Markdown or Unified Tool Protocol (below provider selection) for the best experience! Kade was built for these schemas - other protocols have limited support. 🔧",
-		"actionText": "Choose Protocol"
-	},
-	"importSettings": "Import Settings"
+  "greeting": "Hi, I'm Kade!",
+  "introduction": "<strong>Kade is the premiere autonomous coding agent.</strong> Get ready to architect, code, debug, and boost your productivity like you've never seen before. To continue, Kade requires an API key.",
+  "notice": "To get started, this extension needs an API provider.",
+  "start": "Let's go!",
+  "routers": {
+    "requesty": {
+      "description": "Your optimized LLM router",
+      "incentive": "$1 free credit"
+    },
+    "openrouter": {
+      "description": "A unified interface for LLMs"
+    },
+    "roo": {
+      "description": "The best free models to get started",
+      "incentive": "Try Roo out for free"
+    }
+  },
+  "chooseProvider": "To do its magic, Kade needs an API key.",
+  "providerSignup": {
+    "rooCloudProvider": "Roo Code Cloud Provider",
+    "rooCloudDescription": "The simplest way to use Roo. A curated mix of free and paid models at a low cost",
+    "learnMore": "learn more",
+    "useAnotherProvider": "Use another provider",
+    "useAnotherProviderDescription": "Enter an API key and get going.",
+    "noApiKeys": "Don't want to deal with keys? Go with the Roo Code Cloud Provider.",
+    "getStarted": "Get started"
+  },
+  "waitingForCloud": {
+    "heading": "Taking you to Roo Code Cloud...",
+    "description": "We'll take you to your browser to sign up for Roo Code Cloud. We'll then bring you back here to finish.",
+    "noPrompt": "If you don't get prompted to open a URL, <clickHere>click here</clickHere>.",
+    "havingTrouble": "If you've completed sign up but are having trouble, <clickHere>click here</clickHere>.",
+    "pasteUrl": "Paste the callback URL shown in your browser:",
+    "invalidURL": "That doesn't look like a valid callback URL. Please copy what Roo Code Cloud is showing in your browser.",
+    "goBack": "Go back"
+  },
+  "startRouter": "We recommend using an LLM Router:",
+  "startCustom": "Or you can bring your provider API key:",
+  "telemetry": {
+    "helpImprove": "Help Improve Kade",
+    "helpImproveMessage": "Kade collects error and usage data to help us fix bugs and improve the extension. This telemetry does not collect code, prompts or personal information. You can turn this off in <settingsLink>settings</settingsLink>."
+  },
+  "welcome": {
+    "message": "Get ready to architect, code, debug, and boost your productivity like you've never seen before!"
+  },
+  "provider": {
+    "message": "Select your AI provider in Settings to unlock Kade's full potential! 🤖",
+    "actionText": "Open Settings"
+  },
+  "toolProtocol": {
+    "proTipMessage": "Enable the Markdown or Unified Tool Protocol (below provider selection) for the best experience! Kade was built for these schemas - other protocols have limited support. 🔧",
+    "actionText": "Choose Protocol"
+  },
+  "importSettings": "Import Settings"
 }

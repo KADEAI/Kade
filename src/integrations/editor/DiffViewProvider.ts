@@ -7,18 +7,75 @@ import delay from "delay";
 
 import { createDirectoriesForFile } from "../../utils/fs";
 import { arePathsEqual, getReadablePath } from "../../utils/path";
-import { formatResponse } from "../../core/prompts/responses";
+import {
+  buildAppliedEditBlocksFromContents,
+  formatNativeFileReadback,
+  formatResponse,
+} from "../../core/prompts/responses";
 import { diagnosticsToProblemsString, getNewDiagnostics } from "../diagnostics";
 import { ClineSayTool } from "../../shared/ExtensionMessage";
 import { Task } from "../../core/task/Task";
-import { DEFAULT_WRITE_DELAY_MS, isNativeProtocol } from "@roo-code/types";
+import { DEFAULT_WRITE_DELAY_MS } from "@roo-code/types";
 import { resolveToolProtocol } from "../../utils/resolveToolProtocol";
+import { formatWithPrettier } from "../../core/tools/helpers/formatWithPrettier";
 
 import { DecorationController } from "./DecorationController";
 
 export const DIFF_VIEW_URI_SCHEME = "cline-diff";
 export const MODIFIED_VIEW_URI_SCHEME = "cline-modified";
 export const DIFF_VIEW_LABEL_CHANGES = "Original ↔ Kilo Code's Changes";
+const DIAGNOSTIC_POLL_INTERVAL_MS = 50;
+const DIAGNOSTIC_SETTLE_WINDOW_MS = 150;
+
+type DiagnosticsSnapshot = [vscode.Uri, vscode.Diagnostic[]][];
+
+function areDiagnosticsEqual(
+  left: DiagnosticsSnapshot,
+  right: DiagnosticsSnapshot,
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let outerIndex = 0; outerIndex < left.length; outerIndex++) {
+    const [leftUri, leftDiagnostics] = left[outerIndex];
+    const [rightUri, rightDiagnostics] = right[outerIndex];
+
+    if (leftUri.toString() !== rightUri.toString()) {
+      return false;
+    }
+
+    if (leftDiagnostics.length !== rightDiagnostics.length) {
+      return false;
+    }
+
+    for (
+      let diagnosticIndex = 0;
+      diagnosticIndex < leftDiagnostics.length;
+      diagnosticIndex++
+    ) {
+      const leftDiagnostic = leftDiagnostics[diagnosticIndex];
+      const rightDiagnostic = rightDiagnostics[diagnosticIndex];
+
+      if (
+        leftDiagnostic.message !== rightDiagnostic.message ||
+        leftDiagnostic.severity !== rightDiagnostic.severity ||
+        leftDiagnostic.source !== rightDiagnostic.source ||
+        leftDiagnostic.code !== rightDiagnostic.code ||
+        leftDiagnostic.range.start.line !== rightDiagnostic.range.start.line ||
+        leftDiagnostic.range.start.character !==
+          rightDiagnostic.range.start.character ||
+        leftDiagnostic.range.end.line !== rightDiagnostic.range.end.line ||
+        leftDiagnostic.range.end.character !==
+          rightDiagnostic.range.end.character
+      ) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
 
 // TODO: https://github.com/cline/cline/pull/3354
 export class DiffViewProvider implements vscode.TextDocumentContentProvider {
@@ -66,6 +123,10 @@ export class DiffViewProvider implements vscode.TextDocumentContentProvider {
     return this.relPath;
   }
 
+  isDiffSuppressed(): boolean {
+    return this.shouldSuppressDiff;
+  }
+
   getActiveStreamingToolCallId(): string | undefined {
     return this.activeStreamingToolCallId;
   }
@@ -75,11 +136,11 @@ export class DiffViewProvider implements vscode.TextDocumentContentProvider {
   }
 
   getRelPath(): string | undefined {
-    return this.relPath
+    return this.relPath;
   }
 
   getNewContent(): string | undefined {
-    return this.newContent
+    return this.newContent;
   }
 
   // Implementation of TextDocumentContentProvider
@@ -313,6 +374,7 @@ export class DiffViewProvider implements vscode.TextDocumentContentProvider {
   async saveChanges(
     diagnosticsEnabled: boolean = true,
     writeDelayMs: number = DEFAULT_WRITE_DELAY_MS,
+    contentAlreadyFormatted: boolean = false,
   ): Promise<{
     newProblemsMessage: string | undefined;
     userEdits: string | undefined;
@@ -370,6 +432,17 @@ export class DiffViewProvider implements vscode.TextDocumentContentProvider {
       }
     }
 
+    if (!contentAlreadyFormatted || editedContent !== this.newContent) {
+      const state = await this.taskRef.deref()?.providerRef.deref()?.getState();
+      editedContent = await formatWithPrettier({
+        cwd: this.cwd,
+        relativePath: this.relPath,
+        content: editedContent,
+        formatterSettings: state?.formatterSettings,
+      });
+    }
+    this.newContent = editedContent;
+
     // KILOCODE FIX: Always write directly to disk instead of using document.save().
     // During streaming, handlePartial's applyEdit calls modify the real file document,
     // which can trigger VS Code auto-save writing partial content to disk. When
@@ -404,19 +477,11 @@ export class DiffViewProvider implements vscode.TextDocumentContentProvider {
     let newProblemsMessage = "";
 
     if (diagnosticsEnabled) {
-      // Add configurable delay to allow linters time to process and clean up issues
-      // like unused imports (especially important for Go and other languages)
-      // Ensure delay is non-negative
-      const safeDelayMs = Math.max(0, writeDelayMs);
-
-      try {
-        await delay(safeDelayMs);
-      } catch (error) {
-        // Log error but continue - delay failure shouldn't break the save operation
-        console.warn(`Failed to apply write delay: ${error}`);
-      }
-
-      const postDiagnostics = vscode.languages.getDiagnostics();
+      // Treat writeDelayMs as a max wait budget instead of a mandatory sleep.
+      // This lets fast diagnostics complete quickly while still giving slower
+      // linters time to settle when they actually need it.
+      const postDiagnostics =
+        await this.collectPostSaveDiagnostics(writeDelayMs);
 
       // Get diagnostic settings from state
       const task = this.taskRef.deref();
@@ -500,6 +565,7 @@ export class DiffViewProvider implements vscode.TextDocumentContentProvider {
     cwd: string,
     isNewFile: boolean,
     includeEditCount: boolean = true,
+    includeReadback: boolean = false,
   ): Promise<string> {
     if (!this.relPath) {
       throw new Error("No file path available in DiffViewProvider");
@@ -511,46 +577,36 @@ export class DiffViewProvider implements vscode.TextDocumentContentProvider {
       process.platform === "win32" ? absolutePath.toLowerCase() : absolutePath;
     const currentCount = (task.luxurySpa.fileEditCounts.get(pathKey) || 0) + 1;
     task.luxurySpa.fileEditCounts.set(pathKey, currentCount);
+    task.luxurySpa.recordRecentEditBlocks(
+      absolutePath,
+      buildAppliedEditBlocksFromContents(
+        this.originalContent ?? "",
+        this.newContent ?? "",
+      ),
+    );
 
     // Check which protocol we're using
     const toolProtocol = resolveToolProtocol(
       task.apiConfiguration,
       task.api.getModel().info,
     );
-    const useNative = isNativeProtocol(toolProtocol);
 
-    // Build notices array
-    /*
-		const notices = [
-			"You don't need to reread the file as you have the changes you made here, proceed with these new changes as the baseline",
-			...(this.userEdits
-				? [
-					"",
-				]
-				: []),
-		]
-		*/
+    if (includeReadback) {
+      const finalContent = this.newContent ?? "";
+      const lines = finalContent.length > 0 ? finalContent.split(/\r?\n/) : [];
+      task.luxurySpa.injectFreshContent(this.relPath, lines);
 
-    if (useNative) {
-      // Return JSON for native protocol
-      const result: any = {
-        path: this.relPath,
-        operation: isNewFile ? "created" : "modified",
-        edit_count: !isNewFile && includeEditCount ? currentCount : undefined,
-        ...(isNewFile
-          ? { tip: "file created succesfully" }
-          : {
-              notice:
-                "File context updated. Old blocks show the previous content of this file.",
-            }),
-      };
+      let response = `File ${isNewFile ? "created" : "modified"} successfully${!isNewFile && includeEditCount ? ` (Edit #${currentCount})` : ""}\n`;
+      response += `Post-write snapshot:\n${formatNativeFileReadback(this.relPath, finalContent)}`;
 
       if (this.newProblemsMessage) {
-        result.problems = this.newProblemsMessage;
+        response += `\n${this.newProblemsMessage}`;
       }
 
-      return JSON.stringify(result);
-    } else if (
+      return response;
+    }
+
+    if (
       (toolProtocol as string) === "unified" ||
       (toolProtocol as string) === "markdown"
     ) {
@@ -722,7 +778,7 @@ export class DiffViewProvider implements vscode.TextDocumentContentProvider {
           (arePathsEqual(e.document.uri.path, uri.fsPath) ||
             arePathsEqual(e.document.uri.fsPath, uri.fsPath)),
       );
-      if (existingEditor) {
+      if (existingEditor && suppressDiff) {
         resolve(existingEditor);
         return;
       }
@@ -873,6 +929,51 @@ export class DiffViewProvider implements vscode.TextDocumentContentProvider {
     return result;
   }
 
+  private async collectPostSaveDiagnostics(
+    writeDelayMs: number,
+  ): Promise<DiagnosticsSnapshot> {
+    const maxWaitMs = Math.max(0, writeDelayMs);
+    let snapshot = vscode.languages.getDiagnostics();
+
+    if (maxWaitMs === 0) {
+      return snapshot;
+    }
+
+    let elapsedMs = 0;
+    let stableMs = 0;
+
+    while (elapsedMs < maxWaitMs && stableMs < DIAGNOSTIC_SETTLE_WINDOW_MS) {
+      const waitMs = Math.min(
+        DIAGNOSTIC_POLL_INTERVAL_MS,
+        maxWaitMs - elapsedMs,
+      );
+
+      if (waitMs <= 0) {
+        break;
+      }
+
+      try {
+        await delay(waitMs);
+      } catch (error) {
+        console.warn(`Failed to apply write delay: ${error}`);
+        break;
+      }
+
+      elapsedMs += waitMs;
+
+      const nextSnapshot = vscode.languages.getDiagnostics();
+      if (areDiagnosticsEqual(snapshot, nextSnapshot)) {
+        stableMs += waitMs;
+        continue;
+      }
+
+      snapshot = nextSnapshot;
+      stableMs = 0;
+    }
+
+    return snapshot;
+  }
+
   async reset(): Promise<void> {
     await this.closeAllDiffViews();
     this.editType = undefined;
@@ -906,12 +1007,22 @@ export class DiffViewProvider implements vscode.TextDocumentContentProvider {
     openFile: boolean = true,
     diagnosticsEnabled: boolean = true,
     writeDelayMs: number = DEFAULT_WRITE_DELAY_MS,
+    contentAlreadyFormatted: boolean = false,
   ): Promise<{
     newProblemsMessage: string | undefined;
     userEdits: string | undefined;
     finalContent: string | undefined;
   }> {
     const absolutePath = path.resolve(this.cwd, relPath);
+    if (!contentAlreadyFormatted) {
+      const state = await this.taskRef.deref()?.providerRef.deref()?.getState();
+      content = await formatWithPrettier({
+        cwd: this.cwd,
+        relativePath: relPath,
+        content,
+        formatterSettings: state?.formatterSettings,
+      });
+    }
 
     // Get diagnostics before editing the file
     this.preDiagnostics = vscode.languages.getDiagnostics();
@@ -936,16 +1047,8 @@ export class DiffViewProvider implements vscode.TextDocumentContentProvider {
     let newProblemsMessage = "";
 
     if (diagnosticsEnabled) {
-      // Add configurable delay to allow linters time to process
-      const safeDelayMs = Math.max(0, writeDelayMs);
-
-      try {
-        await delay(safeDelayMs);
-      } catch (error) {
-        console.warn(`Failed to apply write delay: ${error}`);
-      }
-
-      const postDiagnostics = vscode.languages.getDiagnostics();
+      const postDiagnostics =
+        await this.collectPostSaveDiagnostics(writeDelayMs);
 
       // Get diagnostic settings from state
       const task = this.taskRef.deref();

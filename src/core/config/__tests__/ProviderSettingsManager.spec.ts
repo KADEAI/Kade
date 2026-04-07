@@ -70,7 +70,7 @@ describe("ProviderSettingsManager", () => {
 							config: {},
 							id: "default",
 							diffEnabled: true,
-							fuzzyMatchThreshold: 1.0,
+							fuzzyMatchThreshold: 0.8,
 						},
 					},
 					modeApiConfigs: {},

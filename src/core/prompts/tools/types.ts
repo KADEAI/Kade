@@ -4,6 +4,7 @@ import { Experiments } from "@roo-code/types"
 
 export type ToolArgs = {
 	cwd: string
+	supportsBrowserUse?: boolean
 	supportsComputerUse: boolean
 	diffStrategy?: DiffStrategy
 	browserViewportSize?: string

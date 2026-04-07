@@ -3,10 +3,10 @@
 	"displayName": "%extension.displayName%",
 	"description": "%extension.description%",
 	"publisher": "KADEAI",
-	"version": "2.4.1",
+	"version": "4.0.1",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/kadeai/kade"
+		"url": "https://github.com/KADEAI/Kade"
 	},
 	"icon": "assets/icons/logo.png",
 	"galleryBanner": {
@@ -135,7 +135,27 @@
 				"icon": "$(add)"
 			},
 			{
+				"command": "kade.sidebarPlusButtonClicked",
+				"title": "%command.newTask.title%",
+				"icon": "$(add)"
+			},
+			{
+				"command": "kade.tabPlusButtonClicked",
+				"title": "%command.newTask.title%",
+				"icon": "$(add)"
+			},
+			{
 				"command": "kade.mcpButtonClicked",
+				"title": "%command.marketplace.title%",
+				"icon": "$(extensions)"
+			},
+			{
+				"command": "kade.sidebarMcpButtonClicked",
+				"title": "%command.marketplace.title%",
+				"icon": "$(extensions)"
+			},
+			{
+				"command": "kade.tabMcpButtonClicked",
 				"title": "%command.marketplace.title%",
 				"icon": "$(extensions)"
 			},
@@ -160,7 +180,27 @@
 				"icon": "$(history)"
 			},
 			{
+				"command": "kade.sidebarHistoryButtonClicked",
+				"title": "%command.history.title%",
+				"icon": "$(history)"
+			},
+			{
+				"command": "kade.tabHistoryButtonClicked",
+				"title": "%command.history.title%",
+				"icon": "$(history)"
+			},
+			{
 				"command": "kade.popoutButtonClicked",
+				"title": "%command.openInEditor.title%",
+				"icon": "$(link-external)"
+			},
+			{
+				"command": "kade.sidebarPopoutButtonClicked",
+				"title": "%command.openInEditor.title%",
+				"icon": "$(link-external)"
+			},
+			{
+				"command": "kade.tabPopoutButtonClicked",
 				"title": "%command.openInEditor.title%",
 				"icon": "$(link-external)"
 			},
@@ -170,13 +210,39 @@
 				"icon": "$(settings-gear)"
 			},
 			{
+				"command": "kade.sidebarSettingsButtonClicked",
+				"title": "%command.settings.title%",
+				"icon": "$(settings-gear)"
+			},
+			{
+				"command": "kade.tabSettingsButtonClicked",
+				"title": "%command.settings.title%",
+				"icon": "$(settings-gear)"
+			},
+			{
 				"command": "kade.helpButtonClicked",
+				"title": "%command.documentation.title%",
+				"icon": "$(question)"
+			},
+			{
+				"command": "kade.sidebarHelpButtonClicked",
+				"title": "%command.documentation.title%",
+				"icon": "$(question)"
+			},
+			{
+				"command": "kade.tabHelpButtonClicked",
 				"title": "%command.documentation.title%",
 				"icon": "$(question)"
 			},
 			{
 				"command": "kade.openInNewTab",
 				"title": "%command.openInNewTab.title%",
+				"category": "%configuration.title%"
+			},
+			{
+				"command": "kade.agentManagerOpen",
+				"title": "%command.agentManager.title%",
+				"icon": "$(comment-discussion)",
 				"category": "%configuration.title%"
 			},
 			{
@@ -337,65 +403,75 @@
 			],
 			"view/title": [
 				{
-					"command": "kade.plusButtonClicked",
+					"command": "kade.sidebarPlusButtonClicked",
 					"group": "navigation@0",
 					"when": "view == kade.SidebarProvider"
 				},
 				{
-					"command": "kade.mcpButtonClicked",
+					"command": "kade.sidebarMcpButtonClicked",
+					"group": "navigation@1",
+					"when": "view == kade.SidebarProvider"
+				},
+				{
+					"command": "kade.agentManagerOpen",
 					"group": "navigation@2",
 					"when": "view == kade.SidebarProvider"
 				},
 				{
-					"command": "kade.historyButtonClicked",
+					"command": "kade.sidebarHistoryButtonClicked",
 					"group": "navigation@4",
 					"when": "view == kade.SidebarProvider"
 				},
 				{
-					"command": "kade.settingsButtonClicked",
+					"command": "kade.sidebarSettingsButtonClicked",
 					"group": "navigation@6",
 					"when": "view == kade.SidebarProvider"
 				},
 				{
-					"command": "kade.popoutButtonClicked",
+					"command": "kade.sidebarPopoutButtonClicked",
 					"group": "navigation@7",
 					"when": "view == kade.SidebarProvider"
 				},
 				{
-					"command": "kade.helpButtonClicked",
-					"group": "navigation@8",
+					"command": "kade.sidebarHelpButtonClicked",
+					"group": "navigation@9",
 					"when": "false && view == kade.SidebarProvider"
 				}
 			],
 			"editor/title": [
 				{
-					"command": "kade.plusButtonClicked",
+					"command": "kade.tabPlusButtonClicked",
 					"group": "navigation@1",
 					"when": "activeWebviewPanelId == kade.TabPanelProvider"
 				},
 				{
-					"command": "kade.mcpButtonClicked",
+					"command": "kade.tabMcpButtonClicked",
 					"group": "navigation@2",
 					"when": "activeWebviewPanelId == kade.TabPanelProvider"
 				},
 				{
-					"command": "kade.historyButtonClicked",
+					"command": "kade.agentManagerOpen",
 					"group": "navigation@3",
 					"when": "activeWebviewPanelId == kade.TabPanelProvider"
 				},
 				{
-					"command": "kade.popoutButtonClicked",
+					"command": "kade.tabHistoryButtonClicked",
 					"group": "navigation@4",
 					"when": "activeWebviewPanelId == kade.TabPanelProvider"
 				},
 				{
-					"command": "kade.settingsButtonClicked",
+					"command": "kade.tabPopoutButtonClicked",
 					"group": "navigation@5",
 					"when": "activeWebviewPanelId == kade.TabPanelProvider"
 				},
 				{
-					"command": "kade.helpButtonClicked",
+					"command": "kade.tabSettingsButtonClicked",
 					"group": "navigation@6",
+					"when": "activeWebviewPanelId == kade.TabPanelProvider"
+				},
+				{
+					"command": "kade.tabHelpButtonClicked",
+					"group": "navigation@7",
 					"when": "activeWebviewPanelId == kade.TabPanelProvider"
 				}
 			],
@@ -594,8 +670,7 @@
 				"kade.toolProtocol": {
 					"type": "string",
 					"enum": [
-						"unified",
-						"markdown"
+						"unified"
 					],
 					"default": "unified",
 					"description": "%settings.toolProtocol.description%"
@@ -696,6 +771,7 @@
 		"@lmstudio/sdk": "^1.1.1",
 		"@mistralai/mistralai": "^1.9.18",
 		"@modelcontextprotocol/sdk": "1.13.3",
+		"@nut-tree-fork/nut-js": "^4.2.6",
 		"@octokit/graphql": "9.0.2",
 		"@octokit/rest": "19.0.7",
 		"@octokit/webhooks-types": "7.6.1",
@@ -703,6 +779,8 @@
 		"@openrouter/ai-sdk-provider": "1.5.2",
 		"@opentui/core": "0.1.72",
 		"@opentui/solid": "0.1.72",
+		"@prettier/plugin-ruby": "^4.0.4",
+		"@prettier/plugin-xml": "^3.4.2",
 		"@qdrant/js-client-rest": "^1.14.0",
 		"@roo-code/cloud": "workspace:^",
 		"@roo-code/ipc": "workspace:^",
@@ -736,6 +814,7 @@
 		"ignore": "^7.0.3",
 		"is-wsl": "^3.1.0",
 		"isbinaryfile": "^5.0.2",
+		"jimp": "^1.6.0",
 		"js-tiktoken": "^1.0.8",
 		"jsdom": "^26.0.0",
 		"json5": "^2.2.3",
@@ -760,6 +839,9 @@
 		"pdf-parse": "^1.1.1",
 		"pkce-challenge": "^5.0.0",
 		"prettier": "^3.5.3",
+		"prettier-plugin-java": "^2.8.1",
+		"prettier-plugin-kotlin": "^2.1.0",
+		"prettier-plugin-svelte": "^3.5.1",
 		"pretty-bytes": "^7.0.0",
 		"proper-lockfile": "^4.1.2",
 		"ps-list": "^8.1.1",
@@ -790,7 +872,6 @@
 		"undici": "^7.13.0",
 		"uri-js": "^4.4.1",
 		"uuid": "^11.1.0",
-		"vscode-material-icons": "^0.1.1",
 		"web-tree-sitter": "^0.25.6",
 		"workerpool": "^9.2.0",
 		"ws": "^8.18.0",

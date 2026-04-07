@@ -300,7 +300,7 @@ export class GeminiOAuthManager {
         return this.credentials?.accessToken ?? null
     }
 
-    public async getProjectId(): Promise<string | null> {
+    public async getProjectId(accessTokenOverride?: string): Promise<string | null> {
         await this.loadCredentials()
 
         if (!this.credentials) {
@@ -311,7 +311,7 @@ export class GeminiOAuthManager {
             return this.credentials.projectId
         }
 
-        const accessToken = await this.getAccessToken()
+        const accessToken = accessTokenOverride ?? (await this.getAccessToken())
         if (!accessToken) {
             return null
         }

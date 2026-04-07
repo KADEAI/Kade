@@ -33,6 +33,8 @@ import {
   type CloudUserInfo,
   type CloudOrganizationMembership,
   type CreateTaskOptions,
+  type FormatterAvailability,
+  type ToolHeaderBackgroundConfig,
   type TokenUsage,
   type ToolUsage,
   RooCodeEventName,
@@ -61,6 +63,7 @@ import { GlobalFileNames } from "../../shared/globalFileNames";
 import type {
   ExtensionMessage,
   ExtensionState,
+  EmptyStateBackgroundOption,
   MarketplaceInstalledMetadata,
 } from "../../shared/ExtensionMessage";
 import { Mode, defaultModeSlug, getModeBySlug } from "../../shared/modes";
@@ -69,6 +72,8 @@ import { formatLanguage } from "../../shared/language";
 import { WebviewMessage } from "../../shared/WebviewMessage";
 import { EMBEDDING_MODEL_PROFILES } from "../../shared/embeddingModels";
 import { ProfileValidator } from "../../shared/ProfileValidator";
+import { sanitizeSessionTitle } from "../../shared/kilocode/sanitizeSessionTitle";
+import { getCliFormatterAvailability } from "../tools/helpers/formatWithPrettier";
 
 import { Terminal } from "../../integrations/terminal/Terminal";
 import { downloadTask } from "../../integrations/misc/export-markdown";
@@ -120,9 +125,11 @@ import { readTaskMessages } from "../task-persistence/taskMessages";
 import { getNonce } from "./getNonce";
 import { getUri } from "./getUri";
 import { generateSystemPrompt } from "./generateSystemPrompt";
+import { getResolvedFileIconTheme } from "./fileIconTheme";
 import { openAiCodexOAuthManager } from "../../integrations/openai-codex/oauth";
 import { antigravityOAuthManager } from "../../integrations/antigravity/oauth";
 import { claudeCodeOAuthManager } from "../../integrations/claude-code/oauth";
+import { zedOAuthManager } from "../../integrations/zed/oauth";
 import { REQUESTY_BASE_URL } from "../../shared/utils/requesty";
 
 import {
@@ -207,9 +214,11 @@ export class ClineProvider
   private lastPostedTaskId?: string;
   private isPostingState = false;
   private pendingPostStateRequest = false;
+  private latestStatePostRequestId = 0;
   private pendingOperations: Map<string, PendingEditOperation> = new Map();
   private runningTasks: Map<string, Task> = new Map(); // kade_change: track running tasks
   private savedHomeProfileName?: string; // kade_change: Stash the home page profile before entering a chat
+  private mirroredWebviews = new Set<vscode.Webview>();
   private static readonly PENDING_OPERATION_TIMEOUT_MS = 30000; // 30 seconds
 
   private cloudOrganizationsCache: CloudOrganizationMembership[] | null = null;
@@ -259,6 +268,7 @@ export class ClineProvider
     openAiCodexOAuthManager.initialize(this.context);
     antigravityOAuthManager.initialize(this.context);
     claudeCodeOAuthManager.initialize(this.context);
+    zedOAuthManager.initialize(this.context);
 
     // Initialize MCP Hub through the singleton manager
 
@@ -569,8 +579,14 @@ export class ClineProvider
     now: Date,
   ): number {
     const scheduleType = state.infinityScheduleType ?? "interval";
-    const scheduleMinute = Math.min(59, Math.max(0, state.infinityScheduleMinute ?? 0));
-    const scheduleHour = Math.min(23, Math.max(0, state.infinityScheduleHour ?? 9));
+    const scheduleMinute = Math.min(
+      59,
+      Math.max(0, state.infinityScheduleMinute ?? 0),
+    );
+    const scheduleHour = Math.min(
+      23,
+      Math.max(0, state.infinityScheduleHour ?? 9),
+    );
 
     if (scheduleType === "hourly") {
       const next = new Date(now);
@@ -592,7 +608,10 @@ export class ClineProvider
       return Math.max(1000, next.getTime() - now.getTime());
     }
 
-    return Math.max(60_000, (Math.max(1, state.infinityIntervalMinutes ?? 5) * 60 * 1000));
+    return Math.max(
+      60_000,
+      Math.max(1, state.infinityIntervalMinutes ?? 5) * 60 * 1000,
+    );
   }
 
   /**
@@ -990,6 +1009,22 @@ export class ClineProvider
     );
   }
 
+  public static getSidebarInstance(): ClineProvider | undefined {
+    return findLast(
+      Array.from(this.activeInstances),
+      (instance) =>
+        instance.renderContext === "sidebar" && instance.view?.visible === true,
+    );
+  }
+
+  public static getVisibleTabInstance(): ClineProvider | undefined {
+    return findLast(
+      Array.from(this.activeInstances),
+      (instance) =>
+        instance.renderContext === "editor" && instance.view?.visible === true,
+    );
+  }
+
   public static async getInstance(): Promise<ClineProvider | undefined> {
     let visibleProvider = ClineProvider.getVisibleInstance();
 
@@ -1024,6 +1059,18 @@ export class ClineProvider
     }
 
     return false;
+  }
+
+  public getViewColumn(): vscode.ViewColumn | undefined {
+    if (!this.view) {
+      return undefined;
+    }
+
+    if ("viewColumn" in this.view) {
+      return this.view.viewColumn;
+    }
+
+    return undefined;
   }
 
   public static async handleCodeAction(
@@ -1198,6 +1245,14 @@ ${prompt}
       vscode.Uri.joinPath(this.contextProxy.extensionUri, "webview-ui"),
       vscode.Uri.joinPath(this.contextProxy.extensionUri, "assets"), // kade_change
     ];
+    const emptyStateBackgroundsDir =
+      this.getEmptyStateBackgroundsDirectoryUri();
+    await fs.mkdir(emptyStateBackgroundsDir.fsPath, { recursive: true });
+    resourceRoots.push(emptyStateBackgroundsDir);
+    const fileIconTheme = await this.getSafeResolvedFileIconTheme(
+      webviewView.webview,
+    );
+    resourceRoots.push(...fileIconTheme.localResourceRoots);
 
     // Add workspace folders to allow access to workspace files
     if (vscode.workspace.workspaceFolders) {
@@ -1268,12 +1323,20 @@ ${prompt}
       async () => {
         if (inTabMode) {
           this.log("Disposing ClineProvider instance for tab view");
+          this.debouncedPostStateToWebview.cancel();
+          // Clear the tab panel reference
+          setPanel(undefined, "tab");
           await this.dispose();
         } else {
           this.log("Clearing webview resources for sidebar view");
+          this.debouncedPostStateToWebview.cancel();
           this.clearWebviewResources();
           // Reset current workspace manager reference when view is disposed
           this.codeIndexManager = undefined;
+          // Clear the view reference so it can be re-initialized
+          this.view = undefined;
+          // Clear the sidebar panel reference
+          setPanel(undefined, "sidebar");
         }
       },
       null,
@@ -1615,7 +1678,69 @@ ${prompt}
       }
     });
 
-    await this.view?.webview.postMessage(message);
+    const targets = new Set<vscode.Webview>();
+
+    if (this.view) {
+      targets.add(this.view.webview);
+    }
+
+    for (const mirroredWebview of this.mirroredWebviews) {
+      targets.add(mirroredWebview);
+    }
+
+    if (targets.size === 0) {
+      return;
+    }
+
+    for (const target of targets) {
+      try {
+        await target.postMessage(message);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+
+        if (errorMessage.toLowerCase().includes("disposed")) {
+          this.log(
+            `Skipping message for disposed ${this.renderContext} webview: ${errorMessage}`,
+          );
+
+          if (this.view?.webview === target) {
+            this.view = undefined;
+            setPanel(
+              undefined,
+              this.renderContext === "editor" ? "tab" : "sidebar",
+            );
+          }
+
+          this.mirroredWebviews.delete(target);
+
+          continue;
+        }
+
+        throw error;
+      }
+    }
+  }
+
+  public registerMirroredWebview(webview: vscode.Webview) {
+    this.mirroredWebviews.add(webview);
+  }
+
+  public unregisterMirroredWebview(webview: vscode.Webview) {
+    this.mirroredWebviews.delete(webview);
+  }
+
+  private async getSafeResolvedFileIconTheme(
+    webview: vscode.Webview,
+  ): Promise<Awaited<ReturnType<typeof getResolvedFileIconTheme>>> {
+    try {
+      return await getResolvedFileIconTheme(webview);
+    } catch (error) {
+      this.log(
+        `Failed to resolve file icon theme: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return { fontCss: "", localResourceRoots: [] };
+    }
   }
 
   private async getHMRHtmlContent(webview: vscode.Webview): Promise<string> {
@@ -1632,6 +1757,10 @@ ${prompt}
     }
 
     const nonce = getNonce();
+    const fileIconTheme = await this.getSafeResolvedFileIconTheme(webview);
+    const serializedFileIconTheme = JSON.stringify(
+      fileIconTheme.theme ?? null,
+    ).replace(/</g, "\\u003c");
 
     // Get the OpenRouter base URL from configuration
     const { apiConfiguration } = await this.getState();
@@ -1653,11 +1782,6 @@ ${prompt}
       "assets",
       "codicons",
       "codicon.css",
-    ]);
-    const materialIconsUri = getUri(webview, this.contextProxy.extensionUri, [
-      "assets",
-      "vscode-material-icons",
-      "icons",
     ]);
     const imagesUri = getUri(webview, this.contextProxy.extensionUri, [
       "assets",
@@ -1713,9 +1837,10 @@ ${prompt}
 						window.IMAGES_BASE_URI = "${imagesUri}"
 						window.AUDIO_BASE_URI = "${audioUri}"
 						window.PROVIDERS_BASE_URI = "${providersUri}"
-						window.MATERIAL_ICONS_BASE_URI = "${materialIconsUri}"
+						window.ACTIVE_FILE_ICON_THEME = ${serializedFileIconTheme}
 						window.KILOCODE_BACKEND_BASE_URL = "${process.env.KILOCODE_BACKEND_BASE_URL ?? ""}"
 					</script>
+					${fileIconTheme.fontCss ? `<style>${fileIconTheme.fontCss}</style>` : ""}
 					<title>Kilo Code</title>
 				</head>
 				<body>
@@ -1761,11 +1886,6 @@ ${prompt}
       "codicons",
       "codicon.css",
     ]);
-    const materialIconsUri = getUri(webview, this.contextProxy.extensionUri, [
-      "assets",
-      "vscode-material-icons",
-      "icons",
-    ]);
     const imagesUri = getUri(webview, this.contextProxy.extensionUri, [
       "assets",
       "images",
@@ -1795,6 +1915,10 @@ ${prompt}
 		in meta tag we add nonce attribute: A cryptographic nonce (only used once) to allow scripts. The server must generate a unique nonce value each time it transmits a policy. It is critical to provide a nonce that cannot be guessed as bypassing a resource's policy is otherwise trivial.
 		*/
     const nonce = getNonce();
+    const fileIconTheme = await this.getSafeResolvedFileIconTheme(webview);
+    const serializedFileIconTheme = JSON.stringify(
+      fileIconTheme.theme ?? null,
+    ).replace(/</g, "\\u003c");
 
     // Get the OpenRouter base URL from configuration
     const { apiConfiguration } = await this.getState();
@@ -1822,9 +1946,10 @@ ${prompt}
 				window.IMAGES_BASE_URI = "${imagesUri}"
 				window.AUDIO_BASE_URI = "${audioUri}"
 				window.PROVIDERS_BASE_URI = "${providersUri}"
-				window.MATERIAL_ICONS_BASE_URI = "${materialIconsUri}"
+				window.ACTIVE_FILE_ICON_THEME = ${serializedFileIconTheme}
 				window.KILOCODE_BACKEND_BASE_URL = "${process.env.KILOCODE_BACKEND_BASE_URL ?? ""}"
 			</script>
+			${fileIconTheme.fontCss ? `<style>${fileIconTheme.fontCss}</style>` : ""}
             <title>Kilo Code</title>
           </head>
           <body>
@@ -2657,6 +2782,8 @@ ${prompt}
 
   async refreshWorkspace() {
     this.currentWorkspacePath = getWorkspacePath();
+    this.taskHistoryStorageReady = this.initializeTaskHistoryStorage();
+    await this.taskHistoryStorageReady;
 
     await kilo_execIfExtension(() => {
       if (this.currentWorkspacePath) {
@@ -2696,9 +2823,13 @@ ${prompt}
       return;
     }
 
+    const requestId = ++this.latestStatePostRequestId;
     const state = await this.getStateToPostToWebview();
+    if (requestId !== this.latestStatePostRequestId) {
+      return;
+    }
     // this.log(`[postStateToWebview] Posting state. Current Provider: ${state.apiConfiguration.apiProvider}, Model: ${state.apiConfiguration.apiModelId || (state.apiConfiguration as any).openRouterModelId || (state.apiConfiguration as any).kilocodeModel}`)
-    this.postMessageToWebview({ type: "state", state });
+    await this.postMessageToWebview({ type: "state", state });
 
     // Check MDM compliance and send user to account tab if not compliant
     // Only redirect if there's an actual MDM policy requiring authentication
@@ -2785,38 +2916,40 @@ ${prompt}
    */
   async fetchSkills(): Promise<any[]> {
     return new Promise((resolve, reject) => {
-      const https = require('https')
-      https.get('https://skills.sh/', (res: any) => {
-        let data = ''
-        res.on('data', (chunk: any) => data += chunk)
-        res.on('end', () => {
-          try {
-            const startMarker = '\\"initialSkills\\":['
-            const startIdx = data.indexOf(startMarker)
-            if (startIdx === -1) {
-              reject(new Error('Could not find initialSkills'))
-              return
+      const https = require("https");
+      https
+        .get("https://skills.sh/", (res: any) => {
+          let data = "";
+          res.on("data", (chunk: any) => (data += chunk));
+          res.on("end", () => {
+            try {
+              const startMarker = '\\"initialSkills\\":[';
+              const startIdx = data.indexOf(startMarker);
+              if (startIdx === -1) {
+                reject(new Error("Could not find initialSkills"));
+                return;
+              }
+
+              const endMarker = '],\\"totalSkills\\":';
+              const endIdx = data.indexOf(endMarker, startIdx);
+              if (endIdx === -1) {
+                reject(new Error("Could not find end of initialSkills"));
+                return;
+              }
+
+              const jsonStart = startIdx + startMarker.length - 1;
+              const escapedJson = data.substring(jsonStart, endIdx + 1);
+              const jsonStr = escapedJson.replace(/\\"/g, '"');
+
+              const skills = JSON.parse(jsonStr);
+              resolve(skills);
+            } catch (err) {
+              reject(err);
             }
-            
-            const endMarker = '],\\"totalSkills\\":'
-            const endIdx = data.indexOf(endMarker, startIdx)
-            if (endIdx === -1) {
-              reject(new Error('Could not find end of initialSkills'))
-              return
-            }
-            
-            const jsonStart = startIdx + startMarker.length - 1
-            const escapedJson = data.substring(jsonStart, endIdx + 1)
-            const jsonStr = escapedJson.replace(/\\"/g, '"')
-            
-            const skills = JSON.parse(jsonStr)
-            resolve(skills)
-          } catch (err) {
-            reject(err)
-          }
+          });
         })
-      }).on('error', reject)
-    })
+        .on("error", reject);
+    });
   }
 
   /**
@@ -2824,55 +2957,57 @@ ${prompt}
    */
   async searchSkills(query: string): Promise<any[]> {
     return new Promise((resolve, reject) => {
-      const { spawn } = require('child_process')
-      const search = spawn('npx', ['skills', 'find', query], {
-        shell: true
-      })
-      
-      let output = ''
-      
-      search.stdout.on('data', (data: any) => {
-        output += data.toString()
-      })
-      
-      search.on('close', (code: number) => {
+      const { spawn } = require("child_process");
+      const search = spawn("npx", ["skills", "find", query], {
+        shell: true,
+      });
+
+      let output = "";
+
+      search.stdout.on("data", (data: any) => {
+        output += data.toString();
+      });
+
+      search.on("close", (code: number) => {
         if (code === 0) {
           try {
             // Strip ANSI codes
-            const cleanOutput = output.replace(/\x1b\[[0-9;]*m/g, '')
-            
-            const lines = cleanOutput.split('\n')
-            const skills: any[] = []
-            
-            lines.forEach(line => {
+            const cleanOutput = output.replace(/\x1b\[[0-9;]*m/g, "");
+
+            const lines = cleanOutput.split("\n");
+            const skills: any[] = [];
+
+            lines.forEach((line) => {
               // Match: owner/repo@skill-name [installs]
-              const match = line.match(/([a-zA-Z0-9-_]+\/[a-zA-Z0-9-_]+)@([a-zA-Z0-9-_:]+)\s+([0-9.]+[KM]?)\s+installs/)
+              const match = line.match(
+                /([a-zA-Z0-9-_]+\/[a-zA-Z0-9-_]+)@([a-zA-Z0-9-_:]+)\s+([0-9.]+[KM]?)\s+installs/,
+              );
               if (match) {
-                const [, source, skillId, installs] = match
-                const installCount = installs.includes('K') 
-                  ? parseFloat(installs) * 1000 
-                  : installs.includes('M') 
-                  ? parseFloat(installs) * 1000000 
-                  : parseInt(installs)
-                
+                const [, source, skillId, installs] = match;
+                const installCount = installs.includes("K")
+                  ? parseFloat(installs) * 1000
+                  : installs.includes("M")
+                    ? parseFloat(installs) * 1000000
+                    : parseInt(installs);
+
                 skills.push({
                   name: skillId,
                   source: source,
                   skillId: skillId,
-                  installs: installCount
-                })
+                  installs: installCount,
+                });
               }
-            })
-            
-            resolve(skills)
+            });
+
+            resolve(skills);
           } catch (err) {
-            reject(err)
+            reject(err);
           }
         } else {
-          reject(new Error('Search failed'))
+          reject(new Error("Search failed"));
         }
-      })
-    })
+      });
+    });
   }
 
   /**
@@ -2880,96 +3015,112 @@ ${prompt}
    */
   async installSkill(source: string, skillId: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const { spawn } = require('child_process')
-      const repoUrl = `https://github.com/${source}.git`
-      
-      const install = spawn('npx', ['--yes', 'skills', 'add', '-y', '-g', repoUrl, skillId], {
-        shell: true
-      })
-      
-      let output = ''
-      
-      install.stdout.on('data', (data: any) => {
-        output += data.toString()
-      })
-      
-      install.stderr.on('data', (data: any) => {
-        output += data.toString()
-      })
-      
-      install.on('close', (code: number) => {
+      const { spawn } = require("child_process");
+      const repoUrl = `https://github.com/${source}.git`;
+
+      const install = spawn(
+        "npx",
+        ["--yes", "skills", "add", "-y", "-g", repoUrl, skillId],
+        {
+          shell: true,
+        },
+      );
+
+      let output = "";
+
+      install.stdout.on("data", (data: any) => {
+        output += data.toString();
+      });
+
+      install.stderr.on("data", (data: any) => {
+        output += data.toString();
+      });
+
+      install.on("close", (code: number) => {
         if (code === 0) {
-          resolve()
+          resolve();
         } else {
-          reject(new Error(`Installation failed with code ${code}`))
+          reject(new Error(`Installation failed with code ${code}`));
         }
-      })
-      
-      install.on('error', reject)
-    })
-    }
+      });
 
-    /**
-    * Fetch installed skills from ~/.agents/skills/
-    */
-    async fetchInstalledSkills(): Promise<Array<{ id: string; name: string; path: string; content?: string }>> {
+      install.on("error", reject);
+    });
+  }
+
+  /**
+   * Fetch installed skills from ~/.agents/skills/
+   */
+  async fetchInstalledSkills(): Promise<
+    Array<{ id: string; name: string; path: string; content?: string }>
+  > {
     return new Promise(async (resolve, reject) => {
-    try {
-    const { spawn } = require('child_process')
-    const list = spawn('npx', ['skills', 'list', '-g'], {
-    shell: true
-    })
+      try {
+        const { spawn } = require("child_process");
+        const list = spawn("npx", ["skills", "list", "-g"], {
+          shell: true,
+        });
 
-    let output = ''
+        let output = "";
 
-    list.stdout.on('data', (data: any) => {
-    output += data.toString()
-    })
+        list.stdout.on("data", (data: any) => {
+          output += data.toString();
+        });
 
-    list.on('close', async (code: number) => {
-    if (code === 0) {
-    try {
-    // Strip ANSI codes
-    const cleanOutput = output.replace(/\x1b\[[0-9;]*m/g, '')
-    const lines = cleanOutput.split('\n')
-    const skills: Array<{ id: string; name: string; path: string; content?: string }> = []
+        list.on("close", async (code: number) => {
+          if (code === 0) {
+            try {
+              // Strip ANSI codes
+              const cleanOutput = output.replace(/\x1b\[[0-9;]*m/g, "");
+              const lines = cleanOutput.split("\n");
+              const skills: Array<{
+                id: string;
+                name: string;
+                path: string;
+                content?: string;
+              }> = [];
 
-    for (const line of lines) {
-      // Support both older indented output and newer plain output from `npx skills list -g`.
-      // Format examples:
-      // "  skill-name ~/.agents/skills/skill-name"
-      // "skill-name ~/.agents/skills/skill-name"
-      const match = line.match(/^\s*([a-zA-Z0-9-_]+)\s+(~\/\.agents\/skills\/[^\s]+)/)
-      if (match) {
-        const [, name, skillPath] = match
-        const expandedSkillPath = skillPath.replace(/^~(?=\/)/, require('os').homedir())
+              for (const line of lines) {
+                // Support both older indented output and newer plain output from `npx skills list -g`.
+                // Format examples:
+                // "  skill-name ~/.agents/skills/skill-name"
+                // "skill-name ~/.agents/skills/skill-name"
+                const match = line.match(
+                  /^\s*([a-zA-Z0-9-_]+)\s+(~\/\.agents\/skills\/[^\s]+)/,
+                );
+                if (match) {
+                  const [, name, skillPath] = match;
+                  const expandedSkillPath = skillPath.replace(
+                    /^~(?=\/)/,
+                    require("os").homedir(),
+                  );
 
-        skills.push({
-          id: name,
-          name: name,
-          path: expandedSkillPath,
-        })
+                  skills.push({
+                    id: name,
+                    name: name,
+                    path: expandedSkillPath,
+                  });
+                }
+              }
+
+              resolve(skills);
+            } catch (err) {
+              reject(err);
+            }
+          } else {
+            resolve([]); // Return empty array if no skills installed
+          }
+        });
+
+        list.on("error", (err: any) => {
+          console.error("Error listing skills:", err);
+          resolve([]); // Return empty array on error
+        });
+      } catch (err: any) {
+        reject(err);
       }
-    }
-
-    resolve(skills)
-    } catch (err) {
-    reject(err)
-    }
-    } else {
-    resolve([]) // Return empty array if no skills installed
-    }
-    })
-
-    list.on('error', (err: any) => {
-    console.error('Error listing skills:', err)
-    resolve([]) // Return empty array on error
-    })
-    } catch (err: any) {
-    reject(err)
-    }
-    })
-    }
+    });
+  }
 
   /**
    * Checks if there is a file-based system prompt override for the given mode
@@ -3124,6 +3275,7 @@ ${prompt}
       maxOpenTabsContext,
       maxWorkspaceFiles,
       browserToolEnabled,
+      computerUseToolEnabled,
       disableBrowserHeadless, // kade_change
       telemetrySetting,
       showRooIgnoredFiles,
@@ -3134,6 +3286,8 @@ ${prompt}
       showTimestamps, // kade_change
       hideCostBelowThreshold, // kade_change
       collapseCodeToolsByDefault,
+      showVibeStyling,
+      toolHeaderBackgrounds,
       maxReadFileLine,
       maxImageFileSize,
       maxTotalImageSize,
@@ -3141,6 +3295,8 @@ ${prompt}
       historyPreviewCollapsed,
       reasoningBlockCollapsed,
       enterBehavior,
+      emptyStateBackground,
+      chatBackground,
       cloudUserInfo,
       cloudIsAuthenticated,
       sharingEnabled,
@@ -3183,6 +3339,8 @@ ${prompt}
       antigravityAuthenticated,
       antigravityEmail,
       antigravityProjectId,
+      zedAuthenticated,
+      zedGithubLogin,
       geminiCliAuthenticated,
       geminiCliEmail,
       geminiCliProjectId,
@@ -3204,8 +3362,10 @@ ${prompt}
       infinityNextRunAt,
       infinitySavedPrompts,
       activeInfinityPromptId,
+      formatterSettings,
       subAgentToolEnabled,
       showSubAgentBanner,
+      showPromptSuggestions,
       proLicenseKey,
     } = await this.getState();
 
@@ -3295,12 +3455,19 @@ ${prompt}
     }
     this.kiloCodeTaskHistorySizeForTelemetryOnly = taskHistoryLength;
     // kade_change end
+    const emptyStateBackgroundUri =
+      await this.getConfiguredEmptyStateBackgroundUri(emptyStateBackground);
+    const chatBackgroundUri =
+      await this.getConfiguredEmptyStateBackgroundUri(chatBackground);
+    const toolHeaderBackgroundUris =
+      await this.getConfiguredToolHeaderBackgroundUris(toolHeaderBackgrounds);
 
     return {
       version: this.context.extension?.packageJSON?.version ?? "",
       apiConfiguration,
       subAgentToolEnabled: subAgentToolEnabled ?? false,
       showSubAgentBanner: showSubAgentBanner !== false,
+      showPromptSuggestions: showPromptSuggestions !== false,
       proLicenseKey,
       customInstructions,
       alwaysAllowReadOnly: alwaysAllowReadOnly ?? false,
@@ -3335,6 +3502,7 @@ ${prompt}
             (item: HistoryItem) => item.id === this.getCurrentTask()?.taskId,
           )
         : undefined,
+      currentTaskIsStreaming: this.getCurrentTask()?.isStreaming ?? false,
       clineMessages: this.getCurrentTask()?.clineMessages || [],
       currentTaskTodos: this.getCurrentTask()?.todoList || [],
       messageQueue: this.getCurrentTask()?.messageQueueService?.messages,
@@ -3371,11 +3539,11 @@ ${prompt}
       terminalZshOhMy: terminalZshOhMy ?? false,
       terminalZshP10k: terminalZshP10k ?? false,
       terminalZdotdir: terminalZdotdir ?? false,
-      fuzzyMatchThreshold: fuzzyMatchThreshold ?? 1.0,
+      fuzzyMatchThreshold: fuzzyMatchThreshold ?? 0.8,
       mcpEnabled: true, // kade_change: always true
       enableMcpServerCreation: enableMcpServerCreation ?? true,
       alwaysApproveResubmit: alwaysApproveResubmit ?? true,
-      requestDelaySeconds: requestDelaySeconds ?? 10,
+      requestDelaySeconds: requestDelaySeconds ?? 1,
       currentApiConfigName: currentApiConfigName ?? "default",
       listApiConfigMeta: listApiConfigMeta ?? [],
       pinnedApiConfigs: pinnedApiConfigs ?? {},
@@ -3393,6 +3561,7 @@ ${prompt}
       maxWorkspaceFiles: maxWorkspaceFiles ?? 200,
       cwd,
       browserToolEnabled: browserToolEnabled ?? false,
+      computerUseToolEnabled: computerUseToolEnabled ?? true,
       disableBrowserHeadless: disableBrowserHeadless ?? false, // kade_change
       telemetrySetting,
       telemetryKey,
@@ -3404,6 +3573,9 @@ ${prompt}
       showTimestamps: showTimestamps ?? false, // kade_change
       hideCostBelowThreshold, // kade_change
       collapseCodeToolsByDefault: collapseCodeToolsByDefault ?? false,
+      showVibeStyling: showVibeStyling === true,
+      toolHeaderBackgrounds,
+      toolHeaderBackgroundUris,
       language, // kade_change
       renderContext: this.renderContext,
       maxReadFileLine: maxReadFileLine ?? -1,
@@ -3417,6 +3589,10 @@ ${prompt}
       historyPreviewCollapsed: historyPreviewCollapsed ?? false,
       reasoningBlockCollapsed: reasoningBlockCollapsed ?? true,
       enterBehavior: enterBehavior ?? "send",
+      emptyStateBackground: emptyStateBackground ?? "",
+      emptyStateBackgroundUri,
+      chatBackground: chatBackground ?? "",
+      chatBackgroundUri,
       cloudUserInfo,
       cloudIsAuthenticated: cloudIsAuthenticated ?? false,
       cloudOrganizations,
@@ -3495,6 +3671,7 @@ ${prompt}
       includeCurrentTime: includeCurrentTime ?? true,
       includeCurrentCost: includeCurrentCost ?? true,
       maxGitStatusFiles: maxGitStatusFiles ?? 0,
+      formatterSettings: formatterSettings ?? {},
       slidingWindowSize:
         (this.getGlobalState("slidingWindowSize") as number) ?? 50, // kade_change
       taskSyncEnabled,
@@ -3543,6 +3720,8 @@ ${prompt}
       antigravityAuthenticated: antigravityAuthenticated ?? false,
       antigravityEmail,
       antigravityProjectId,
+      zedAuthenticated: zedAuthenticated ?? false,
+      zedGithubLogin,
       geminiCliAuthenticated: geminiCliAuthenticated ?? false,
       geminiCliEmail,
       geminiCliProjectId,
@@ -3586,9 +3765,11 @@ ${prompt}
       openAiCodexAuthenticated,
       antigravityCredentials,
       antigravityProjectId,
+      zedCredentials,
       geminiCliCredentials,
       geminiCliProjectId,
       claudeCodeAuthenticated,
+      formatterAvailability,
     ] = await Promise.allSettled([
       this.customModesManager.getCustomModes(),
       cloudService
@@ -3602,9 +3783,11 @@ ${prompt}
       openAiCodexOAuthManager.isAuthenticated(),
       antigravityOAuthManager.loadCredentials(),
       antigravityOAuthManager.getProjectId(),
+      zedOAuthManager.loadCredentials(),
       geminiOAuthManager.loadCredentials(),
       geminiOAuthManager.getProjectId(),
       claudeCodeOAuthManager.isAuthenticated(),
+      getCliFormatterAvailability(),
     ]);
 
     const customModesValue =
@@ -3633,13 +3816,25 @@ ${prompt}
       antigravityCredentials.status === "fulfilled"
         ? antigravityCredentials.value
         : undefined;
+    const zedCredentialsValue =
+      zedCredentials.status === "fulfilled" ? zedCredentials.value : undefined;
     const geminiCliCredentialsValue =
       geminiCliCredentials.status === "fulfilled"
         ? geminiCliCredentials.value
         : undefined;
+    const formatterAvailabilityValue: FormatterAvailability =
+      formatterAvailability.status === "fulfilled"
+        ? formatterAvailability.value
+        : {
+            rustfmt: false,
+            gofmt: false,
+            clangFormat: false,
+            csharpier: false,
+          };
 
     // kade_change: Check if we have credentials for other providers to set a better default
     const antigravityAuth = antigravityCredentialsValue;
+    const zedAuth = zedCredentialsValue;
     const geminiCliAuth = geminiCliCredentialsValue;
 
     // Build the apiConfiguration object combining state values and secrets.
@@ -3677,6 +3872,8 @@ ${prompt}
       if (!apiProvider) {
         if (antigravityAuth) {
           apiProvider = "antigravity";
+        } else if (zedAuth) {
+          apiProvider = "zed";
         } else if (geminiCliAuth) {
           apiProvider = "gemini-cli";
         } else {
@@ -3701,12 +3898,24 @@ ${prompt}
     // Get actual browser session state
     const isBrowserSessionActive =
       this.getCurrentTask()?.browserSession?.isSessionActive() ?? false;
+    const emptyStateBackgroundUri =
+      await this.getConfiguredEmptyStateBackgroundUri(
+        stateValues.emptyStateBackground,
+      );
+    const chatBackgroundUri = await this.getConfiguredEmptyStateBackgroundUri(
+      stateValues.chatBackground,
+    );
+    const toolHeaderBackgroundUris =
+      await this.getConfiguredToolHeaderBackgroundUris(
+        stateValues.toolHeaderBackgrounds,
+      );
 
     // Return the same structure as before.
     return {
       apiConfiguration: providerSettings,
       subAgentToolEnabled: stateValues.subAgentToolEnabled ?? false,
       showSubAgentBanner: stateValues.showSubAgentBanner !== false,
+      showPromptSuggestions: stateValues.showPromptSuggestions !== false,
       proLicenseKey: stateValues.proLicenseKey,
       kilocodeDefaultModel: await getKilocodeDefaultModel(
         providerSettings.kilocodeToken,
@@ -3759,7 +3968,7 @@ ${prompt}
       cachedChromeHostUrl: stateValues.cachedChromeHostUrl as
         | string
         | undefined,
-      fuzzyMatchThreshold: stateValues.fuzzyMatchThreshold ?? 1.0,
+      fuzzyMatchThreshold: stateValues.fuzzyMatchThreshold ?? 0.8,
       writeDelayMs: stateValues.writeDelayMs ?? DEFAULT_WRITE_DELAY_MS,
       terminalOutputLineLimit: stateValues.terminalOutputLineLimit ?? 500,
       terminalOutputCharacterLimit:
@@ -3784,7 +3993,7 @@ ${prompt}
       enableMcpServerCreation: stateValues.enableMcpServerCreation ?? true,
       mcpServers: this.mcpHub?.getAllServers() ?? [],
       alwaysApproveResubmit: stateValues.alwaysApproveResubmit ?? true,
-      requestDelaySeconds: Math.max(5, stateValues.requestDelaySeconds ?? 10),
+      requestDelaySeconds: Math.max(0, stateValues.requestDelaySeconds ?? 1),
       currentApiConfigName: stateValues.currentApiConfigName ?? "default",
       listApiConfigMeta: stateValues.listApiConfigMeta ?? [],
       pinnedApiConfigs: stateValues.pinnedApiConfigs ?? {},
@@ -3823,6 +4032,8 @@ ${prompt}
       infinityNextRunAt: stateValues.infinityNextRunAt,
       infinitySavedPrompts: stateValues.infinitySavedPrompts ?? [],
       activeInfinityPromptId: stateValues.activeInfinityPromptId,
+      formatterSettings: stateValues.formatterSettings,
+      formatterAvailability: formatterAvailabilityValue,
       // kade_change end
       experiments: stateValues.experiments ?? experimentDefault,
       autoApprovalEnabled: stateValues.autoApprovalEnabled ?? true,
@@ -3832,6 +4043,7 @@ ${prompt}
       openRouterUseMiddleOutTransform:
         stateValues.openRouterUseMiddleOutTransform,
       browserToolEnabled: stateValues.browserToolEnabled ?? false,
+      computerUseToolEnabled: stateValues.computerUseToolEnabled ?? true,
       telemetrySetting: stateValues.telemetrySetting || "unset",
       showRooIgnoredFiles: stateValues.showRooIgnoredFiles ?? false,
       disableBrowserHeadless: stateValues.disableBrowserHeadless ?? false, // kade_change
@@ -3840,7 +4052,11 @@ ${prompt}
       sendMessageOnEnter: stateValues.sendMessageOnEnter ?? true, // kade_change
       showTimestamps: stateValues.showTimestamps ?? false, // kade_change
       hideCostBelowThreshold: stateValues.hideCostBelowThreshold ?? 0, // kade_change
-      collapseCodeToolsByDefault: stateValues.collapseCodeToolsByDefault ?? false,
+      collapseCodeToolsByDefault:
+        stateValues.collapseCodeToolsByDefault ?? false,
+      showVibeStyling: stateValues.showVibeStyling === true,
+      toolHeaderBackgrounds: stateValues.toolHeaderBackgrounds,
+      toolHeaderBackgroundUris,
       maxReadFileLine: stateValues.maxReadFileLine ?? -1,
       maxImageFileSize: stateValues.maxImageFileSize ?? 5,
       maxTotalImageSize: stateValues.maxTotalImageSize ?? 20,
@@ -3855,6 +4071,10 @@ ${prompt}
       historyPreviewCollapsed: stateValues.historyPreviewCollapsed ?? false,
       reasoningBlockCollapsed: stateValues.reasoningBlockCollapsed ?? true,
       enterBehavior: stateValues.enterBehavior ?? "send",
+      emptyStateBackground: stateValues.emptyStateBackground ?? "",
+      emptyStateBackgroundUri,
+      chatBackground: stateValues.chatBackground ?? "",
+      chatBackgroundUri,
       subAgentApiConfiguration: this.contextProxy.getValue(
         "subAgentApiConfiguration" as any,
       ) as any,
@@ -3976,6 +4196,12 @@ ${prompt}
         (antigravityProjectId.status === "fulfilled"
           ? antigravityProjectId.value
           : undefined) ?? undefined,
+      zedAuthenticated:
+        zedCredentials.status === "fulfilled" ? !!zedCredentials.value : false,
+      zedGithubLogin:
+        (zedCredentials.status === "fulfilled"
+          ? zedCredentials.value?.githubLogin
+          : undefined) ?? undefined,
       geminiCliAuthenticated:
         geminiCliCredentials.status === "fulfilled"
           ? !!geminiCliCredentials.value
@@ -4001,9 +4227,15 @@ ${prompt}
     // kade_change: Wait for storage to be ready before using it
     await this.taskHistoryStorageReady;
 
+    const sanitizedItem = {
+      ...item,
+      task: item.task ? sanitizeSessionTitle(item.task) : item.task,
+      title: item.title ? sanitizeSessionTitle(item.title) : item.title,
+    };
+
     // Use disk-based storage if available
     if (this.taskHistoryStorage) {
-      const history = await this.taskHistoryStorage.upsert(item);
+      const history = await this.taskHistoryStorage.upsert(sanitizedItem);
       this.kiloCodeTaskHistoryVersion++;
       this.recentTasksCache = undefined;
       return history;
@@ -4012,7 +4244,9 @@ ${prompt}
     // Fallback to globalState during migration
     const history =
       (this.getGlobalState("taskHistory") as HistoryItem[] | undefined) || [];
-    const existingItemIndex = history.findIndex((h) => h.id === item.id);
+    const existingItemIndex = history.findIndex(
+      (h) => h.id === sanitizedItem.id,
+    );
 
     if (existingItemIndex !== -1) {
       // Preserve existing metadata (e.g., delegation fields) unless explicitly overwritten.
@@ -4020,10 +4254,10 @@ ${prompt}
       // terminated, or when routine message persistence occurs.
       history[existingItemIndex] = {
         ...history[existingItemIndex],
-        ...item,
+        ...sanitizedItem,
       };
     } else {
-      history.push(item);
+      history.push(sanitizedItem);
     }
 
     await this.updateGlobalState("taskHistory", history);
@@ -4452,7 +4686,10 @@ ${prompt}
       ...options,
     });
 
-    if (options.background || (parentTask && options.initialStatus === "active")) {
+    if (
+      options.background ||
+      (parentTask && options.initialStatus === "active")
+    ) {
       // For autonomous sub-agents, we don't want to switch the UI focus.
       // We just add it to the running tasks so it can execute in the background.
       this.runningTasks.set(task.taskId, task);
@@ -4486,18 +4723,38 @@ ${prompt}
     const rootTask = task.rootTask;
     const parentTask = task.parentTask;
 
-    // Mark this as a user-initiated cancellation so provider-only rehydration can occur
-    task.abortReason = "user_cancelled";
-
     // Capture the current instance and ID to detect if rehydrate already occurred elsewhere
     const originalInstanceId = task.instanceId;
     const originalTaskId = task.taskId;
 
     if (!taskId || taskId === originalTaskId) {
+      if (task.terminalProcess || task.taskAsk?.ask === "command_output") {
+        await task.handleTerminalOperation("abort");
+        await this.postStateToWebview();
+        return;
+      }
+
+      // Mark this as a user-initiated cancellation so non-streaming wait states
+      // (for example API retry countdowns) can exit cleanly.
+      task.abortReason = "user_cancelled";
+
       // Foreground cancel (Stop button in active chat).
       // We ONLY cancel the HTTP request to interrupt the streaming generation.
       // We DO NOT abort the task loop so it can continue waiting for the user's next message!
       task.interruptTask();
+
+      // Wait for the interruption to complete (streaming to stop, terminal to abort, etc.)
+      // Check multiple conditions to ensure the task is properly interrupted:
+      // - isStreaming: false when streaming completes
+      // - didFinishAbortingStream: true when stream abort is acknowledged
+      // - isWaitingForFirstChunk: false when first chunk wait completes
+      // - askResponse: not undefined when pending asks are resolved
+      await pWaitFor(() => task.didFinishInterrupting || task.abort, {
+        timeout: 3_000,
+      }).catch(() => {
+        console.error("Failed to complete foreground task interruption");
+      });
+
       // Keep it in runningTasks so the loop stays active.
       await this.postStateToWebview();
     } else {
@@ -5107,6 +5364,7 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
     try {
       this.taskHistoryStorage = await TaskHistoryStorage.getInstance(
         this.context,
+        this.currentWorkspacePath,
       );
       this.log("Task history storage initialized successfully");
     } catch (error) {
@@ -5491,5 +5749,98 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
       // Return file URI as fallback
       return vscode.Uri.file(filePath).toString();
     }
+  }
+
+  public getEmptyStateBackgroundsDirectoryUri(): vscode.Uri {
+    return vscode.Uri.file(
+      path.join(
+        this.contextProxy.globalStorageUri.fsPath,
+        "empty-state-backgrounds",
+      ),
+    );
+  }
+
+  public async listEmptyStateBackgroundOptions(): Promise<{
+    folderPath: string;
+    options: EmptyStateBackgroundOption[];
+  }> {
+    const directoryUri = this.getEmptyStateBackgroundsDirectoryUri();
+    await fs.mkdir(directoryUri.fsPath, { recursive: true });
+
+    const supportedExtensions = new Set([
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".gif",
+      ".webp",
+      ".avif",
+    ]);
+
+    const entries = await fs.readdir(directoryUri.fsPath, {
+      withFileTypes: true,
+    });
+    const options = entries
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name)
+      .filter((name) =>
+        supportedExtensions.has(path.extname(name).toLowerCase()),
+      )
+      .sort((a, b) => a.localeCompare(b))
+      .map((file) => {
+        const absolutePath = path.join(directoryUri.fsPath, file);
+
+        return {
+          file,
+          label: file.replace(/\.[^.]+$/, ""),
+          uri: this.convertToWebviewUri(absolutePath),
+        };
+      });
+
+    return {
+      folderPath: directoryUri.fsPath,
+      options,
+    };
+  }
+
+  public async getConfiguredEmptyStateBackgroundUri(
+    fileName?: string,
+  ): Promise<string | undefined> {
+    if (!fileName) {
+      return undefined;
+    }
+
+    const absolutePath = path.join(
+      this.getEmptyStateBackgroundsDirectoryUri().fsPath,
+      fileName,
+    );
+
+    if (!(await fileExistsAtPath(absolutePath))) {
+      return undefined;
+    }
+
+    return this.convertToWebviewUri(absolutePath);
+  }
+
+  public async getConfiguredToolHeaderBackgroundUris(
+    config?: ToolHeaderBackgroundConfig,
+  ): Promise<ToolHeaderBackgroundConfig | undefined> {
+    if (!config) {
+      return undefined;
+    }
+
+    const resolvedEntries = await Promise.all(
+      Object.entries(config).map(async ([key, value]) => {
+        const uri = await this.getConfiguredEmptyStateBackgroundUri(value);
+        return uri ? ([key, uri] as const) : undefined;
+      }),
+    );
+
+    const resolvedConfig = Object.fromEntries(
+      resolvedEntries.filter((entry): entry is readonly [string, string] =>
+        Boolean(entry),
+      ),
+    ) as ToolHeaderBackgroundConfig;
+
+    return Object.keys(resolvedConfig).length > 0 ? resolvedConfig : undefined;
   }
 }

@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useRef } from "react"
+import React, { memo, useEffect, useRef, useState } from "react"
 
 /**
  * VirtualChatList — CSS content-visibility:auto based rendering optimization.
@@ -28,6 +28,7 @@ const heightCache = new Map<string, number>()
 // Shared ResizeObserver for all rows (much more efficient than one per row)
 let sharedResizeObserver: ResizeObserver | null = null
 const observedElements = new Map<Element, string>() // element -> rowKey
+const streamingElements = new Map<Element, boolean>() // element -> streaming state
 let rafId: number | null = null
 const pendingUpdates = new Map<string, number>() // rowKey -> height
 
@@ -38,18 +39,18 @@ function getSharedResizeObserver(): ResizeObserver {
 			for (const entry of entries) {
 				const rowKey = observedElements.get(entry.target)
 				if (!rowKey) continue
-				
-				// KILOCODE FIX: If the row is currently streaming/growing, don't update the 
-				// intrinsic size hint yet. Updating it mid-stream triggers a layout shift 
+
+				// KILOCODE FIX: If the row is currently streaming/growing, don't update the
+				// intrinsic size hint yet. Updating it mid-stream triggers a layout shift
 				// that fights the browser's scroll anchoring.
-				if (rowKey.includes("-true-")) continue 
+				if (streamingElements.get(entry.target)) continue
 
 				const h = entry.contentRect.height
 				if (h && h > 0) {
 					pendingUpdates.set(rowKey, h)
 				}
 			}
-			
+
 			// Coalesce updates into a single rAF
 			if (rafId === null && pendingUpdates.size > 0) {
 				rafId = requestAnimationFrame(() => {
@@ -89,6 +90,7 @@ export function clearVirtualHeightCache() {
 
 interface VirtualChatListProps {
 	rowKeys: string[]
+	rowStreamingStates?: boolean[]
 	scrollEl: HTMLElement | null
 	isStreaming: boolean
 	renderRow: (index: number) => React.ReactNode
@@ -97,13 +99,17 @@ interface VirtualChatListProps {
 
 export const VirtualChatList = memo(function VirtualChatList({
 	rowKeys,
+	rowStreamingStates,
 	renderRow,
 	footerHeight,
 }: VirtualChatListProps) {
 	return (
 		<>
 			{rowKeys.map((key, index) => (
-				<ContentVisibilityRow key={key} rowKey={key}>
+				<ContentVisibilityRow
+					key={key}
+					rowKey={key}
+					isStreaming={rowStreamingStates?.[index] ?? false}>
 					{renderRow(index)}
 				</ContentVisibilityRow>
 			))}
@@ -118,10 +124,12 @@ export const VirtualChatList = memo(function VirtualChatList({
 
 interface ContentVisibilityRowProps {
 	rowKey: string
+	isStreaming: boolean
 	children: React.ReactNode
 }
 
 const DEFAULT_HEIGHT = 80
+const STREAMING_SETTLE_MS = 480
 
 // Stable row styles - defined once, not recreated on each render
 const rowBaseStyles: React.CSSProperties = {
@@ -134,28 +142,77 @@ const rowBaseStyles: React.CSSProperties = {
 
 const ContentVisibilityRow = memo(function ContentVisibilityRow({
 	rowKey,
+	isStreaming,
 	children,
 }: ContentVisibilityRowProps) {
 	const ref = useRef<HTMLDivElement>(null)
 	const cachedHeight = heightCache.get(rowKey) ?? DEFAULT_HEIGHT
-	
-	// Extract streaming state from rowKey (format: "ts-isStreaming-isLast")
-	const isStreaming = rowKey.includes("-true-")
+	const settleTimerRef = useRef<number | null>(null)
+	const hasStreamedRef = useRef(isStreaming)
+	const [isSettling, setIsSettling] = useState(isStreaming)
 
 	useEffect(() => {
 		const el = ref.current
 		if (!el) return
-		
+
 		// Register with shared observer
 		const ro = getSharedResizeObserver()
 		observedElements.set(el, rowKey)
+		streamingElements.set(el, isStreaming)
 		ro.observe(el)
-		
+
 		return () => {
 			observedElements.delete(el)
+			streamingElements.delete(el)
 			ro.unobserve(el)
 		}
 	}, [rowKey])
+
+	useEffect(() => {
+		const el = ref.current
+		if (!el) return
+
+		if (isStreaming) {
+			hasStreamedRef.current = true
+			setIsSettling(true)
+			if (settleTimerRef.current !== null) {
+				clearTimeout(settleTimerRef.current)
+				settleTimerRef.current = null
+			}
+			streamingElements.set(el, true)
+			return
+		}
+
+		if (!hasStreamedRef.current) {
+			setIsSettling(false)
+			streamingElements.set(el, false)
+			return
+		}
+
+		if (settleTimerRef.current !== null) {
+			clearTimeout(settleTimerRef.current)
+		}
+
+		// Keep the row in full-layout mode for a beat after streaming ends.
+		// This avoids the completion-time flash when containment/content-visibility
+		// snaps back on during the final assistant message paint.
+		streamingElements.set(el, true)
+		settleTimerRef.current = window.setTimeout(() => {
+			setIsSettling(false)
+			streamingElements.set(el, false)
+			settleTimerRef.current = null
+		}, STREAMING_SETTLE_MS)
+
+		return () => {
+			if (settleTimerRef.current !== null) {
+				clearTimeout(settleTimerRef.current)
+				settleTimerRef.current = null
+			}
+			streamingElements.delete(el)
+		}
+	}, [isStreaming])
+
+	const shouldKeepFullLayout = isStreaming || isSettling
 
 	return (
 		<div
@@ -165,12 +222,13 @@ const ContentVisibilityRow = memo(function ContentVisibilityRow({
 				containIntrinsicSize: `auto ${cachedHeight}px`,
 				// Only apply content-visibility and contain to non-streaming rows
 				// Streaming rows need full layout to prevent collapse/flash
-				...(isStreaming ? {} : {
-					contentVisibility: "auto" as const,
-					contain: "layout style paint" as const,
-				}),
-			}}
-		>
+				...(shouldKeepFullLayout
+					? {}
+					: {
+							contentVisibility: "auto" as const,
+							contain: "layout style paint" as const,
+						}),
+			}}>
 			{children}
 		</div>
 	)

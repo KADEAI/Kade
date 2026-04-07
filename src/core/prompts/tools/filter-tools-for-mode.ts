@@ -10,6 +10,7 @@ import type { McpHub } from "../../../services/mcp/McpHub"
 import { ClineProviderState } from "../../webview/ClineProvider"
 import { isFastApplyAvailable } from "../../tools/kilocode/editFileTool"
 import { ManagedIndexer } from "../../../services/code-index/managed/ManagedIndexer"
+import { createExecuteTool } from "./native-tools/registry"
 // kade_change end
 
 /**
@@ -25,6 +26,25 @@ const ALIAS_TO_CANONICAL: Map<string, string> = new Map(
  * Built once at module load from the central TOOL_ALIASES constant.
  */
 const CANONICAL_TO_ALIASES: Map<string, string[]> = new Map()
+
+const EXECUTE_CANONICAL_OPERATIONS = new Set([
+	"read",
+	"grep",
+	"glob",
+	"ask",
+	"list",
+	"web",
+	"fetch",
+	"bash",
+	"agent",
+	"todo",
+	"edit",
+	"write",
+	"browser_action",
+	"computer_action",
+	"access_mcp_resource",
+	"generate_image",
+])
 
 // Build the reverse mapping (canonical -> aliases)
 for (const [alias, canonical] of Object.entries(TOOL_ALIASES)) {
@@ -222,7 +242,7 @@ export function applyModelToolCustomization(
  * @param mode - Current mode slug
  * @param customModes - Custom mode configurations
  * @param experiments - Experiment flags
- * @param codeIndexManager - Code index manager for codebase_search feature check
+ * @param codeIndexManager - Code index manager for ask feature check
  * @param settings - Additional settings for tool filtering (includes modelInfo for model-specific customization)
  * @param mcpHub - MCP hub for checking available resources
  * @returns Filtered array of tools allowed for the mode
@@ -276,7 +296,7 @@ export function filterNativeToolsForMode(
 	)
 	allowedToolNames = customizedTools
 
-	// Conditionally exclude codebase_search if feature is disabled or not configured
+	// Conditionally exclude ask if feature is disabled or not configured
 
 	// kade_change start
 	const isCodebaseSearchAvailable =
@@ -286,18 +306,18 @@ export function filterNativeToolsForMode(
 			codeIndexManager.isFeatureConfigured &&
 			codeIndexManager.isInitialized)
 	if (!isCodebaseSearchAvailable) {
-		allowedToolNames.delete("codebase_search")
+		allowedToolNames.delete("ask")
 	}
 	// kade_change end
 
-	// Conditionally exclude update_todo_list if disabled in settings
+	// Conditionally exclude todo if disabled in settings
 	if (settings?.todoListEnabled === false) {
-		allowedToolNames.delete("update_todo_list")
+		allowedToolNames.delete("todo")
 	}
 
-	// Conditionally exclude run_sub_agent if disabled in settings
+	// Conditionally exclude agent if disabled in settings
 	if (settings?.subAgentToolEnabled === false) {
-		allowedToolNames.delete("run_sub_agent")
+		allowedToolNames.delete("agent")
 	}
 
 	// Conditionally exclude generate_image if experiment is not enabled
@@ -318,11 +338,17 @@ export function filterNativeToolsForMode(
 		allowedToolNames.delete("browser_action")
 	}
 
+	if (
+		settings?.computerUseToolEnabled === false ||
+		modelInfo?.supportsImages === false
+	) {
+		allowedToolNames.delete("computer_action")
+	}
+
 	// kade_change start
 	if (state && isFastApplyAvailable(state)) {
-		// When Fast Apply is enabled, disable traditional editing tools
-		const traditionalEditingTools = ["apply_diff", "write_to_file"]
-		traditionalEditingTools.forEach((tool) => allowedToolNames.delete(tool))
+		// Fast Apply replaces diff-style editing, but we still need write for new files/full rewrites.
+		allowedToolNames.delete("apply_diff")
 	} else {
 		allowedToolNames.delete("edit_file")
 	}
@@ -340,15 +366,33 @@ export function filterNativeToolsForMode(
 
 	// Filter native tools based on allowed tool names and apply alias renames
 	const filteredTools: any[] = []
+	const specializedExecuteTool = createExecuteTool({
+		enabledCanonicalTools: allowedToolNames,
+	})
+	const specializedExecuteToolHasOperations = Array.from(allowedToolNames).some((toolName) =>
+		EXECUTE_CANONICAL_OPERATIONS.has(toolName),
+	)
 
 	for (const tool of nativeTools as any[]) {
 		// Support both NEW simplified format and OLD OpenAI format
 		const toolName = tool.name || tool.function?.name
 		if (!toolName) continue
+		const canonicalToolName = toolName === "tools" || toolName === "tool" || toolName === "execute" ? "batch" : resolveToolAlias(toolName)
 
-		if (allowedToolNames.has(toolName)) {
+		if (allowedToolNames.has(canonicalToolName)) {
+			if (tool.name === "tool" || tool.name === "execute") {
+				if (specializedExecuteToolHasOperations) {
+					filteredTools.push(specializedExecuteTool)
+				}
+				continue
+			}
+
+			if (tool.name === "tools" || tool.name === "content") {
+				continue
+			}
+
 			// Check if this tool should be renamed to an alias
-			const aliasName = aliasRenames.get(toolName)
+			const aliasName = aliasRenames.get(canonicalToolName)
 			if (aliasName) {
 				// Use cached renamed tool definition to avoid per-message object allocation
 				// NOTE: Renaming legacy tools only for now, simple tools don't support cache yet
@@ -382,7 +426,7 @@ function hasAnyMcpResources(mcpHub: McpHub): boolean {
  * @param mode - Current mode slug
  * @param customModes - Custom mode configurations
  * @param experiments - Experiment flags
- * @param codeIndexManager - Code index manager for codebase_search feature check
+ * @param codeIndexManager - Code index manager for ask feature check
  * @param settings - Additional settings for tool filtering
  * @returns true if the tool is allowed in the mode, false otherwise
  */
@@ -399,7 +443,7 @@ export function isToolAllowedInMode(
 	// Check if it's an always-available tool
 	if (ALWAYS_AVAILABLE_TOOLS.includes(toolName)) {
 		// But still check for conditional exclusions
-		if (toolName === "codebase_search") {
+		if (toolName === "ask") {
 			return !!(
 				codeIndexManager &&
 				codeIndexManager.isFeatureEnabled &&
@@ -407,10 +451,10 @@ export function isToolAllowedInMode(
 				codeIndexManager.isInitialized
 			)
 		}
-		if (toolName === "update_todo_list") {
+		if (toolName === "todo") {
 			return settings?.todoListEnabled !== false
 		}
-		if (toolName === "run_sub_agent") {
+		if (toolName === "agent") {
 			return settings?.subAgentToolEnabled !== false
 		}
 		if (toolName === "generate_image") {
@@ -424,6 +468,10 @@ export function isToolAllowedInMode(
 
 	// Check for browser_action being disabled by user settings
 	if (toolName === "browser_action" && settings?.browserToolEnabled === false) {
+		return false
+	}
+
+	if (toolName === "computer_action" && settings?.computerUseToolEnabled === false) {
 		return false
 	}
 
@@ -448,7 +496,7 @@ export function isToolAllowedInMode(
  * @param mode - Current mode slug
  * @param customModes - Custom mode configurations
  * @param experiments - Experiment flags
- * @param codeIndexManager - Code index manager for codebase_search feature check
+ * @param codeIndexManager - Code index manager for ask feature check
  * @param settings - Additional settings for tool filtering
  * @returns Array of tool names that are available from the group
  */

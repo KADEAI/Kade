@@ -163,7 +163,7 @@ export async function checkAutoApproval({
 			return state.alwaysAllowModeSwitch === true ? { decision: "approve" } : { decision: "ask" }
 		}
 
-		if (["newTask", "finishTask", "run_sub_agent"].includes(tool?.tool)) {
+		if (["newTask", "finishTask", "agent"].includes(tool?.tool)) {
 			return state.alwaysAllowSubtasks === true ? { decision: "approve" } : { decision: "ask" }
 		}
 
@@ -184,7 +184,7 @@ export async function checkAutoApproval({
 				: { decision: "ask" }
 		}
 
-		if (["web_search", "web_fetch", "research_web"].includes(tool.tool)) {
+		if (["web", "fetch", "research_web"].includes(tool.tool)) {
 			return state.alwaysAllowBrowser === true ? { decision: "approve" } : { decision: "ask" }
 		}
 

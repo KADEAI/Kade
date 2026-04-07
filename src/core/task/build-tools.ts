@@ -15,6 +15,7 @@ interface BuildToolsOptions {
 	apiConfiguration: ProviderSettings | undefined
 	maxReadFileLine: number
 	browserToolEnabled: boolean
+	computerUseToolEnabled: boolean
 	// kade_change start
 	state?: ClineProviderState
 	// kade_change end
@@ -40,6 +41,7 @@ export async function buildNativeToolsArray(options: BuildToolsOptions): Promise
 		apiConfiguration,
 		maxReadFileLine,
 		browserToolEnabled,
+		computerUseToolEnabled,
 		modelInfo,
 		diffEnabled,
 		enableSubAgents,
@@ -55,15 +57,20 @@ export async function buildNativeToolsArray(options: BuildToolsOptions): Promise
 	const filterSettings = {
 		todoListEnabled: apiConfiguration?.todoListEnabled ?? true,
 		browserToolEnabled: browserToolEnabled ?? true,
+		computerUseToolEnabled: computerUseToolEnabled ?? true,
+		subAgentToolEnabled: enableSubAgents ?? true,
 		modelInfo,
 		diffEnabled,
 	}
 
 	// Determine if partial reads are enabled based on maxReadFileLine setting
 	const partialReadsEnabled = maxReadFileLine !== -1
+	const batchToolUseEnabled =
+		!(apiConfiguration?.disableBatchToolUse ?? false) &&
+		Number(apiConfiguration?.maxToolCalls ?? 10) > 1
 
-	// Build native tools with dynamic read_file tool based on partialReadsEnabled
-	const nativeTools = getNativeTools(partialReadsEnabled, enableSubAgents)
+	// Build native tools with dynamic read tool based on partialReadsEnabled
+	const nativeTools = getNativeTools(partialReadsEnabled, enableSubAgents, batchToolUseEnabled)
 
 	// Filter native tools based on mode restrictions
 	const filteredNativeTools = filterNativeToolsForMode(

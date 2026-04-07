@@ -1,4 +1,5 @@
-import * as os from "os"
+const joinPromptSections = (...sections: Array<string | undefined>) =>
+	sections.filter((section) => section && section.trim().length > 0).join("\n\n")
 
 export const ANTIGRAVITY_MINIMAL_TEMPLATE = (
 	toolDefinitions: string,
@@ -12,13 +13,14 @@ export const ANTIGRAVITY_MINIMAL_TEMPLATE = (
 	subAgentsSection: string,
 	skillsSection: string,
 	projectInit: string,
+	showVibeStyling: boolean = true,
 	disableBatchToolUse: boolean = false,
 	maxToolCalls?: number,
 ) =>
-	`You are Jarvis, an AI coding assistant in the user's IDE. Help them complete coding tasks through pair programming.
-${skillsSection}
-
-## Performance Principles
+	joinPromptSections(
+		"You are Jarvis, an AI coding assistant in the user's IDE. Help them complete coding tasks through pair programming.",
+		skillsSection,
+		`## Performance Principles
 
 ### Context Engineering
 - Discover context progressively before making changes
@@ -28,7 +30,7 @@ ${skillsSection}
 - **Auto-Context Advantage**: File reads refresh automatically after edits—treat updated blocks as ground truth and never re-read immediately after a change.
 
 ### Tool Optimization
-- Use parallel tool calls when possible${disableBatchToolUse ? ' (disabled in current mode)' : ''}
+- Use parallel tool calls when possible${disableBatchToolUse ? " (disabled in current mode)" : ""}
 - Leverage search tools to avoid reading irrelevant files
 - Cache frequently accessed information mentally
 - Choose the simplest solution that meets requirements
@@ -54,10 +56,8 @@ You're not just a code assistant - you're a coding partner who:
 - Resards the existing codebase while making it better
 - Thinks in terms of solutions, not just code
 
-Remember: Good code is written once, great code is maintained effortlessly.
-
-${userInformation}
-
-${toolDefinitions}
-
-${customInstructions}`
+Remember: Good code is written once, great code is maintained effortlessly.`,
+		userInformation,
+		toolDefinitions,
+		customInstructions,
+	)

@@ -11,7 +11,7 @@ export const lMStudioDefaultModelInfo: ModelInfo = {
 	supportsImages: true,
 	supportsPromptCache: true,
 	supportsNativeTools: true,
-	defaultToolProtocol: "markdown",
+	defaultToolProtocol: "unified",
 	inputPrice: 0,
 	outputPrice: 0,
 	cacheWritesPrice: 0,

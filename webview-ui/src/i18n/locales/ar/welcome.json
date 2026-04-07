@@ -1,45 +1,45 @@
 {
-	"greeting": "مرحبًا، أنا Kade!",
-	"introduction": "<strong>Kade هو وكيل البرمجة الذاتي الأفضل على الإطلاق.</strong> استعد للتصميم والبرمجة وتصحيح الأخطاء وزيادة إنتاجيتك بشكل غير مسبوق. للمتابعة، يحتاج Kade إلى مفتاح API.",
-	"notice": "عشان تبدأ، هذي الإضافة تحتاج مزوّد API.",
-	"start": "يلا نبدأ!",
-	"routers": {
-		"requesty": {
-			"description": "موجّه LLM الأمثل لك",
-			"incentive": "$1 رصيد مجاني"
-		},
-		"openrouter": {
-			"description": "واجهة موحّدة لنماذج LLM"
-		},
-		"roo": {
-			"description": "أفضل النماذج المجانية للبدء",
-			"incentive": "جرب Roo مجاناً"
-		}
-	},
-	"chooseProvider": "عشان يشتغل سحر Kade، يلزم مفتاح API.",
-	"providerSignup": {
-		"rooCloudProvider": "مزوّد Roo Code Cloud",
-		"rooCloudDescription": "أبسط طريقة لاستخدام Roo. مزيج مختار من النماذج المجانية والمدفوعة بتكلفة منخفضة",
-		"learnMore": "اعرف أكثر",
-		"useAnotherProvider": "استخدم مزوّد آخر",
-		"useAnotherProviderDescription": "أدخل مفتاح API وانطلق.",
-		"noApiKeys": "ما تبي تتعامل مع المفاتيح؟ استخدم مزوّد Roo Code Cloud.",
-		"getStarted": "ابدأ"
-	},
-	"waitingForCloud": {
-		"heading": "نأخذك إلى Roo Code Cloud...",
-		"description": "أكمل التسجيل في المتصفح، وبعدها سترجع هنا تلقائياً.",
-		"noPrompt": "إذا ما طلع لك رابط للفتح، <clickHere>اضغط هنا</clickHere>.",
-		"havingTrouble": "إذا خلصت التسجيل بس عندك مشاكل، <clickHere>اضغط هنا</clickHere>.",
-		"pasteUrl": "الصق رابط الاستدعاء من المتصفح:",
-		"invalidURL": "هذا ما يبدو رابط استدعاء صحيح. الرجاء نسخ ما يعرضه Roo Code Cloud في المتصفح.",
-		"goBack": "ارجع"
-	},
-	"startRouter": "نوصي باستخدام موجّه LLM:",
-	"startCustom": "أو تقدر تستخدم مفتاح مزوّدك الخاص:",
-	"telemetry": {
-		"helpImprove": "ساهم في تحسين Kade",
-		"helpImproveMessage": "يجمع Kade بيانات الأخطاء والاستخدام لمساعدتنا في إصلاح الأخطاء وتحسين الإضافة. هذه البيانات التشخيصية لا تجمع الكود أو المطالبات أو المعلومات الشخصية. يمكنك إيقاف هذا في <settingsLink>الإعدادات</settingsLink>."
-	},
-	"importSettings": "استيراد الإعدادات"
+  "greeting": "مرحبًا، أنا Kade!",
+  "introduction": "<strong>Kade هو وكيل البرمجة الذاتي الأفضل على الإطلاق.</strong> استعد للتصميم والبرمجة وتصحيح الأخطاء وزيادة إنتاجيتك بشكل غير مسبوق. للمتابعة، يحتاج Kade إلى مفتاح API.",
+  "notice": "عشان تبدأ، هذي الإضافة تحتاج مزوّد API.",
+  "start": "يلا نبدأ!",
+  "routers": {
+    "requesty": {
+      "description": "موجّه LLM الأمثل لك",
+      "incentive": "$1 رصيد مجاني"
+    },
+    "openrouter": {
+      "description": "واجهة موحّدة لنماذج LLM"
+    },
+    "roo": {
+      "description": "أفضل النماذج المجانية للبدء",
+      "incentive": "جرب Roo مجاناً"
+    }
+  },
+  "chooseProvider": "عشان يشتغل سحر Kade، يلزم مفتاح API.",
+  "providerSignup": {
+    "rooCloudProvider": "مزوّد Roo Code Cloud",
+    "rooCloudDescription": "أبسط طريقة لاستخدام Roo. مزيج مختار من النماذج المجانية والمدفوعة بتكلفة منخفضة",
+    "learnMore": "اعرف أكثر",
+    "useAnotherProvider": "استخدم مزوّد آخر",
+    "useAnotherProviderDescription": "أدخل مفتاح API وانطلق.",
+    "noApiKeys": "ما تبي تتعامل مع المفاتيح؟ استخدم مزوّد Roo Code Cloud.",
+    "getStarted": "ابدأ"
+  },
+  "waitingForCloud": {
+    "heading": "نأخذك إلى Roo Code Cloud...",
+    "description": "أكمل التسجيل في المتصفح، وبعدها سترجع هنا تلقائياً.",
+    "noPrompt": "إذا ما طلع لك رابط للفتح، <clickHere>اضغط هنا</clickHere>.",
+    "havingTrouble": "إذا خلصت التسجيل بس عندك مشاكل، <clickHere>اضغط هنا</clickHere>.",
+    "pasteUrl": "الصق رابط الاستدعاء من المتصفح:",
+    "invalidURL": "هذا ما يبدو رابط استدعاء صحيح. الرجاء نسخ ما يعرضه Roo Code Cloud في المتصفح.",
+    "goBack": "ارجع"
+  },
+  "startRouter": "نوصي باستخدام موجّه LLM:",
+  "startCustom": "أو تقدر تستخدم مفتاح مزوّدك الخاص:",
+  "telemetry": {
+    "helpImprove": "ساهم في تحسين Kade",
+    "helpImproveMessage": "يجمع Kade بيانات الأخطاء والاستخدام لمساعدتنا في إصلاح الأخطاء وتحسين الإضافة. هذه البيانات التشخيصية لا تجمع الكود أو المطالبات أو المعلومات الشخصية. يمكنك إيقاف هذا في <settingsLink>الإعدادات</settingsLink>."
+  },
+  "importSettings": "استيراد الإعدادات"
 }

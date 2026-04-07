@@ -6,6 +6,9 @@ import * as fsSync from "fs" // // kade_change
 
 import { Package } from "../shared/package"
 import { t } from "../i18n"
+import { getWorkspacePath } from "./path"
+
+const WORKSPACE_TASK_STORAGE_DIR = ".kilocode"
 
 /**
  * Gets the base storage path for conversations
@@ -48,6 +51,28 @@ export async function getStorageBasePath(defaultPath: string): Promise<string> {
 	}
 }
 
+/**
+ * Gets the base storage path for task/chat data.
+ * Priority:
+ * 1. Explicit customStoragePath
+ * 2. Workspace-local .kilocode directory
+ * 3. Default VS Code global storage path
+ */
+export async function getTaskStorageBasePath(defaultPath: string, workspacePath = getWorkspacePath()): Promise<string> {
+	const configuredBasePath = await getStorageBasePath(defaultPath)
+	if (configuredBasePath !== defaultPath) {
+		return configuredBasePath
+	}
+
+	if (!workspacePath) {
+		return defaultPath
+	}
+
+	const workspaceStoragePath = path.join(workspacePath, WORKSPACE_TASK_STORAGE_DIR)
+	await fs.mkdir(workspaceStoragePath, { recursive: true })
+	return workspaceStoragePath
+}
+
 // kade_change - start
 export function getStorageBasePathSync(defaultPath: string): string {
 	let customStoragePath = ""
@@ -71,14 +96,73 @@ export function getStorageBasePathSync(defaultPath: string): string {
 		return defaultPath
 	}
 }
+
+export function getTaskStorageBasePathSync(defaultPath: string, workspacePath = getWorkspacePath()): string {
+	const configuredBasePath = getStorageBasePathSync(defaultPath)
+	if (configuredBasePath !== defaultPath) {
+		return configuredBasePath
+	}
+
+	if (!workspacePath) {
+		return defaultPath
+	}
+
+	const workspaceStoragePath = path.join(workspacePath, WORKSPACE_TASK_STORAGE_DIR)
+	fsSync.mkdirSync(workspaceStoragePath, { recursive: true })
+	return workspaceStoragePath
+}
 // kade_change - end
+
+async function pathExists(targetPath: string): Promise<boolean> {
+	try {
+		await fs.access(targetPath, fsConstants.F_OK)
+		return true
+	} catch {
+		return false
+	}
+}
+
+async function migrateTaskDirectoryIfNeeded(currentTaskDir: string, legacyTaskDir: string): Promise<void> {
+	if (currentTaskDir === legacyTaskDir) {
+		return
+	}
+
+	if (await pathExists(currentTaskDir)) {
+		return
+	}
+
+	if (!(await pathExists(legacyTaskDir))) {
+		return
+	}
+
+	const currentParentDir = path.dirname(currentTaskDir)
+	await fs.mkdir(currentParentDir, { recursive: true })
+
+	try {
+		await fs.rename(legacyTaskDir, currentTaskDir)
+		return
+	} catch {
+		// Fall back to copy+delete for cross-device moves or sandbox differences.
+	}
+
+	await fs.cp(legacyTaskDir, currentTaskDir, { recursive: true })
+	await fs.rm(legacyTaskDir, { recursive: true, force: true })
+}
 
 /**
  * Gets the storage directory path for a task
  */
-export async function getTaskDirectoryPath(globalStoragePath: string, taskId: string): Promise<string> {
-	const basePath = await getStorageBasePath(globalStoragePath)
+export async function getTaskDirectoryPath(
+	globalStoragePath: string,
+	taskId: string,
+	workspacePath = getWorkspacePath(),
+): Promise<string> {
+	const basePath = await getTaskStorageBasePath(globalStoragePath, workspacePath)
 	const taskDir = path.join(basePath, "tasks", taskId)
+	const legacyBasePath = await getStorageBasePath(globalStoragePath)
+	const legacyTaskDir = path.join(legacyBasePath, "tasks", taskId)
+
+	await migrateTaskDirectoryIfNeeded(taskDir, legacyTaskDir)
 	await fs.mkdir(taskDir, { recursive: true })
 	return taskDir
 }

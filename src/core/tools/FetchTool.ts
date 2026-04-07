@@ -8,8 +8,8 @@ import { findLastIndex } from "../../shared/array"
 /**
  * EXACT LOGIC FROM CLAUDIFY fetchTool.ts - DO NOT MODIFY
  */
-export class WebFetchTool extends BaseTool<"web_fetch"> {
-    readonly name = "web_fetch" as const;
+export class WebFetchTool extends BaseTool<"fetch"> {
+    readonly name = "fetch" as const;
 
     parseLegacy(params: Partial<Record<string, string>>): { url: string; include_links?: boolean } {
         const includeLinks = params.include_links?.trim().toLowerCase()
@@ -29,7 +29,7 @@ export class WebFetchTool extends BaseTool<"web_fetch"> {
                     const lastMsgIndex = findLastIndex(task.clineMessages, (m: any) => {
                         try {
                             const parsed = JSON.parse(m.text || '{}');
-                            const isToolMessage = (m.say === 'tool' || m.ask === 'tool') && parsed.tool === 'web_fetch';
+                            const isToolMessage = (m.say === 'tool' || m.ask === 'tool') && parsed.tool === 'fetch';
                             return isToolMessage;
                         } catch (e) {
                             return false;
@@ -43,7 +43,7 @@ export class WebFetchTool extends BaseTool<"web_fetch"> {
                         await task.updateClineMessage(msg);
                     }
                 } catch (e) {
-                    console.error(`[web_fetch] Failed to update UI: ${e}`);
+                    console.error(`[fetch] Failed to update UI: ${e}`);
                 }
             })();
         };
@@ -52,7 +52,7 @@ export class WebFetchTool extends BaseTool<"web_fetch"> {
 
         // Create tool message for approval
         const completeMessage = JSON.stringify({
-            tool: "web_fetch",
+            tool: "fetch",
             url: input.url,
             ...(input.include_links ? { include_links: true } : {}),
         });

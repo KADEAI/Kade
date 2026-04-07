@@ -1,336 +1,336 @@
 {
-	"welcome": {
-		"greeting": "Benvingut a Kade!",
-		"introText1": "Kade és un agent de codificació d'IA gratuït i de codi obert.",
-		"introText2": "Funciona amb els models d'IA més recents com Claude Sonnet 4.5, Gemini 2.5 Pro, GPT-5, i més de 450 més.",
-		"introText3": "Crea un compte gratuït i obtén $20 en crèdits de bonificació quan recarreguis per primera vegada.",
-		"ctaButton": "Comença",
-		"manualModeButton": "Utilitza la teva pròpia clau API",
-		"alreadySignedUp": "Ja t'has registrat?",
-		"loginText": "Inicia sessió aquí"
-	},
-	"lowCreditWarning": {
-		"addCredit": "Afegir crèdit",
-		"lowBalance": "El teu saldo de Kade és baix",
-		"newOrganization": "Utilitzes Kade per a la feina?"
-	},
-	"pagination": {
-		"previous": "Anterior",
-		"next": "Següent",
-		"page": "Pàgina {{page}} / {{count}}"
-	},
-	"pricing": {
-		"costUnknown": "cost desconegut",
-		"costUnknownDescription": "El proveïdor de l'API no va proporcionar cap dada de cost o la sol·licitud va ser cancel·lada.",
-		"freeModelsLink": "Descobreix les opcions de models gratuïts i econòmics"
-	},
-	"notifications": {
-		"toolRequest": "Sol·licitud d'eina pendent d'aprovació",
-		"browserAction": "Acció del navegador pendent d'aprovació",
-		"command": "Ordre pendent d'aprovació"
-	},
-	"settings": {
-		"sections": {
-			"mcp": "Servidors MCP"
-		},
-		"provider": {
-			"account": "Compte de Kade",
-			"apiKey": "Clau API de Kade",
-			"login": "Iniciar sessió a Kade",
-			"logout": "Tancar sessió de Kade",
-			"automaticFetch": "Els models més recents estan disponibles automàticament a Kade. Si no estàs segur de quin model triar, Kade funciona millor amb els models recomanats que apareixen a la part superior en <strong>negreta</strong>.",
-			"providerRouting": {
-				"title": "Encaminament de proveïdors",
-				"managedByOrganization": "Gestionar encaminament de proveïdors a nivell d'organització",
-				"createOrganization": "Crear organització per gestionar encaminament de proveïdors",
-				"description": "Kade encamina les sol·licituds als millors proveïdors disponibles per al vostre model. Per defecte, les sol·licituds es distribueixen entre els principals proveïdors per maximitzar el temps de funcionament. No obstant això, podeu triar un proveïdor específic per a aquest model.",
-				"sorting": {
-					"default": "Ordenació de proveïdors per defecte",
-					"price": "Preferir proveïdors amb preu més baix",
-					"throughput": "Preferir proveïdors amb major rendiment",
-					"latency": "Preferir proveïdors amb menor latència"
-				},
-				"dataCollection": {
-					"default": "No hi ha política de dades establerta",
-					"allowFree": "Permetre entrenament de prompts (només gratuït)",
-					"allow": "Permetre entrenament de prompts",
-					"deny": "Denegar entrenament de prompts",
-					"zdr": "Retenció zero de dades"
-				}
-			}
-		},
-		"modelInfo": {
-			"contextWindow": "Finestra de context",
-			"providerBreakdown": "Desglossament de preus i capacitats del proveïdor",
-			"averageKadeCodeCost": "Aquest és el cost real mitjà gastat per Kade utilitzant aquest model durant la darrera setmana. Pot ser inferior al preu llistat a causa de la utilització de la memòria cau de prompts.",
-			"table": {
-				"provider": "Proveïdor",
-				"context": "L'endpoint pot processar aquest nombre de tokens (entrada + sortida).",
-				"inputPrice": "Cost per milió de tokens per al prompt.",
-				"outputPrice": "Cost per milió de tokens per a la compleció.",
-				"cacheReadPrice": "Cost per milió de tokens per llegir de la memòria cau.",
-				"cacheWritePrice": "Cost per milió de tokens per escriure a la memòria cau."
-			}
-		},
-		"contextManagement": {
-			"allowVeryLargeReads": {
-				"label": "Permet lectures de fitxers molt grans",
-				"description": "Quan està activat, Kade realitzarà lectures de fitxers o sortides MCP molt grans encara que hi hagi una alta probabilitat de desbordar la finestra de context (mida del contingut >80% de la finestra de context)."
-			}
-		},
-		"codeIndex": {
-			"embeddingBatchSizeLabel": "Mida del Lot d'Incrustació",
-			"embeddingBatchSizeDescription": "Nombre de segments de codi a agrupar per a la generació d'incrustacions i actualitzacions del magatzem vectorial. Valors més alts poden millorar la velocitat d'indexació però poden augmentar l'ús de memòria. Valors més baixos redueixen l'ús de memòria però poden alentir la indexació.",
-			"scannerMaxBatchRetriesLabel": "Nombre Màxim de Reintents de Lot de l'Escàner",
-			"scannerMaxBatchRetriesDescription": "Nombre màxim de vegades per reintentar un lot fallit durant l'escaneig de directoris. Valors més alts augmenten la resiliència als errors transitoris però poden alentir la indexació si els errors persisteixen. Valors més baixos fallen més ràpidament però poden ometre contingut en problemes temporals."
-		},
-		"systemNotifications": {
-			"label": "Activar notificacions del sistema",
-			"description": "Quan està activat, Kade enviarà notificacions del sistema per a esdeveniments importants com la finalització de tasques o errors.",
-			"testButton": "Provar notificació",
-			"testTitle": "Kade",
-			"testMessage": "Aquesta és una notificació de prova de Kade."
-		},
-		"terminal": {
-			"commandGenerator": {
-				"provider": "Proveïdor de Generador de Comandes de Terminal",
-				"apiConfigId": {
-					"label": "Configuració de l'API",
-					"description": "Seleccioneu quina configuració d'API voleu utilitzar per generar ordres de terminal. Deixeu-ho com a 'Utilitza la configuració actual' per utilitzar la configuració predeterminada.",
-					"current": "Utilitza la configuració actual"
-				}
-			}
-		}
-	},
-	"profile": {
-		"title": "Perfil",
-		"dashboard": "Tauler de control",
-		"logOut": "Tancar sessió",
-		"currentBalance": "SALDO ACTUAL",
-		"loading": "Carregant...",
-		"organization": "Organització",
-		"personal": "Personal",
-		"shop": {
-			"title": "Comprar Crèdits",
-			"popular": "Popular",
-			"credits": "crèdits",
-			"action": "Comprar Ara",
-			"viewAll": "Veure totes les opcions de preus"
-		},
-		"detailedUsage": "Ús detallat",
-		"createOrganization": "Crear organització per fer seguiment de l'ús detallat"
-	},
-	"chat": {
-		"condense": {
-			"wantsToCondense": "Kade vol condensar la teva conversa",
-			"condenseConversation": "Condensar Conversa"
-		},
-		"seeNewChanges": "Mostrar Nous Canvis",
-		"revertNewChanges": "Revertir Nous Canvis",
-		"confirmRevertChanges": "Confirmar Revertir Canvis",
-		"cancelRevertChanges": "Cancel·lar Revertir Canvis"
-	},
-	"newTaskPreview": {
-		"task": "Tasca"
-	},
-	"docs": "Documentació",
-	"rules": {
-		"tooltip": "Gestionar Regles i Fluxos de Treball de Kade",
-		"ariaLabel": "Regles de Kade",
-		"tabs": {
-			"rules": "Regles",
-			"workflows": "Fluxos de Treball"
-		},
-		"description": {
-			"rules": "Les regles et permeten proporcionar a Kade instruccions que ha de seguir en tots els modes i per a tots els prompts. Són una manera persistent d'incloure context i preferències per a totes les converses al teu espai de treball o globalment.",
-			"workflows": "Els fluxos de treball són una plantilla preparada per a una conversa. Els fluxos de treball et permeten definir prompts que uses freqüentment, i poden incloure una sèrie de passos per guiar Kade a través de tasques repetitives, com desplegar un servei o enviar una PR. Per invocar un flux de treball, escriu",
-			"workflowsInChat": "al xat."
-		},
-		"sections": {
-			"globalRules": "Regles Globals",
-			"workspaceRules": "Regles de l'Espai de Treball",
-			"globalWorkflows": "Fluxos de Treball Globals",
-			"workspaceWorkflows": "Fluxos de Treball de l'Espai de Treball"
-		},
-		"validation": {
-			"invalidFileExtension": "Només es permeten extensions .md, .txt o sense extensió"
-		},
-		"placeholders": {
-			"workflowName": "nom-flux-treball (.md, .txt o sense extensió)",
-			"ruleName": "nom-regla (.md, .txt o sense extensió)"
-		},
-		"newFile": {
-			"newWorkflowFile": "Nou fitxer de flux de treball...",
-			"newRuleFile": "Nou fitxer de regla..."
-		}
-	},
-	"taskTimeline": {
-		"tooltip": {
-			"messageTypes": {
-				"browser_action_launch": "iniciar navegador",
-				"browser_action": "acció del navegador",
-				"browser_action_result": "resultat de l'acció del navegador",
-				"checkpoint_saved": "punt de control desat",
-				"condense_context": "condensar context",
-				"command_output": "sortida de comanda",
-				"completion_result": "resultat de la compleció",
-				"command": "execució de comandes",
-				"error": "missatge d'error",
-				"followup": "pregunta de seguiment",
-				"mcp_server_response": "Resposta del servidor MCP",
-				"text": "Resposta de la IA",
-				"reasoning": "Raonament d'IA",
-				"unknown": "tipus de missatge desconegut",
-				"tool": "ús de l'eina",
-				"use_mcp_server": "Ús del servidor MCP",
-				"user": "comentaris dels usuaris"
-			},
-			"clickToScroll": "Veure {{messageType}} (núm. {{messageNumber}})"
-		}
-	},
-	"userFeedback": {
-		"editCancel": "Cancel·lar",
-		"send": "Enviar",
-		"restoreAndSend": "Restaurar i Enviar"
-	},
-	"ideaSuggestionsBox": {
-		"newHere": "Nou aquí?",
-		"suggestionText": "<suggestionButton>Fes clic aquí</suggestionButton> per a una idea genial, després toca <sendIcon /> i mira'm fer màgia!",
-		"ideas": {
-			"idea1": "Crea una esfera 3D que giri i brilli i respongui als moviments del ratolí. Fes que l'aplicació funcioni al navegador.",
-			"idea2": "Crea un lloc web de cartera per a un desenvolupador de programari Python",
-			"idea3": "Crea una maqueta d'aplicació financera al navegador. Després prova si funciona",
-			"idea4": "Crea un lloc web directori que contingui els millors models de generació de vídeo d'IA actualment",
-			"idea5": "Crea un generador de gradients CSS que exporti fulls d'estil personalitzats i mostri una previsualització en viu",
-			"idea6": "Genera targetes que revelin contingut dinàmic de manera bonica quan s'hi passi el ratolí per sobre",
-			"idea7": "Crea un camp d'estrelles interactiu i tranquil que es mogui amb gestos del ratolí"
-		}
-	},
-	"ghost": {
-		"title": "Autocomplete",
-		"settings": {
-			"triggers": "Activadors",
-			"keybindingDescription": "Les funcionalitats d'Autocomplete es poden activar mitjançant ordres. Pots configurar les <DocsLink>Dreceres de Teclat aquí</DocsLink>.",
-			"enableAutoTrigger": {
-				"label": "Habilitar Autocomplete",
-				"description": "Quan està habilitat, Kade activarà automàticament Autocomplete quan deixis d'escriure. Això pot ser útil per a correccions ràpides i suggeriments."
-			},
-			"autoTriggerDelay": {
-				"label": "Retard d'Activació Automàtica",
-				"description": "El retard en segons abans que Kade activi Autocomplete després que deixis d'escriure. Un retard més curt significa suggeriments més ràpids, però pot ser més intensiu en recursos."
-			},
-			"enableQuickInlineTaskKeybinding": {
-				"label": "Tasca ràpida ({{keybinding}})",
-				"description": "Només necessites un canvi ràpid? Selecciona codi (o no!) i prem Cmd+I. Descriu el teu objectiu en català simple (\"crear un component React amb aquestes props\", \"afegir gestió d'errors a aquesta funció\"), i obtén múltiples suggeriments llestos per usar directament al teu editor. <DocsLink>Veure drecera</DocsLink>"
-			},
-			"enableSmartInlineTaskKeybinding": {
-				"label": "Autocompleció Manual ({{keybinding}})",
-				"description": "Necessites una correcció ràpida, completació o refactorització? Kade utilitzarà el context circumdant per oferir millores immediates, mantenint-te en el flux. <DocsLink>Veure drecera</DocsLink>"
-			},
-			"keybindingNotFound": "no trobat",
-			"noModelConfigured": "No s'ha trobat cap model d'autocompletat adequat. Configura un proveïdor a la configuració de l'API.",
-			"configureAutocompleteProfile": "Utilitza qualsevol model anant a perfils i configurant un Perfil del Tipus de Perfil Autocompletat.",
-			"model": "Model",
-			"provider": "Proveïdor",
-			"enableChatAutocomplete": {
-				"description": "Quan està activat, Kade suggerirà complecions mentre escriviu a l'entrada del xat. Premeu Tab per acceptar els suggeriments.",
-				"label": "Autocompletat d'entrada de xat"
-			},
-			"snooze": {
-				"label": "Posposar Autocomplete",
-				"description": "Pausa temporalment els suggeriments d'autocompletat durant un temps especificat.",
-				"button": "Posposar",
-				"unsnooze": "Reactivar",
-				"currentlySnoozed": "L'autocompletat està actualment posposat.",
-				"duration": {
-					"1min": "1 minut",
-					"5min": "5 minuts",
-					"15min": "15 minuts",
-					"30min": "30 minuts",
-					"1hour": "1 hora"
-				}
-			}
-		}
-	},
-	"virtualProvider": {
-		"title": "Configuració del Proveïdor de Reserva per a Quota Virtual",
-		"description": "Configureu una llista de perfils, cadascun amb els seus propis límits de quota. Quan s'assoleixen els límits de quota d'un proveïdor, s'utilitzarà el següent perfil de la llista fins que no en quedi cap.",
-		"profileLabel": "Perfil {{number}}",
-		"primaryProfileLabel": "Perfil {{number}} (Principal)",
-		"moveProfileUp": "Moure perfil cap amunt",
-		"moveProfileDown": "Mou el perfil cap avall",
-		"removeProfile": "Eliminar perfil",
-		"selectProfilePlaceholder": "Selecciona el perfil...",
-		"addProfile": "Afegir perfil",
-		"noProfilesAvailable": "No hi ha perfils disponibles. Si us plau, configureu primer almenys un perfil de proveïdor no virtual.",
-		"dangerZoneTitle": "Zona de Perill",
-		"dangerZoneDescription": "Aquestes accions són destructives i no es poden desfer.",
-		"clearUsageData": "Esborrar Dades d'Ús",
-		"confirmClearTitle": "Estàs segur?",
-		"confirmClearDescription": "Això eliminarà permanentment totes les dades d'ús emmagatzemades per als proveïdors virtuals. Aquesta acció no es pot desfer.",
-		"perMinute": "Per Minut",
-		"perDay": "Per dia",
-		"perHour": "Per hora",
-		"requestsLabel": "Sol·licituds",
-		"tokensLabel": "Tokens"
-	},
-	"imageWarnings": {
-		"modelNoImageSupport": "Les imatges no són compatibles amb el model actual.",
-		"maxImagesReached": "Màxim de 20 imatges per missatge. Elimineu algunes imatges per afegir-ne més.",
-		"imagesRemovedNoSupport": "Imatges eliminades, no compatibles amb el model."
-	},
-	"memoryWarning": {
-		"message": "L'ús de memòria està al {{percentage}}%. Si us plau, reinicia el teu IDE per evitar fallades."
-	},
-	"toolCallStyle": {
-		"title": "Estil de Crida d'Eina",
-		"description": "Tria com es formaten les crides d'eina al prompt del sistema. JSON és actualment experimental i està principalment destinat a usuaris interessats a contribuir al seu desenvolupament.",
-		"automatic": "Deixa que Kade decideixi",
-		"xml": "XML",
-		"json": "JSON"
-	},
-	"invalidModel": {
-		"alphaPeriodEnded": "🎉 El període alfa per a {{model}} ha finalitzat! Canvia a un model diferent per continuar.",
-		"notAllowedForTeam": "⚠️ La teva organització no permet l'ús del model {{model}}. Canvia a un model diferent per continuar.",
-		"modelUnavailable": "⚠️ El model {{model}} no està disponible. Canvia a un model diferent per continuar.",
-		"continueWith": "Continua amb {{model}}",
-		"continue": "Continua"
-	},
-	"marketplace": {
-		"modes": {
-			"description": "Aquests modes estan disponibles des de la comunitat. Feu clic <1>aquí</1> per editar els vostres propis modes personalitzats."
-		},
-		"mcp": {
-			"description": "Aquests servidors MCP són mantinguts per la comunitat. Fes clic <1>aquí</1> per editar els teus propis ajustos de MCP."
-		}
-	},
-	"modes": {
-		"shareModesNewBanner": "Nou: Comparteix modes creant una organització"
-	},
-	"deviceAuth": {
-		"title": "Inicia sessió a Kade",
-		"step1": "Obre la següent URL al teu navegador",
-		"step2": "Verifica el codi i autoritza aquest dispositiu al teu navegador",
-		"scanQr": "O escaneja aquest codi QR amb el teu telèfon",
-		"openBrowser": "Obre el navegador",
-		"copyUrl": "Copia l'URL",
-		"waiting": "Esperant autorització...",
-		"timeRemaining": "El codi caduca en {{time}}",
-		"success": "Sessió iniciada correctament!",
-		"authenticatedAs": "Autenticat com a {{email}}",
-		"error": "Error d'autenticació",
-		"unknownError": "S'ha produït un error. Torna-ho a provar.",
-		"cancel": "Cancel·la",
-		"retry": "Torna-ho a provar",
-		"tryAgain": "Torna-ho a provar",
-		"cancelled": "Autenticació cancel·lada",
-		"initiating": "Iniciant autenticació..."
-	},
-	"speechToText": {
-		"stopRecording": "Atura l'entrada de veu",
-		"startRecording": "Inicia l'entrada de veu",
-		"unavailableFfmpegNotInstalled": "La transcripció de veu a text no està disponible. Instal·leu FFmpeg per utilitzar la transcripció de veu.",
-		"unavailableOpenAiKeyMissing": "La transcripció de veu a text no està disponible. Requereix un proveïdor d'OpenAI vàlid amb una clau API per utilitzar la transcripció de veu.",
-		"unavailableBoth": "La conversió de veu a text no està disponible. Requereix un proveïdor vàlid d'OpenAI i FFmpeg ha d'estar instal·lat."
-	}
+  "welcome": {
+    "greeting": "Benvingut a Kade!",
+    "introText1": "Kade és un agent de codificació d'IA gratuït i de codi obert.",
+    "introText2": "Funciona amb els models d'IA més recents com Claude Sonnet 4.5, Gemini 2.5 Pro, GPT-5, i més de 450 més.",
+    "introText3": "Crea un compte gratuït i obtén $20 en crèdits de bonificació quan recarreguis per primera vegada.",
+    "ctaButton": "Comença",
+    "manualModeButton": "Utilitza la teva pròpia clau API",
+    "alreadySignedUp": "Ja t'has registrat?",
+    "loginText": "Inicia sessió aquí"
+  },
+  "lowCreditWarning": {
+    "addCredit": "Afegir crèdit",
+    "lowBalance": "El teu saldo de Kade és baix",
+    "newOrganization": "Utilitzes Kade per a la feina?"
+  },
+  "pagination": {
+    "previous": "Anterior",
+    "next": "Següent",
+    "page": "Pàgina {{page}} / {{count}}"
+  },
+  "pricing": {
+    "costUnknown": "cost desconegut",
+    "costUnknownDescription": "El proveïdor de l'API no va proporcionar cap dada de cost o la sol·licitud va ser cancel·lada.",
+    "freeModelsLink": "Descobreix les opcions de models gratuïts i econòmics"
+  },
+  "notifications": {
+    "toolRequest": "Sol·licitud d'eina pendent d'aprovació",
+    "browserAction": "Acció del navegador pendent d'aprovació",
+    "command": "Ordre pendent d'aprovació"
+  },
+  "settings": {
+    "sections": {
+      "mcp": "Servidors MCP"
+    },
+    "provider": {
+      "account": "Compte de Kade",
+      "apiKey": "Clau API de Kade",
+      "login": "Iniciar sessió a Kade",
+      "logout": "Tancar sessió de Kade",
+      "automaticFetch": "Els models més recents estan disponibles automàticament a Kade. Si no estàs segur de quin model triar, Kade funciona millor amb els models recomanats que apareixen a la part superior en <strong>negreta</strong>.",
+      "providerRouting": {
+        "title": "Encaminament de proveïdors",
+        "managedByOrganization": "Gestionar encaminament de proveïdors a nivell d'organització",
+        "createOrganization": "Crear organització per gestionar encaminament de proveïdors",
+        "description": "Kade encamina les sol·licituds als millors proveïdors disponibles per al vostre model. Per defecte, les sol·licituds es distribueixen entre els principals proveïdors per maximitzar el temps de funcionament. No obstant això, podeu triar un proveïdor específic per a aquest model.",
+        "sorting": {
+          "default": "Ordenació de proveïdors per defecte",
+          "price": "Preferir proveïdors amb preu més baix",
+          "throughput": "Preferir proveïdors amb major rendiment",
+          "latency": "Preferir proveïdors amb menor latència"
+        },
+        "dataCollection": {
+          "default": "No hi ha política de dades establerta",
+          "allowFree": "Permetre entrenament de prompts (només gratuït)",
+          "allow": "Permetre entrenament de prompts",
+          "deny": "Denegar entrenament de prompts",
+          "zdr": "Retenció zero de dades"
+        }
+      }
+    },
+    "modelInfo": {
+      "contextWindow": "Finestra de context",
+      "providerBreakdown": "Desglossament de preus i capacitats del proveïdor",
+      "averageKadeCodeCost": "Aquest és el cost real mitjà gastat per Kade utilitzant aquest model durant la darrera setmana. Pot ser inferior al preu llistat a causa de la utilització de la memòria cau de prompts.",
+      "table": {
+        "provider": "Proveïdor",
+        "context": "L'endpoint pot processar aquest nombre de tokens (entrada + sortida).",
+        "inputPrice": "Cost per milió de tokens per al prompt.",
+        "outputPrice": "Cost per milió de tokens per a la compleció.",
+        "cacheReadPrice": "Cost per milió de tokens per llegir de la memòria cau.",
+        "cacheWritePrice": "Cost per milió de tokens per escriure a la memòria cau."
+      }
+    },
+    "contextManagement": {
+      "allowVeryLargeReads": {
+        "label": "Permet lectures de fitxers molt grans",
+        "description": "Quan està activat, Kade realitzarà lectures de fitxers o sortides MCP molt grans encara que hi hagi una alta probabilitat de desbordar la finestra de context (mida del contingut >80% de la finestra de context)."
+      }
+    },
+    "codeIndex": {
+      "embeddingBatchSizeLabel": "Mida del Lot d'Incrustació",
+      "embeddingBatchSizeDescription": "Nombre de segments de codi a agrupar per a la generació d'incrustacions i actualitzacions del magatzem vectorial. Valors més alts poden millorar la velocitat d'indexació però poden augmentar l'ús de memòria. Valors més baixos redueixen l'ús de memòria però poden alentir la indexació.",
+      "scannerMaxBatchRetriesLabel": "Nombre Màxim de Reintents de Lot de l'Escàner",
+      "scannerMaxBatchRetriesDescription": "Nombre màxim de vegades per reintentar un lot fallit durant l'escaneig de directoris. Valors més alts augmenten la resiliència als errors transitoris però poden alentir la indexació si els errors persisteixen. Valors més baixos fallen més ràpidament però poden ometre contingut en problemes temporals."
+    },
+    "systemNotifications": {
+      "label": "Activar notificacions del sistema",
+      "description": "Quan està activat, Kade enviarà notificacions del sistema per a esdeveniments importants com la finalització de tasques o errors.",
+      "testButton": "Provar notificació",
+      "testTitle": "Kade",
+      "testMessage": "Aquesta és una notificació de prova de Kade."
+    },
+    "terminal": {
+      "commandGenerator": {
+        "provider": "Proveïdor de Generador de Comandes de Terminal",
+        "apiConfigId": {
+          "label": "Configuració de l'API",
+          "description": "Seleccioneu quina configuració d'API voleu utilitzar per generar ordres de terminal. Deixeu-ho com a 'Utilitza la configuració actual' per utilitzar la configuració predeterminada.",
+          "current": "Utilitza la configuració actual"
+        }
+      }
+    }
+  },
+  "profile": {
+    "title": "Perfil",
+    "dashboard": "Tauler de control",
+    "logOut": "Tancar sessió",
+    "currentBalance": "SALDO ACTUAL",
+    "loading": "Carregant...",
+    "organization": "Organització",
+    "personal": "Personal",
+    "shop": {
+      "title": "Comprar Crèdits",
+      "popular": "Popular",
+      "credits": "crèdits",
+      "action": "Comprar Ara",
+      "viewAll": "Veure totes les opcions de preus"
+    },
+    "detailedUsage": "Ús detallat",
+    "createOrganization": "Crear organització per fer seguiment de l'ús detallat"
+  },
+  "chat": {
+    "condense": {
+      "wantsToCondense": "Kade vol condensar la teva conversa",
+      "condenseConversation": "Condensar Conversa"
+    },
+    "seeNewChanges": "Mostrar Nous Canvis",
+    "revertNewChanges": "Revertir Nous Canvis",
+    "confirmRevertChanges": "Confirmar Revertir Canvis",
+    "cancelRevertChanges": "Cancel·lar Revertir Canvis"
+  },
+  "newTaskPreview": {
+    "task": "Tasca"
+  },
+  "docs": "Documentació",
+  "rules": {
+    "tooltip": "Gestionar Regles i Fluxos de Treball de Kade",
+    "ariaLabel": "Regles de Kade",
+    "tabs": {
+      "rules": "Regles",
+      "workflows": "Fluxos de Treball"
+    },
+    "description": {
+      "rules": "Les regles et permeten proporcionar a Kade instruccions que ha de seguir en tots els modes i per a tots els prompts. Són una manera persistent d'incloure context i preferències per a totes les converses al teu espai de treball o globalment.",
+      "workflows": "Els fluxos de treball són una plantilla preparada per a una conversa. Els fluxos de treball et permeten definir prompts que uses freqüentment, i poden incloure una sèrie de passos per guiar Kade a través de tasques repetitives, com desplegar un servei o enviar una PR. Per invocar un flux de treball, escriu",
+      "workflowsInChat": "al xat."
+    },
+    "sections": {
+      "globalRules": "Regles Globals",
+      "workspaceRules": "Regles de l'Espai de Treball",
+      "globalWorkflows": "Fluxos de Treball Globals",
+      "workspaceWorkflows": "Fluxos de Treball de l'Espai de Treball"
+    },
+    "validation": {
+      "invalidFileExtension": "Només es permeten extensions .md, .txt o sense extensió"
+    },
+    "placeholders": {
+      "workflowName": "nom-flux-treball (.md, .txt o sense extensió)",
+      "ruleName": "nom-regla (.md, .txt o sense extensió)"
+    },
+    "newFile": {
+      "newWorkflowFile": "Nou fitxer de flux de treball...",
+      "newRuleFile": "Nou fitxer de regla..."
+    }
+  },
+  "taskTimeline": {
+    "tooltip": {
+      "messageTypes": {
+        "browser_action_launch": "iniciar navegador",
+        "browser_action": "acció del navegador",
+        "browser_action_result": "resultat de l'acció del navegador",
+        "checkpoint_saved": "punt de control desat",
+        "condense_context": "condensar context",
+        "command_output": "sortida de comanda",
+        "completion_result": "resultat de la compleció",
+        "command": "execució de comandes",
+        "error": "missatge d'error",
+        "followup": "pregunta de seguiment",
+        "mcp_server_response": "Resposta del servidor MCP",
+        "text": "Resposta de la IA",
+        "reasoning": "Raonament d'IA",
+        "unknown": "tipus de missatge desconegut",
+        "tool": "ús de l'eina",
+        "use_mcp_server": "Ús del servidor MCP",
+        "user": "comentaris dels usuaris"
+      },
+      "clickToScroll": "Veure {{messageType}} (núm. {{messageNumber}})"
+    }
+  },
+  "userFeedback": {
+    "editCancel": "Cancel·lar",
+    "send": "Enviar",
+    "restoreAndSend": "Restaurar i Enviar"
+  },
+  "ideaSuggestionsBox": {
+    "newHere": "Nou aquí?",
+    "suggestionText": "<suggestionButton>Fes clic aquí</suggestionButton> per a una idea genial, després toca <sendIcon /> i mira'm fer màgia!",
+    "ideas": {
+      "idea1": "Crea una esfera 3D que giri i brilli i respongui als moviments del ratolí. Fes que l'aplicació funcioni al navegador.",
+      "idea2": "Crea un lloc web de cartera per a un desenvolupador de programari Python",
+      "idea3": "Crea una maqueta d'aplicació financera al navegador. Després prova si funciona",
+      "idea4": "Crea un lloc web directori que contingui els millors models de generació de vídeo d'IA actualment",
+      "idea5": "Crea un generador de gradients CSS que exporti fulls d'estil personalitzats i mostri una previsualització en viu",
+      "idea6": "Genera targetes que revelin contingut dinàmic de manera bonica quan s'hi passi el ratolí per sobre",
+      "idea7": "Crea un camp d'estrelles interactiu i tranquil que es mogui amb gestos del ratolí"
+    }
+  },
+  "ghost": {
+    "title": "Autocomplete",
+    "settings": {
+      "triggers": "Activadors",
+      "keybindingDescription": "Les funcionalitats d'Autocomplete es poden activar mitjançant ordres. Pots configurar les <DocsLink>Dreceres de Teclat aquí</DocsLink>.",
+      "enableAutoTrigger": {
+        "label": "Habilitar Autocomplete",
+        "description": "Quan està habilitat, Kade activarà automàticament Autocomplete quan deixis d'escriure. Això pot ser útil per a correccions ràpides i suggeriments."
+      },
+      "autoTriggerDelay": {
+        "label": "Retard d'Activació Automàtica",
+        "description": "El retard en segons abans que Kade activi Autocomplete després que deixis d'escriure. Un retard més curt significa suggeriments més ràpids, però pot ser més intensiu en recursos."
+      },
+      "enableQuickInlineTaskKeybinding": {
+        "label": "Tasca ràpida ({{keybinding}})",
+        "description": "Només necessites un canvi ràpid? Selecciona codi (o no!) i prem Cmd+I. Descriu el teu objectiu en català simple (\"crear un component React amb aquestes props\", \"afegir gestió d'errors a aquesta funció\"), i obtén múltiples suggeriments llestos per usar directament al teu editor. <DocsLink>Veure drecera</DocsLink>"
+      },
+      "enableSmartInlineTaskKeybinding": {
+        "label": "Autocompleció Manual ({{keybinding}})",
+        "description": "Necessites una correcció ràpida, completació o refactorització? Kade utilitzarà el context circumdant per oferir millores immediates, mantenint-te en el flux. <DocsLink>Veure drecera</DocsLink>"
+      },
+      "keybindingNotFound": "no trobat",
+      "noModelConfigured": "No s'ha trobat cap model d'autocompletat adequat. Configura un proveïdor a la configuració de l'API.",
+      "configureAutocompleteProfile": "Utilitza qualsevol model anant a perfils i configurant un Perfil del Tipus de Perfil Autocompletat.",
+      "model": "Model",
+      "provider": "Proveïdor",
+      "enableChatAutocomplete": {
+        "description": "Quan està activat, Kade suggerirà complecions mentre escriviu a l'entrada del xat. Premeu Tab per acceptar els suggeriments.",
+        "label": "Autocompletat d'entrada de xat"
+      },
+      "snooze": {
+        "label": "Posposar Autocomplete",
+        "description": "Pausa temporalment els suggeriments d'autocompletat durant un temps especificat.",
+        "button": "Posposar",
+        "unsnooze": "Reactivar",
+        "currentlySnoozed": "L'autocompletat està actualment posposat.",
+        "duration": {
+          "1min": "1 minut",
+          "5min": "5 minuts",
+          "15min": "15 minuts",
+          "30min": "30 minuts",
+          "1hour": "1 hora"
+        }
+      }
+    }
+  },
+  "virtualProvider": {
+    "title": "Configuració del Proveïdor de Reserva per a Quota Virtual",
+    "description": "Configureu una llista de perfils, cadascun amb els seus propis límits de quota. Quan s'assoleixen els límits de quota d'un proveïdor, s'utilitzarà el següent perfil de la llista fins que no en quedi cap.",
+    "profileLabel": "Perfil {{number}}",
+    "primaryProfileLabel": "Perfil {{number}} (Principal)",
+    "moveProfileUp": "Moure perfil cap amunt",
+    "moveProfileDown": "Mou el perfil cap avall",
+    "removeProfile": "Eliminar perfil",
+    "selectProfilePlaceholder": "Selecciona el perfil...",
+    "addProfile": "Afegir perfil",
+    "noProfilesAvailable": "No hi ha perfils disponibles. Si us plau, configureu primer almenys un perfil de proveïdor no virtual.",
+    "dangerZoneTitle": "Zona de Perill",
+    "dangerZoneDescription": "Aquestes accions són destructives i no es poden desfer.",
+    "clearUsageData": "Esborrar Dades d'Ús",
+    "confirmClearTitle": "Estàs segur?",
+    "confirmClearDescription": "Això eliminarà permanentment totes les dades d'ús emmagatzemades per als proveïdors virtuals. Aquesta acció no es pot desfer.",
+    "perMinute": "Per Minut",
+    "perDay": "Per dia",
+    "perHour": "Per hora",
+    "requestsLabel": "Sol·licituds",
+    "tokensLabel": "Tokens"
+  },
+  "imageWarnings": {
+    "modelNoImageSupport": "Les imatges no són compatibles amb el model actual.",
+    "maxImagesReached": "Màxim de 20 imatges per missatge. Elimineu algunes imatges per afegir-ne més.",
+    "imagesRemovedNoSupport": "Imatges eliminades, no compatibles amb el model."
+  },
+  "memoryWarning": {
+    "message": "L'ús de memòria està al {{percentage}}%. Si us plau, reinicia el teu IDE per evitar fallades."
+  },
+  "toolCallStyle": {
+    "title": "Estil de Crida d'Eina",
+    "description": "Tria com es formaten les crides d'eina al prompt del sistema. JSON és actualment experimental i està principalment destinat a usuaris interessats a contribuir al seu desenvolupament.",
+    "automatic": "Deixa que Kade decideixi",
+    "xml": "XML",
+    "json": "JSON"
+  },
+  "invalidModel": {
+    "alphaPeriodEnded": "🎉 El període alfa per a {{model}} ha finalitzat! Canvia a un model diferent per continuar.",
+    "notAllowedForTeam": "⚠️ La teva organització no permet l'ús del model {{model}}. Canvia a un model diferent per continuar.",
+    "modelUnavailable": "⚠️ El model {{model}} no està disponible. Canvia a un model diferent per continuar.",
+    "continueWith": "Continua amb {{model}}",
+    "continue": "Continua"
+  },
+  "marketplace": {
+    "modes": {
+      "description": "Aquests modes estan disponibles des de la comunitat. Feu clic <1>aquí</1> per editar els vostres propis modes personalitzats."
+    },
+    "mcp": {
+      "description": "Aquests servidors MCP són mantinguts per la comunitat. Fes clic <1>aquí</1> per editar els teus propis ajustos de MCP."
+    }
+  },
+  "modes": {
+    "shareModesNewBanner": "Nou: Comparteix modes creant una organització"
+  },
+  "deviceAuth": {
+    "title": "Inicia sessió a Kade",
+    "step1": "Obre la següent URL al teu navegador",
+    "step2": "Verifica el codi i autoritza aquest dispositiu al teu navegador",
+    "scanQr": "O escaneja aquest codi QR amb el teu telèfon",
+    "openBrowser": "Obre el navegador",
+    "copyUrl": "Copia l'URL",
+    "waiting": "Esperant autorització...",
+    "timeRemaining": "El codi caduca en {{time}}",
+    "success": "Sessió iniciada correctament!",
+    "authenticatedAs": "Autenticat com a {{email}}",
+    "error": "Error d'autenticació",
+    "unknownError": "S'ha produït un error. Torna-ho a provar.",
+    "cancel": "Cancel·la",
+    "retry": "Torna-ho a provar",
+    "tryAgain": "Torna-ho a provar",
+    "cancelled": "Autenticació cancel·lada",
+    "initiating": "Iniciant autenticació..."
+  },
+  "speechToText": {
+    "stopRecording": "Atura l'entrada de veu",
+    "startRecording": "Inicia l'entrada de veu",
+    "unavailableFfmpegNotInstalled": "La transcripció de veu a text no està disponible. Instal·leu FFmpeg per utilitzar la transcripció de veu.",
+    "unavailableOpenAiKeyMissing": "La transcripció de veu a text no està disponible. Requereix un proveïdor d'OpenAI vàlid amb una clau API per utilitzar la transcripció de veu.",
+    "unavailableBoth": "La conversió de veu a text no està disponible. Requereix un proveïdor vàlid d'OpenAI i FFmpeg ha d'estar instal·lat."
+  }
 }

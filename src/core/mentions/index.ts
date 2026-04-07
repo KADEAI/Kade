@@ -49,7 +49,11 @@ function getUrlErrorMessage(error: unknown): string {
 	return t("common:errors.url_fetch_failed", { error: errorMessage })
 }
 
-export async function openMention(cwd: string, mention?: string): Promise<void> {
+export async function openMention(
+	cwd: string,
+	mention?: string,
+	viewColumn?: vscode.ViewColumn,
+): Promise<void> {
 	if (!mention) {
 		return
 	}
@@ -69,7 +73,7 @@ export async function openMention(cwd: string, mention?: string): Promise<void> 
 		if (mention.endsWith("/")) {
 			vscode.commands.executeCommand("revealInExplorer", vscode.Uri.file(absPath))
 		} else {
-			openFile(targetPath)
+			openFile(targetPath, { viewColumn })
 		}
 	} else if (mention === "problems") {
 		vscode.commands.executeCommand("workbench.actions.view.problems")
@@ -199,18 +203,18 @@ export async function parseMentions(
 					maxReadFileLine,
 				)
 				if (mention.endsWith("/")) {
-					parsedText += `\n\n[read_file for '${mentionPath}'] Result (id: [mention]):\nFile: ${mentionPath}/\n${content}`
+					parsedText += `\n\n[read for '${mentionPath}'] Result (id: [mention]):\nFile: ${mentionPath}/\n${content}`
 				} else {
-					parsedText += `\n\n[read_file for '${mentionPath}'] Result (id: [mention]):\nFile: ${mentionPath}\n${content}`
+					parsedText += `\n\n[read for '${mentionPath}'] Result (id: [mention]):\nFile: ${mentionPath}\n${content}`
 					if (fileContextTracker) {
 						await fileContextTracker.trackFileContext(mentionPath, "file_mentioned")
 					}
 				}
 			} catch (error) {
 				if (mention.endsWith("/")) {
-					parsedText += `\n\n[read_file for '${mentionPath}'] Result (id: [mention]):\nFile: ${mentionPath}/\nError fetching content: ${error.message}`
+					parsedText += `\n\n[read for '${mentionPath}'] Result (id: [mention]):\nFile: ${mentionPath}/\nError fetching content: ${error.message}`
 				} else {
-					parsedText += `\n\n[read_file for '${mentionPath}'] Result (id: [mention]):\nFile: ${mentionPath}\nError fetching content: ${error.message}`
+					parsedText += `\n\n[read for '${mentionPath}'] Result (id: [mention]):\nFile: ${mentionPath}\nError fetching content: ${error.message}`
 				}
 			}
 		} else if (mention === "problems") {
@@ -288,7 +292,7 @@ async function getFileOrFolderContent(
 			}
 			// kade_change start
 			if (isSupportedImageFormat(path.extname(absPath))) {
-				return `(Image of size ${stats.size} bytes, the read_file tool may be able to read it)`
+				return `(Image of size ${stats.size} bytes, the read tool may be able to read it)`
 			}
 			// kade_change end
 			try {
@@ -333,7 +337,7 @@ async function getFileOrFolderContent(
 										return undefined
 									}
 									const content = await extractTextFromFile(absoluteFilePath, maxReadFileLine)
-									return `[read_file for '${filePath.toPosix()}'] Result (id: [mention]):\nFile: ${filePath.toPosix()}\n${content}`
+									return `[read for '${filePath.toPosix()}'] Result (id: [mention]):\nFile: ${filePath.toPosix()}\n${content}`
 								} catch (error) {
 									return undefined
 								}

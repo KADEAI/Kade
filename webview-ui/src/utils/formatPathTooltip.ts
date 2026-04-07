@@ -1,4 +1,4 @@
-import { removeLeadingNonAlphanumeric } from "./removeLeadingNonAlphanumeric"
+import { removeLeadingNonAlphanumeric } from "./removeLeadingNonAlphanumeric";
 
 /**
  * Formats a file path for display in tooltips with consistent formatting.
@@ -15,14 +15,17 @@ import { removeLeadingNonAlphanumeric } from "./removeLeadingNonAlphanumeric"
  * formatPathTooltip("/src/utils/helper.ts", ":42-45")
  * // Returns: "src/utils/helper.ts:42-45" + U+200E
  */
-export function formatPathTooltip(path?: string, additionalContent?: string): string {
-	if (!path) return ""
+export function formatPathTooltip(
+  path?: string,
+  additionalContent?: string,
+): string {
+  if (!path) return "";
 
-	const formattedPath = removeLeadingNonAlphanumeric(path) + "\u200E"
+  const formattedPath = removeLeadingNonAlphanumeric(path) + "\u200E";
 
-	if (additionalContent) {
-		return formattedPath + additionalContent
-	}
+  if (additionalContent) {
+    return formattedPath + additionalContent;
+  }
 
-	return formattedPath
+  return formattedPath;
 }

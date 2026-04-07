@@ -1,291 +1,404 @@
-import { execa, ExecaError } from "execa"
-import psList from "ps-list"
-import process from "process"
+import { execa, ExecaError } from "execa";
+import psList from "ps-list";
+import process from "process";
 
-import type { RooTerminal } from "./types"
-import { BaseTerminalProcess } from "./BaseTerminalProcess"
+import type { RooTerminal } from "./types";
+import { BaseTerminalProcess } from "./BaseTerminalProcess";
 
 // kade_change start
 /**
- * Get child process IDs for a given parent PID
+ * Get all descendant process IDs for a given parent PID.
  */
-async function getChildPids(parentPid: number): Promise<number[]> {
-	try {
-		const processes = await psList()
-		return processes.filter((p) => p.ppid === parentPid).map((p) => p.pid)
-	} catch (error) {
-		console.error(`Failed to get child processes for PID ${parentPid}:`, error)
-		return []
-	}
+async function getDescendantPids(parentPid: number): Promise<number[]> {
+  try {
+    const processes = await psList();
+    const descendants: number[] = [];
+    const queue = [parentPid];
+
+    while (queue.length > 0) {
+      const currentPid = queue.shift();
+
+      if (currentPid === undefined) {
+        continue;
+      }
+
+      const childPids = processes
+        .filter((p) => p.ppid === currentPid)
+        .map((p) => p.pid);
+
+      for (const pid of childPids) {
+        if (!descendants.includes(pid)) {
+          descendants.push(pid);
+          queue.push(pid);
+        }
+      }
+    }
+
+    return descendants;
+  } catch (error) {
+    console.error(
+      `Failed to get descendant processes for PID ${parentPid}:`,
+      error,
+    );
+    return [];
+  }
 }
 // kade_change end
 
 export class ExecaTerminalProcess extends BaseTerminalProcess {
-	private terminalRef: WeakRef<RooTerminal>
-	private aborted = false
-	private pid?: number
-	private subprocess?: ReturnType<typeof execa>
-	private pidUpdatePromise?: Promise<void>
+  private static readonly lineEmitThrottleMs = 500;
 
-	constructor(terminal: RooTerminal) {
-		super()
+  private terminalRef: WeakRef<RooTerminal>;
+  private aborted = false;
+  private shellPid?: number;
+  private pid?: number;
+  private subprocess?: ReturnType<typeof execa>;
+  private pidUpdatePromise?: Promise<void>;
+  private pendingEmitTimeout?: NodeJS.Timeout;
 
-		this.terminalRef = new WeakRef(terminal)
+  constructor(terminal: RooTerminal) {
+    super();
 
-		this.once("completed", () => {
-			this.terminal.busy = false
-		})
-	}
+    this.terminalRef = new WeakRef(terminal);
 
-	public get terminal(): RooTerminal {
-		const terminal = this.terminalRef.deref()
+    this.once("completed", () => {
+      this.terminal.busy = false;
+    });
+  }
 
-		if (!terminal) {
-			throw new Error("Unable to dereference terminal")
-		}
+  public get terminal(): RooTerminal {
+    const terminal = this.terminalRef.deref();
 
-		return terminal
-	}
+    if (!terminal) {
+      throw new Error("Unable to dereference terminal");
+    }
 
-	public override async run(command: string) {
-		this.command = command
+    return terminal;
+  }
 
-		try {
-			this.isHot = true
+  public override async run(command: string) {
+    this.command = command;
 
-			this.subprocess = execa({
-				shell: true,
-				cwd: this.terminal.getCurrentWorkingDirectory(),
-				all: true,
-				// Ignore stdin to ensure non-interactive mode and prevent hanging
-				stdin: "ignore",
-				env: {
-					...process.env,
-					// Ensure UTF-8 encoding for Ruby, CocoaPods, etc.
-					LANG: "en_US.UTF-8",
-					LC_ALL: "en_US.UTF-8",
-				},
-			})`${command}`
+    try {
+      this.isHot = true;
 
-			this.pid = this.subprocess.pid
+      this.subprocess = execa({
+        shell: true,
+        cwd: this.terminal.getCurrentWorkingDirectory(),
+        all: true,
+        stdin: "pipe",
+        env: {
+          ...process.env,
+          // Ensure UTF-8 encoding for Ruby, CocoaPods, etc.
+          LANG: "en_US.UTF-8",
+          LC_ALL: "en_US.UTF-8",
+        },
+      })`${command}`;
 
-			// When using shell: true, the PID is for the shell, not the actual command
-			// Find the actual command PID after a small delay
-			if (this.pid) {
-				this.pidUpdatePromise = new Promise<void>((resolve) => {
-					// kade_change start
-					setTimeout(async () => {
-						try {
-							const childPids = await getChildPids(this.pid!)
-							if (childPids.length > 0) {
-								// Update PID to the first child (the actual command)
-								this.pid = childPids[0]
-							}
-						} catch (error) {
-							console.error(`Failed to update PID:`, error)
-						}
-						resolve()
-					}, 100)
-					// kade_change end
-				})
-			}
+      this.shellPid = this.subprocess.pid;
+      this.pid = this.subprocess.pid;
 
-			const rawStream = this.subprocess.iterable({ from: "all", preserveNewlines: true })
+      // When using shell: true, the PID is for the shell, not the actual command
+      // Find the actual command PID after a small delay
+      if (this.shellPid) {
+        this.pidUpdatePromise = new Promise<void>((resolve) => {
+          // kade_change start
+          setTimeout(async () => {
+            try {
+              const descendantPids = await getDescendantPids(this.shellPid!);
+              if (descendantPids.length > 0) {
+                // Prefer the first descendant for logging and status, but keep the shell PID
+                // so abort can terminate the entire process tree.
+                this.pid = descendantPids[0];
+              }
+            } catch (error) {
+              console.error(`Failed to update PID:`, error);
+            }
+            resolve();
+          }, 100);
+          // kade_change end
+        });
+      }
 
-			// Wrap the stream to ensure all chunks are strings (execa can return Uint8Array)
-			const stream = (async function* () {
-				for await (const chunk of rawStream) {
-					yield typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk)
-				}
-			})()
+      const rawStream = this.subprocess.iterable({
+        from: "all",
+        preserveNewlines: true,
+      });
 
-			this.terminal.setActiveStream(stream, this.pid)
-			console.info(`[ExecaTerminalProcess#run] stream started, entering for-await loop`)
+      // Wrap the stream to ensure all chunks are strings (execa can return Uint8Array)
+      const stream = (async function* () {
+        for await (const chunk of rawStream) {
+          yield typeof chunk === "string"
+            ? chunk
+            : new TextDecoder().decode(chunk);
+        }
+      })();
 
-			for await (const line of stream) {
-				if (this.aborted) {
-					break
-				}
+      this.terminal.setActiveStream(stream, this.pid);
+      console.info(
+        `[ExecaTerminalProcess#run] stream started, entering for-await loop`,
+      );
 
-				this.fullOutput += line
+      for await (const line of stream) {
+        if (this.aborted) {
+          break;
+        }
 
-				const now = Date.now()
+        this.fullOutput += line;
 
-				if (this.isListening && (now - this.lastEmitTime_ms > 500 || this.lastEmitTime_ms === 0)) {
-					this.emitRemainingBufferIfListening()
-					this.lastEmitTime_ms = now
-				}
+        const now = Date.now();
 
-				this.startHotTimer(line)
-			}
+        if (
+          this.isListening &&
+          (now - this.lastEmitTime_ms >
+            ExecaTerminalProcess.lineEmitThrottleMs ||
+            this.lastEmitTime_ms === 0)
+        ) {
+          this.emitRemainingBufferIfListening();
+          this.lastEmitTime_ms = now;
+          this.clearPendingEmitTimeout();
+        } else {
+          this.scheduleBufferedEmit();
+        }
 
-			console.info(`[ExecaTerminalProcess#run] for-await loop ended, aborted=${this.aborted}`)
+        this.startHotTimer(line);
+      }
 
-			if (this.aborted) {
-				let timeoutId: NodeJS.Timeout | undefined
+      console.info(
+        `[ExecaTerminalProcess#run] for-await loop ended, aborted=${this.aborted}`,
+      );
 
-				const kill = new Promise<void>((resolve) => {
-					console.log(`[ExecaTerminalProcess#run] SIGKILL -> ${this.pid}`)
+      if (this.aborted) {
+        try {
+          await Promise.race([
+            this.subprocess,
+            new Promise<void>((resolve) => {
+              setTimeout(resolve, 1_000);
+            }),
+          ]);
+        } catch (error) {
+          console.log(
+            `[ExecaTerminalProcess#run] subprocess termination error: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
 
-					timeoutId = setTimeout(() => {
-						try {
-							this.subprocess?.kill("SIGKILL")
-						} catch (e) {}
+      this.emit(
+        "shell_execution_complete",
+        this.aborted
+          ? {
+              exitCode: 130,
+              signal: 2,
+              signalName: "SIGINT",
+              coreDumpPossible: false,
+            }
+          : { exitCode: 0 },
+      );
+    } catch (error) {
+      if (error instanceof ExecaError) {
+        console.error(
+          `[ExecaTerminalProcess#run] shell execution error: ${error.message}`,
+        );
+        this.emit("shell_execution_complete", {
+          exitCode: error.exitCode ?? 0,
+          signalName: error.signal,
+        });
+      } else {
+        console.error(
+          `[ExecaTerminalProcess#run] shell execution error: ${error instanceof Error ? error.message : String(error)}`,
+        );
 
-						resolve()
-					}, 5_000)
-				})
+        this.emit("shell_execution_complete", { exitCode: 1 });
+      }
+      this.subprocess = undefined;
+    }
 
-				try {
-					await Promise.race([this.subprocess, kill])
-				} catch (error) {
-					console.log(
-						`[ExecaTerminalProcess#run] subprocess termination error: ${error instanceof Error ? error.message : String(error)}`,
-					)
-				}
+    this.terminal.setActiveStream(undefined);
+    this.clearPendingEmitTimeout();
+    this.emitRemainingBufferIfListening();
+    this.stopHotTimer();
+    console.info(
+      `[ExecaTerminalProcess#run] emitting completed + continue, output length=${this.fullOutput.length}`,
+    );
+    this.emit("completed", this.fullOutput);
+    this.emit("continue");
+    this.subprocess = undefined;
+  }
 
-				if (timeoutId) {
-					clearTimeout(timeoutId)
-				}
-			}
+  public override async write(data: string) {
+    if (!data || !this.subprocess?.stdin) {
+      return;
+    }
 
-			this.emit("shell_execution_complete", { exitCode: 0 })
-		} catch (error) {
-			if (error instanceof ExecaError) {
-				console.error(`[ExecaTerminalProcess#run] shell execution error: ${error.message}`)
-				this.emit("shell_execution_complete", { exitCode: error.exitCode ?? 0, signalName: error.signal })
-			} else {
-				console.error(
-					`[ExecaTerminalProcess#run] shell execution error: ${error instanceof Error ? error.message : String(error)}`,
-				)
+    await new Promise<void>((resolve, reject) => {
+      this.subprocess?.stdin?.write(data, (error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
 
-				this.emit("shell_execution_complete", { exitCode: 1 })
-			}
-			this.subprocess = undefined
-		}
+        resolve();
+      });
+    });
+  }
 
-		this.terminal.setActiveStream(undefined)
-		this.emitRemainingBufferIfListening()
-		this.stopHotTimer()
-		console.info(`[ExecaTerminalProcess#run] emitting completed + continue, output length=${this.fullOutput.length}`)
-		this.emit("completed", this.fullOutput)
-		this.emit("continue")
-		this.subprocess = undefined
-	}
+  public override continue() {
+    this.clearPendingEmitTimeout();
+    this.isListening = false;
+    this.removeAllListeners("line");
+    this.emit("continue");
+  }
 
-	public override continue() {
-		this.isListening = false
-		this.removeAllListeners("line")
-		this.emit("continue")
-	}
+  public override abort() {
+    this.aborted = true;
 
-	public override abort() {
-		this.aborted = true
+    // Function to perform the kill operations
+    const performKill = async () => {
+      // Try to kill using the subprocess object
+      if (this.subprocess) {
+        try {
+          this.subprocess.kill("SIGKILL");
+        } catch (e) {
+          console.warn(
+            `[ExecaTerminalProcess#abort] Failed to kill subprocess: ${e instanceof Error ? e.message : String(e)}`,
+          );
+        }
+      }
 
-		// Function to perform the kill operations
-		const performKill = () => {
-			// Try to kill using the subprocess object
-			if (this.subprocess) {
-				try {
-					this.subprocess.kill("SIGKILL")
-				} catch (e) {
-					console.warn(
-						`[ExecaTerminalProcess#abort] Failed to kill subprocess: ${e instanceof Error ? e.message : String(e)}`,
-					)
-				}
-			}
+      await this.killProcessTree();
+    };
 
-			// Kill the stored PID (which should be the actual command after our update)
-			if (this.pid) {
-				try {
-					process.kill(this.pid, "SIGKILL")
-				} catch (e) {
-					console.warn(
-						`[ExecaTerminalProcess#abort] Failed to kill process ${this.pid}: ${e instanceof Error ? e.message : String(e)}`,
-					)
-				}
-			}
-		}
+    // If PID update is in progress, wait for it before killing
+    if (this.pidUpdatePromise) {
+      this.pidUpdatePromise.then(performKill).catch(() => void performKill());
+    } else {
+      void performKill();
+    }
+  }
 
-		// If PID update is in progress, wait for it before killing
-		if (this.pidUpdatePromise) {
-			this.pidUpdatePromise.then(performKill).catch(() => performKill())
-		} else {
-			performKill()
-		}
+  public get wasAborted(): boolean {
+    return this.aborted;
+  }
 
-		// Continue with the rest of the abort logic
-		if (this.pid) {
-			// Also check for any child processes
-			// kade_change start
-			;(async () => {
-				try {
-					const childPids = await getChildPids(this.pid!)
-					if (childPids.length > 0) {
-						console.error(`[ExecaTerminalProcess#abort] SIGKILL children -> ${childPids.join(", ")}`)
+  public override hasUnretrievedOutput() {
+    return this.lastRetrievedIndex < this.fullOutput.length;
+  }
 
-						for (const pid of childPids) {
-							try {
-								process.kill(pid, "SIGKILL")
-							} catch (e) {
-								console.warn(
-									`[ExecaTerminalProcess#abort] Failed to send SIGKILL to child PID ${pid}: ${e instanceof Error ? e.message : String(e)}`,
-								)
-							}
-						}
-					}
-				} catch (error) {
-					console.error(
-						`[ExecaTerminalProcess#abort] Failed to get child processes for PID ${this.pid}: ${error instanceof Error ? error.message : String(error)}`,
-					)
-				}
-			})()
-			// kade_change end
-		}
-	}
+  public override getUnretrievedOutput() {
+    let output = this.fullOutput.slice(this.lastRetrievedIndex);
+    const newlineIndex = output.lastIndexOf("\n");
+    const carriageReturnIndex = output.lastIndexOf("\r");
+    let index = Math.max(newlineIndex, carriageReturnIndex);
 
-	public override hasUnretrievedOutput() {
-		return this.lastRetrievedIndex < this.fullOutput.length
-	}
+    if (index === -1) {
+      if (output.length === 0) {
+        return "";
+      }
 
-	public override getUnretrievedOutput() {
-		let output = this.fullOutput.slice(this.lastRetrievedIndex)
-		const newlineIndex = output.lastIndexOf("\n")
-		const carriageReturnIndex = output.lastIndexOf("\r")
-		let index = Math.max(newlineIndex, carriageReturnIndex)
+      // Long-running commands like dev servers often print status lines
+      // without a trailing newline. Flush what we have so the UI can show
+      // addresses and prompts while the process is still running.
+      this.lastRetrievedIndex = this.fullOutput.length;
+      return output;
+    }
 
-		if (index === -1) {
-			if (output.length === 0) {
-				return ""
-			}
+    index++;
+    this.lastRetrievedIndex += index;
 
-			// Long-running commands like dev servers often print status lines
-			// without a trailing newline. Flush what we have so the UI can show
-			// addresses and prompts while the process is still running.
-			this.lastRetrievedIndex = this.fullOutput.length
-			return output
-		}
+    // console.log(
+    // 	`[ExecaTerminalProcess#getUnretrievedOutput] fullOutput.length=${this.fullOutput.length} lastRetrievedIndex=${this.lastRetrievedIndex}`,
+    // 	output.slice(0, index),
+    // )
 
-		index++
-		this.lastRetrievedIndex += index
+    return output.slice(0, index);
+  }
 
-		// console.log(
-		// 	`[ExecaTerminalProcess#getUnretrievedOutput] fullOutput.length=${this.fullOutput.length} lastRetrievedIndex=${this.lastRetrievedIndex}`,
-		// 	output.slice(0, index),
-		// )
+  private emitRemainingBufferIfListening() {
+    if (!this.isListening) {
+      return;
+    }
 
-		return output.slice(0, index)
-	}
+    const output = this.getUnretrievedOutput();
 
-	private emitRemainingBufferIfListening() {
-		if (!this.isListening) {
-			return
-		}
+    if (output !== "") {
+      this.emit("line", output);
+    }
+  }
 
-		const output = this.getUnretrievedOutput()
+  private scheduleBufferedEmit() {
+    if (this.pendingEmitTimeout || !this.isListening) {
+      return;
+    }
 
-		if (output !== "") {
-			this.emit("line", output)
-		}
-	}
+    this.pendingEmitTimeout = setTimeout(() => {
+      this.pendingEmitTimeout = undefined;
+
+      if (!this.isListening) {
+        return;
+      }
+
+      this.emitRemainingBufferIfListening();
+      this.lastEmitTime_ms = Date.now();
+    }, ExecaTerminalProcess.lineEmitThrottleMs);
+  }
+
+  private clearPendingEmitTimeout() {
+    if (this.pendingEmitTimeout) {
+      clearTimeout(this.pendingEmitTimeout);
+      this.pendingEmitTimeout = undefined;
+    }
+  }
+
+  private async killProcessTree() {
+    const rootPids = [
+      ...new Set(
+        [this.pid, this.shellPid].filter(
+          (pid): pid is number => typeof pid === "number",
+        ),
+      ),
+    ];
+
+    if (rootPids.length === 0) {
+      return;
+    }
+
+    try {
+      const descendantPidGroups = await Promise.all(
+        rootPids.map((pid) => getDescendantPids(pid)),
+      );
+      const descendantPids = [...new Set(descendantPidGroups.flat())];
+
+      if (descendantPids.length > 0) {
+        console.error(
+          `[ExecaTerminalProcess#abort] SIGKILL descendants -> ${descendantPids.join(", ")}`,
+        );
+      }
+
+      for (const pid of [...descendantPids].reverse()) {
+        this.killPid(pid);
+      }
+
+      for (const pid of rootPids) {
+        this.killPid(pid);
+      }
+    } catch (error) {
+      console.error(
+        `[ExecaTerminalProcess#abort] Failed to kill process tree: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  private killPid(pid: number) {
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ESRCH") {
+        return;
+      }
+
+      console.warn(
+        `[ExecaTerminalProcess#abort] Failed to send SIGKILL to PID ${pid}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
 }

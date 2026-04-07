@@ -1,53 +1,58 @@
-import { memo } from "react"
+import { memo } from "react";
 
-import { vscode } from "@src/utils/vscode"
-import { useAppTranslation } from "@src/i18n/TranslationContext"
+import { vscode } from "@src/utils/vscode";
+import { useAppTranslation } from "@src/i18n/TranslationContext";
 
 // import { useTaskSearch } from "./useTaskSearch" // kade_change
-import TaskItem from "./TaskItem"
-import { useTaskHistory } from "@/kilocode/hooks/useTaskHistory"
+import TaskItem from "./TaskItem";
+import { useTaskHistory } from "@/kilocode/hooks/useTaskHistory";
 
-const HistoryPreview = ({ taskHistoryVersion }: { taskHistoryVersion: number } /*kade_change*/) => {
-	// kade_change start
-	const { data } = useTaskHistory(
-		{
-			workspace: "current",
-			sort: "newest",
-			favoritesOnly: false,
-			pageIndex: 0,
-			search: "",
-			pageSize: 15, // Only fetch 15 most recent for preview
-		},
-		taskHistoryVersion,
-	)
-	const tasks = data?.historyItems ?? []
-	// kade_change end
-	const { t } = useAppTranslation()
+const HistoryPreview = (
+  { taskHistoryVersion }: { taskHistoryVersion: number } /*kade_change*/,
+) => {
+  // kade_change start
+  const { data } = useTaskHistory(
+    {
+      workspace: "current",
+      sort: "newest",
+      favoritesOnly: false,
+      pageIndex: 0,
+      search: "",
+      pageSize: 15, // Only fetch 15 most recent for preview
+    },
+    taskHistoryVersion,
+  );
+  const tasks = data?.historyItems ?? [];
+  // kade_change end
+  const { t } = useAppTranslation();
 
-	const handleViewAllHistory = () => {
-		vscode.postMessage({ type: "switchTab", tab: "history" })
-	}
+  const handleViewAllHistory = () => {
+    vscode.postMessage({ type: "switchTab", tab: "history" });
+  };
 
-	return (
-		<div className="flex flex-col gap-1">
-			<div className="flex flex-wrap items-center justify-between mt-4 mb-2">
-				<h2 className="font-semibold text-lg grow m-0">{t("history:recentTasks")}</h2>
-				<button
-					onClick={handleViewAllHistory}
-					className="text-base text-vscode-descriptionForeground hover:text-vscode-textLink-foreground transition-colors cursor-pointer"
-					aria-label={t("history:viewAllHistory")}>
-					{t("history:viewAllHistory")}
-				</button>
-			</div>
-			{tasks.length !== 0 && (
-				<>
-					{tasks.slice(0, 4).map((item) => (
-						<TaskItem key={item.id} item={item} variant="compact" />
-					))}
-				</>
-			)}
-		</div>
-	)
-}
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center justify-between mt-4 mb-2">
+        <h2 className="font-semibold text-lg grow m-0">
+          {t("history:recentTasks")}
+        </h2>
+        <button
+          onClick={handleViewAllHistory}
+          className="text-base text-vscode-descriptionForeground hover:text-vscode-textLink-foreground transition-colors cursor-pointer"
+          aria-label={t("history:viewAllHistory")}
+        >
+          {t("history:viewAllHistory")}
+        </button>
+      </div>
+      {tasks.length !== 0 && (
+        <>
+          {tasks.slice(0, 4).map((item) => (
+            <TaskItem key={item.id} item={item} variant="compact" />
+          ))}
+        </>
+      )}
+    </div>
+  );
+};
 
-export default memo(HistoryPreview)
+export default memo(HistoryPreview);

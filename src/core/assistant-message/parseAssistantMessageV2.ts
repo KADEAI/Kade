@@ -23,7 +23,7 @@ export type AssistantMessageContent = TextContent | ToolUse
  * Slicing is used to extract content only when a block (text, parameter, or
  * tool use) is completed.
  *
- * Special handling for `write_to_file` and `new_rule` content parameters is
+ * Special handling for `write` and `new_rule` content parameters is
  * included, using `indexOf` and `lastIndexOf` on the relevant slice to handle
  * potentially nested closing tags.
  *
@@ -128,13 +128,13 @@ export function parseAssistantMessageV2(assistantMessage: string): AssistantMess
 				)
 
 				// Check if content parameter needs special handling
-				// (write_to_file/new_rule).
+				// (write/new_rule).
 				// This check is important if the closing </content> tag was
 				// missed by the parameter parsing logic (e.g., if content is
 				// empty or parsing logic prioritizes tool close).
 				const contentParamName: ToolParamName = "content"
 				if (
-					currentToolUse.name === "write_to_file" /* || currentToolUse.name === "new_rule" */ &&
+					currentToolUse.name === "write" /* || currentToolUse.name === "new_rule" */ &&
 					// !(contentParamName in currentToolUse.params) && // Only if not already parsed.
 					toolContentSlice.includes(`<${contentParamName}>`) // Check if tag exists.
 				) {

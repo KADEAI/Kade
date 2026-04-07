@@ -1,50 +1,53 @@
-export { Antigravity } from "./Antigravity"
-export { Kiro } from "./Kiro"
-export { Anthropic } from "./Anthropic"
-export { Bedrock } from "./Bedrock"
+export { Antigravity } from "./Antigravity";
+export { Zed } from "./Zed";
+export { Kiro } from "./Kiro";
+export { Anthropic } from "./Anthropic";
+export { Bedrock } from "./Bedrock";
 
-export { Cerebras } from "./Cerebras"
-export { Chutes } from "./Chutes"
-export { ClaudeCode } from "./ClaudeCode"
-export { DeepSeek } from "./DeepSeek"
-export { Doubao } from "./Doubao"
-export { Gemini } from "./Gemini"
-export { Glama } from "./Glama" // kade_change
-export { Groq } from "./Groq"
-export { HuggingFace } from "./HuggingFace"
-export { IOIntelligence } from "./IOIntelligence"
-export { LMStudio } from "./LMStudio"
-export { Mistral } from "./Mistral"
-export { Moonshot } from "./Moonshot"
-export { NanoGpt } from "./NanoGpt" // kade_change
-export { Ollama } from "./Ollama"
-export { OpenAI } from "./OpenAI"
-export { OpenAICompatible } from "./OpenAICompatible"
-export { OpenRouter } from "./OpenRouter"
-export { QwenCode } from "./QwenCode"
-export { Roo } from "./Roo"
-export { Requesty } from "./Requesty"
-export { SambaNova } from "./SambaNova"
-export { Unbound } from "./Unbound"
-export { Vertex } from "./Vertex"
-export { VSCodeLM } from "./VSCodeLM"
-export { XAI } from "./XAI"
+export { Cerebras } from "./Cerebras";
+export { Chutes } from "./Chutes";
+export { ClaudeCode } from "./ClaudeCode";
+export { DeepSeek } from "./DeepSeek";
+export { Doubao } from "./Doubao";
+export { Gemini } from "./Gemini";
+export { Glama } from "./Glama"; // kade_change
+export { AIHubMix } from "./AIHubMix";
+export { Bluesminds } from "./Bluesminds";
+export { Groq } from "./Groq";
+export { HuggingFace } from "./HuggingFace";
+export { IOIntelligence } from "./IOIntelligence";
+export { LMStudio } from "./LMStudio";
+export { Mistral } from "./Mistral";
+export { Moonshot } from "./Moonshot";
+export { NanoGpt } from "./NanoGpt"; // kade_change
+export { Ollama } from "./Ollama";
+export { OpenAI } from "./OpenAI";
+export { OpenAICompatible } from "./OpenAICompatible";
+export { OpenRouter } from "./OpenRouter";
+export { QwenCode } from "./QwenCode";
+export { Roo } from "./Roo";
+export { Requesty } from "./Requesty";
+export { SambaNova } from "./SambaNova";
+export { Unbound } from "./Unbound";
+export { Vertex } from "./Vertex";
+export { VSCodeLM } from "./VSCodeLM";
+export { XAI } from "./XAI";
 // kade_change start
-export { OvhCloudAiEndpoints } from "./OvhCloud"
-export { GeminiCli } from "./GeminiCli"
-export { VirtualQuotaFallbackProvider } from "./VirtualQuotaFallbackProvider"
-export { Inception } from "./Inception"
-export { Synthetic } from "./Synthetic"
-export { default as SapAiCore } from "./SapAiCore"
-export { OpenCode } from "./OpenCode"
-export { CliProxy } from "./CliProxy"
+export { OvhCloudAiEndpoints } from "./OvhCloud";
+export { GeminiCli } from "./GeminiCli";
+export { VirtualQuotaFallbackProvider } from "./VirtualQuotaFallbackProvider";
+export { Inception } from "./Inception";
+export { Synthetic } from "./Synthetic";
+export { default as SapAiCore } from "./SapAiCore";
+export { OpenCode } from "./OpenCode";
+export { CliProxy } from "./CliProxy";
 // kade_change end
-export { ZAi } from "./ZAi"
-export { LiteLLM } from "./LiteLLM"
-export { Fireworks } from "./Fireworks"
-export { Featherless } from "./Featherless"
-export { VercelAiGateway } from "./VercelAiGateway"
-export { DeepInfra } from "./DeepInfra"
-export { MiniMax } from "./MiniMax"
-export { Baseten } from "./Baseten"
-export { OpenAICodex } from "./OpenAICodex"
+export { ZAi } from "./ZAi";
+export { LiteLLM } from "./LiteLLM";
+export { Fireworks } from "./Fireworks";
+export { Featherless } from "./Featherless";
+export { VercelAiGateway } from "./VercelAiGateway";
+export { DeepInfra } from "./DeepInfra";
+export { MiniMax } from "./MiniMax";
+export { Baseten } from "./Baseten";
+export { OpenAICodex } from "./OpenAICodex";

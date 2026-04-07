@@ -13,7 +13,7 @@ async function performWebSearch(query: string, maxResults: number): Promise<any[
     const truncatedQuery = query.length > 400 ? query.substring(0, 400) + '...' : query;
     const encodedQuery = encodeURIComponent(truncatedQuery);
     const startpageUrl = `https://www.startpage.com/do/search?query=${encodedQuery}`;
-    console.log(`[web_search] Fetching: ${startpageUrl}`);
+    console.log(`[web] Fetching: ${startpageUrl}`);
 
     const response = await fetch(startpageUrl, {
         headers: {
@@ -135,17 +135,17 @@ async function performWebSearch(query: string, maxResults: number): Promise<any[
     return results;
 }
 
-export class WebSearchTool extends BaseTool<"web_search"> {
-    readonly name = "web_search" as const;
+export class WebSearchTool extends BaseTool<"web"> {
+    readonly name = "web" as const;
+    private static readonly DEFAULT_MAX_RESULTS = 10;
 
-    parseLegacy(params: Partial<Record<string, string>>): { query: string; max_results?: number } {
+    parseLegacy(params: Partial<Record<string, string>>): { query: string } {
         return {
             query: params.query || "",
-            max_results: params.max_results ? parseInt(params.max_results) : 10
         };
     }
 
-    async execute(params: { query: string; max_results?: number }, task: Task, callbacks: ToolCallbacks): Promise<void> {
+    async execute(params: { query: string }, task: Task, callbacks: ToolCallbacks): Promise<void> {
         const { pushToolResult: originalPushToolResult } = callbacks;
 
         const pushToolResult = (content: any) => {
@@ -155,7 +155,7 @@ export class WebSearchTool extends BaseTool<"web_search"> {
                     const lastMsgIndex = findLastIndex(task.clineMessages, (m: any) => {
                         try {
                             const parsed = JSON.parse(m.text || '{}');
-                            const isToolMessage = (m.say === 'tool' || m.ask === 'tool') && parsed.tool === 'web_search';
+                            const isToolMessage = (m.say === 'tool' || m.ask === 'tool') && parsed.tool === 'web';
                             return isToolMessage;
                         } catch (e) {
                             return false;
@@ -170,19 +170,18 @@ export class WebSearchTool extends BaseTool<"web_search"> {
                         await task.updateClineMessage(msg);
                     }
                 } catch (e) {
-                    console.error(`[web_search] Failed to update UI: ${e}`);
+                    console.error(`[web] Failed to update UI: ${e}`);
                 }
             })();
         };
 
-        const maxResults = params.max_results || 10;
+        const maxResults = WebSearchTool.DEFAULT_MAX_RESULTS;
         const query = params.query;
 
         // Create tool message for approval
         const completeMessage = JSON.stringify({
-            tool: "web_search",
+            tool: "web",
             query: query,
-            max_results: maxResults,
         });
 
         const didApprove = await callbacks.askApproval("tool", completeMessage, undefined, false);
@@ -191,9 +190,9 @@ export class WebSearchTool extends BaseTool<"web_search"> {
         }
 
         try {
-            console.log('[web_search] Starting search for query:', query);
+            console.log('[web] Starting search for query:', query);
             const results = await performWebSearch(query, maxResults);
-            console.log('[web_search] Search completed with results:', results.length);
+            console.log('[web] Search completed with results:', results.length);
 
             // SPECIAL HANDLE: Direct pass for Debug Info object (bypassing filters)
             if (results.length === 1 && results[0].title === "Debug Info") {
@@ -224,7 +223,7 @@ export class WebSearchTool extends BaseTool<"web_search"> {
             }]);
 
         } catch (e: any) {
-            console.error(`[web_search] Error: ${e}`);
+            console.error(`[web] Error: ${e}`);
             pushToolResult(`Search failed: ${e.message || e}`);
         }
     }

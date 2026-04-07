@@ -1,7 +1,7 @@
 import { ToolArgs } from "./types"
 
 export function getBrowserActionDescription(args: ToolArgs): string | undefined {
-    if (!args.supportsComputerUse) {
+    if (!(args.supportsBrowserUse ?? args.supportsComputerUse)) {
         return undefined
     }
     if (args.compact) {

@@ -43,6 +43,34 @@ const terserConfig = {
 	}
 }
 
+function copyTreeSitterWasms(distDir) {
+	const require = createRequire(import.meta.url)
+	const webTreeSitterDir = path.dirname(require.resolve("web-tree-sitter"))
+	const treeSitterWasmsDir = path.dirname(require.resolve("tree-sitter-wasms/out/tree-sitter-javascript.wasm"))
+
+	const coreWasmCandidates = [
+		path.join(webTreeSitterDir, "tree-sitter.wasm"),
+		path.join(webTreeSitterDir, "lib", "tree-sitter.wasm"),
+	]
+	const coreWasmSource = coreWasmCandidates.find((candidate) => fs.existsSync(candidate))
+
+	if (!coreWasmSource) {
+		throw new Error(`Unable to find tree-sitter.wasm. Tried: ${coreWasmCandidates.join(", ")}`)
+	}
+
+	fs.mkdirSync(distDir, { recursive: true })
+	fs.copyFileSync(coreWasmSource, path.join(distDir, "tree-sitter.wasm"))
+
+	const languageWasmFiles = fs.readdirSync(treeSitterWasmsDir).filter((entry) => entry.endsWith(".wasm"))
+	for (const wasmFile of languageWasmFiles) {
+		fs.copyFileSync(path.join(treeSitterWasmsDir, wasmFile), path.join(distDir, wasmFile))
+	}
+
+	console.log(
+		`[copyTreeSitterWasms] Copied tree-sitter.wasm and ${languageWasmFiles.length} language WASMs to ${distDir}`,
+	)
+}
+
 async function obfuscateFile(filePath) {
 	try {
 		console.log(`[obfuscation] Processing: ${filePath}`)
@@ -135,24 +163,21 @@ async function main() {
 			name: "copyFiles",
 			setup(build) {
 				build.onEnd(() => {
-					copyPaths(
-						[
-							["../README.md", "README.md"],
-							["../CHANGELOG.md", "CHANGELOG.md"],
-							["../LICENSE", "LICENSE"],
-							["../.env", ".env", { optional: true }],
-							["node_modules/vscode-material-icons/generated", "assets/vscode-material-icons"],
-							["../webview-ui/audio", "webview-ui/audio"],
-						],
-						srcDir,
-						buildDir,
-					)
+                    copyPaths(
+                        [
+                            ["../README.md", "README.md"],
+                            ["../CHANGELOG.md", "CHANGELOG.md"],
+                            ["../LICENSE", "LICENSE"],
+                            ["../.env", ".env", { optional: true }],
+                            ["../webview-ui/audio", "webview-ui/audio"],
+                            ["integrations/theme/default-themes", "integrations/theme/default-themes"],
+                        ],
+                        srcDir,
+                        buildDir,
+                    )
 
 					// Copy walkthrough files to dist directory
 					copyPaths([["walkthrough", "walkthrough"]], srcDir, distDir)
-
-					// Copy tree-sitter files to dist directory
-					copyPaths([["services/continuedev/tree-sitter", "tree-sitter"]], srcDir, distDir)
 
 					// Copy JSDOM xhr-sync-worker.js to fix runtime resolution
 					const jsdomWorkerDest = path.join(distDir, "xhr-sync-worker.js")
@@ -176,7 +201,10 @@ async function main() {
 		{
 			name: "copyWasms",
 			setup(build) {
-				build.onEnd(() => copyWasms(srcDir, distDir))
+				build.onEnd(() => {
+					copyWasms(srcDir, distDir)
+					copyTreeSitterWasms(distDir)
+				})
 			},
 		},
 		{

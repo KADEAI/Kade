@@ -1,336 +1,336 @@
 {
-	"welcome": {
-		"greeting": "Selamat datang di Kade!",
-		"introText1": "Kade adalah agen coding AI gratis dan open source.",
-		"introText2": "Bekerja dengan model AI terbaru seperti Claude Sonnet 4.5, Gemini 2.5 Pro, GPT-5, dan lebih dari 450 model lainnya.",
-		"introText3": "Buat akun gratis dan dapatkan $20 kredit bonus saat top-up pertama kali.",
-		"ctaButton": "Mulai",
-		"manualModeButton": "Gunakan API key sendiri",
-		"alreadySignedUp": "Sudah mendaftar?",
-		"loginText": "Masuk di sini"
-	},
-	"lowCreditWarning": {
-		"addCredit": "Tambah Kredit",
-		"lowBalance": "Saldo Kade kamu rendah",
-		"newOrganization": "Menggunakan Kade untuk pekerjaan?"
-	},
-	"pagination": {
-		"previous": "Sebelumnya",
-		"next": "Selanjutnya",
-		"page": "Halaman {{page}} / {{count}}"
-	},
-	"pricing": {
-		"costUnknown": "biaya tidak diketahui",
-		"costUnknownDescription": "Penyedia API tidak memberikan data biaya atau permintaan dibatalkan.",
-		"freeModelsLink": "Temukan opsi model gratis dan hemat biaya"
-	},
-	"notifications": {
-		"toolRequest": "Permintaan tool menunggu persetujuan",
-		"browserAction": "Aksi browser menunggu persetujuan",
-		"command": "Perintah menunggu persetujuan"
-	},
-	"settings": {
-		"sections": {
-			"mcp": "Server MCP"
-		},
-		"provider": {
-			"account": "Akun Kade",
-			"apiKey": "API Key Kade",
-			"login": "Masuk ke Kade",
-			"logout": "Keluar dari Kade",
-			"automaticFetch": "Model terbaru tersedia secara otomatis di Kade. Jika Anda tidak yakin model mana yang harus dipilih, Kade bekerja paling baik dengan model yang direkomendasikan yang tercantum di bagian atas dengan <strong>huruf tebal</strong>.",
-			"providerRouting": {
-				"title": "Perutean Penyedia",
-				"managedByOrganization": "Kelola Perutean Penyedia Tingkat Organisasi",
-				"createOrganization": "Buat Organisasi untuk Mengelola Perutean Penyedia",
-				"description": "Kade merutekan permintaan ke penyedia terbaik yang tersedia untuk model Anda. Secara default, permintaan diseimbangkan bebannya di seluruh penyedia teratas untuk memaksimalkan waktu aktif. Namun, Anda dapat memilih penyedia tertentu untuk digunakan untuk model ini.",
-				"sorting": {
-					"default": "Pengurutan penyedia default",
-					"price": "Utamakan penyedia dengan harga lebih rendah",
-					"throughput": "Utamakan penyedia dengan throughput lebih tinggi",
-					"latency": "Utamakan penyedia dengan latensi lebih rendah"
-				},
-				"dataCollection": {
-					"default": "Tidak ada kebijakan data yang ditetapkan",
-					"allowFree": "Izinkan pelatihan prompt (hanya gratis)",
-					"allow": "Izinkan pelatihan prompt",
-					"deny": "Tolak pelatihan prompt",
-					"zdr": "Retensi data nol"
-				}
-			}
-		},
-		"modelInfo": {
-			"contextWindow": "Jendela konteks",
-			"providerBreakdown": "Rincian Harga dan Kemampuan Penyedia",
-			"averageKadeCodeCost": "Ini adalah rata-rata biaya aktual yang dihabiskan Kade menggunakan model ini selama seminggu terakhir. Biaya ini mungkin lebih rendah dari harga yang tercantum karena pemanfaatan cache prompt.",
-			"table": {
-				"provider": "Penyedia",
-				"context": "Endpoint dapat memproses jumlah token ini (input + output).",
-				"inputPrice": "Biaya per juta token untuk prompt.",
-				"outputPrice": "Biaya per juta token untuk completion.",
-				"cacheReadPrice": "Biaya per juta token untuk membaca dari cache.",
-				"cacheWritePrice": "Biaya per juta token untuk menulis ke cache."
-			}
-		},
-		"contextManagement": {
-			"allowVeryLargeReads": {
-				"label": "Izinkan pembacaan file yang sangat besar",
-				"description": "Saat diaktifkan, Kade akan melakukan pembacaan file atau output MCP yang sangat besar meskipun ada kemungkinan tinggi meluapnya jendela konteks (ukuran konten >80% dari jendela konteks)."
-			}
-		},
-		"systemNotifications": {
-			"label": "Aktifkan Notifikasi Sistem",
-			"description": "Saat diaktifkan, Kade akan mengirim notifikasi sistem untuk kejadian penting seperti penyelesaian tugas atau kesalahan.",
-			"testButton": "Uji Notifikasi",
-			"testTitle": "Kade",
-			"testMessage": "Ini adalah notifikasi uji dari Kade."
-		},
-		"terminal": {
-			"commandGenerator": {
-				"apiConfigId": {
-					"label": "Konfigurasi API",
-					"current": "Gunakan Konfigurasi Saat Ini",
-					"description": "Pilih konfigurasi API mana yang akan digunakan untuk menghasilkan perintah terminal. Biarkan sebagai 'Gunakan Konfigurasi Saat Ini' untuk menggunakan pengaturan default Anda."
-				},
-				"provider": "Penyedia Pembuat Perintah Terminal"
-			}
-		},
-		"codeIndex": {
-			"embeddingBatchSizeLabel": "Ukuran Batch Embedding",
-			"embeddingBatchSizeDescription": "Jumlah segmen kode yang digabung untuk pembuatan embedding dan penyisipan vector store. Nilai lebih tinggi dapat meningkatkan kecepatan pengindeksan tetapi dapat meningkatkan penggunaan memori. Nilai lebih rendah mengurangi penggunaan memori tetapi dapat memperlambat pengindeksan.",
-			"scannerMaxBatchRetriesLabel": "Maksimum Percobaan Ulang Batch Scanner",
-			"scannerMaxBatchRetriesDescription": "Jumlah maksimum percobaan ulang batch yang gagal selama pemindaian direktori. Nilai lebih tinggi meningkatkan ketahanan terhadap error sementara tetapi dapat memperlambat pengindeksan jika error berlanjut. Nilai lebih rendah gagal lebih cepat tetapi dapat melewatkan konten pada masalah sementara."
-		}
-	},
-	"chat": {
-		"condense": {
-			"wantsToCondense": "Kade ingin mengondensasi percakapan kamu",
-			"condenseConversation": "Kondensasi Percakapan"
-		},
-		"seeNewChanges": "Tampilkan Perubahan Baru",
-		"revertNewChanges": "Kembalikan Perubahan Baru",
-		"confirmRevertChanges": "Konfirmasi Kembalikan Perubahan",
-		"cancelRevertChanges": "Batalkan Kembalikan Perubahan"
-	},
-	"newTaskPreview": {
-		"task": "Tugas"
-	},
-	"profile": {
-		"title": "Profil",
-		"dashboard": "Dashboard",
-		"logOut": "Keluar",
-		"currentBalance": "SALDO SAAT INI",
-		"loading": "Memuat...",
-		"organization": "Organisasi",
-		"personal": "Pribadi",
-		"shop": {
-			"title": "Beli Kredit",
-			"popular": "Populer",
-			"credits": "kredit",
-			"action": "Beli Sekarang",
-			"viewAll": "Lihat semua opsi harga"
-		},
-		"detailedUsage": "Penggunaan Terperinci",
-		"createOrganization": "Buat Organisasi untuk Melacak Penggunaan Terperinci"
-	},
-	"docs": "Dokumentasi",
-	"rules": {
-		"tooltip": "Kelola Aturan & Alur Kerja Kade",
-		"ariaLabel": "Aturan Kade",
-		"tabs": {
-			"rules": "Aturan",
-			"workflows": "Alur Kerja"
-		},
-		"description": {
-			"rules": "Aturan memungkinkan kamu memberikan instruksi kepada Kade yang harus diikuti di semua mode dan untuk semua prompt. Mereka adalah cara persisten untuk menyertakan konteks dan preferensi untuk semua percakapan di workspace kamu atau secara global.",
-			"workflows": "Alur kerja adalah template yang disiapkan untuk percakapan. Alur kerja memungkinkan kamu menentukan prompt yang sering kamu gunakan, dan dapat mencakup serangkaian langkah untuk memandu Kade melalui tugas-tugas berulang, seperti menerapkan layanan atau mengirim PR. Untuk memanggil alur kerja, ketik",
-			"workflowsInChat": "di chat."
-		},
-		"sections": {
-			"globalRules": "Aturan Global",
-			"workspaceRules": "Aturan Workspace",
-			"globalWorkflows": "Alur Kerja Global",
-			"workspaceWorkflows": "Alur Kerja Workspace"
-		},
-		"validation": {
-			"invalidFileExtension": "Hanya ekstensi .md, .txt atau tanpa ekstensi yang diizinkan"
-		},
-		"placeholders": {
-			"workflowName": "nama-alur-kerja (.md, .txt atau tanpa ekstensi)",
-			"ruleName": "nama-aturan (.md, .txt atau tanpa ekstensi)"
-		},
-		"newFile": {
-			"newWorkflowFile": "File alur kerja baru...",
-			"newRuleFile": "File aturan baru..."
-		}
-	},
-	"taskTimeline": {
-		"tooltip": {
-			"clickToScroll": "Lihat {{messageType}} (#{{messageNumber}})",
-			"messageTypes": {
-				"browser_action": "aksi peramban",
-				"browser_action_result": "hasil tindakan peramban",
-				"browser_action_launch": "peluncuran browser",
-				"command_output": "hasil perintah",
-				"checkpoint_saved": "pos pemeriksaan tersimpan",
-				"completion_result": "hasil penyelesaian",
-				"command": "eksekusi perintah",
-				"condense_context": "ringkas konteks",
-				"error": "pesan error",
-				"followup": "pertanyaan lanjutan",
-				"mcp_server_response": "Respon server MCP",
-				"text": "Respons AI",
-				"reasoning": "Penalaran AI",
-				"tool": "penggunaan alat",
-				"unknown": "jenis pesan tidak diketahui",
-				"use_mcp_server": "Penggunaan server MCP",
-				"user": "umpan balik pengguna"
-			}
-		}
-	},
-	"userFeedback": {
-		"editCancel": "Batal",
-		"send": "Kirim",
-		"restoreAndSend": "Pulihkan & Kirim"
-	},
-	"ideaSuggestionsBox": {
-		"newHere": "Baru di sini?",
-		"suggestionText": "<suggestionButton>Klik di sini</suggestionButton> untuk ide yang keren, lalu ketuk <sendIcon /> dan lihat saya melakukan keajaiban!",
-		"ideas": {
-			"idea1": "Buat bola 3D yang berputar dan bersinar yang merespons gerakan mouse. Buat aplikasi berfungsi di browser.",
-			"idea2": "Buat website portfolio untuk pengembang perangkat lunak Python",
-			"idea3": "Buat mockup aplikasi keuangan di browser. Lalu uji apakah berfungsi",
-			"idea4": "Buat website direktori yang berisi model generasi video AI terbaik saat ini",
-			"idea5": "Buat generator gradien CSS yang mengekspor stylesheet kustom dan menampilkan pratinjau langsung",
-			"idea6": "Buat kartu yang mengungkap konten dinamis dengan indah saat dihover",
-			"idea7": "Buat starfield interaktif yang menenangkan yang bergerak dengan gerakan mouse"
-		}
-	},
-	"ghost": {
-		"title": "Autocomplete",
-		"settings": {
-			"triggers": "Pemicu",
-			"keybindingDescription": "Fitur Autocomplete dapat dipicu oleh perintah. Anda dapat mengonfigurasi <DocsLink>Pintasan Keyboard di sini</DocsLink>.",
-			"enableAutoTrigger": {
-				"label": "Aktifkan Autocomplete",
-				"description": "Ketika diaktifkan, Kade akan secara otomatis memicu Autocomplete saat Anda berhenti mengetik. Ini dapat berguna untuk perbaikan cepat dan saran."
-			},
-			"autoTriggerDelay": {
-				"label": "Penundaan Pemicu Otomatis",
-				"description": "Penundaan dalam detik sebelum Kade memicu Autocomplete setelah Anda berhenti mengetik. Penundaan yang lebih pendek berarti saran yang lebih cepat, tetapi mungkin lebih intensif sumber daya."
-			},
-			"enableQuickInlineTaskKeybinding": {
-				"label": "Tugas Cepat ({{keybinding}})",
-				"description": "Hanya perlu perubahan cepat? Pilih beberapa kode (atau tidak!) dan tekan Cmd+I. Jelaskan tujuan Anda dalam bahasa Indonesia sederhana (\"buat komponen React dengan props ini\", \"tambahkan penanganan error ke fungsi ini\"), dan dapatkan beberapa saran siap pakai langsung di editor Anda. <DocsLink>Lihat pintasan</DocsLink>"
-			},
-			"enableSmartInlineTaskKeybinding": {
-				"label": "Pelengkapan Otomatis Manual ({{keybinding}})",
-				"description": "Perlu perbaikan cepat, penyelesaian, atau refaktor? Kade akan menggunakan konteks sekitar untuk menawarkan perbaikan langsung, menjaga Anda tetap dalam alur. <DocsLink>Lihat pintasan</DocsLink>"
-			},
-			"keybindingNotFound": "tidak ditemukan",
-			"noModelConfigured": "Tidak ditemukan model autocomplete yang sesuai. Silakan konfigurasi penyedia di pengaturan API.",
-			"configureAutocompleteProfile": "Gunakan model apa pun dengan pergi ke profil dan mengonfigurasi Profil dengan Tipe Profil Autocomplete.",
-			"model": "Model",
-			"provider": "Penyedia",
-			"enableChatAutocomplete": {
-				"description": "Jika diaktifkan, Kade akan menyarankan pelengkapan saat Anda mengetik di kotak obrolan. Tekan Tab untuk menerima saran.",
-				"label": "Pelengkapan Otomatis Input Obrolan"
-			},
-			"snooze": {
-				"label": "Tunda Autocomplete",
-				"description": "Jeda sementara saran autocomplete untuk durasi tertentu.",
-				"button": "Tunda",
-				"unsnooze": "Aktifkan Kembali",
-				"currentlySnoozed": "Autocomplete sedang ditunda.",
-				"duration": {
-					"1min": "1 menit",
-					"5min": "5 menit",
-					"15min": "15 menit",
-					"30min": "30 menit",
-					"1hour": "1 jam"
-				}
-			}
-		}
-	},
-	"virtualProvider": {
-		"title": "Pengaturan Penyedia Fallback Kuota Virtual",
-		"description": "Konfigurasikan daftar profil masing-masing dengan batas kuota mereka sendiri. Ketika batas kuota suatu penyedia tercapai, profil berikutnya dalam daftar akan digunakan hingga tidak ada lagi yang tersisa.",
-		"profileLabel": "Profil {{number}}",
-		"primaryProfileLabel": "Profil {{number}} (Utama)",
-		"moveProfileUp": "Naikkan profil",
-		"moveProfileDown": "Pindahkan profil ke bawah",
-		"removeProfile": "Hapus profil",
-		"selectProfilePlaceholder": "Pilih profil...",
-		"addProfile": "Tambahkan profil",
-		"noProfilesAvailable": "Tidak ada profil tersedia. Harap konfigurasikan setidaknya satu profil penyedia non-virtual terlebih dahulu.",
-		"dangerZoneTitle": "Zona Bahaya",
-		"dangerZoneDescription": "Tindakan ini bersifat merusak dan tidak dapat dibatalkan.",
-		"clearUsageData": "Hapus Data Penggunaan",
-		"confirmClearTitle": "Apakah Anda yakin?",
-		"confirmClearDescription": "Ini akan menghapus secara permanen semua data penggunaan yang tersimpan untuk penyedia virtual. Tindakan ini tidak dapat dibatalkan.",
-		"tokensLabel": "Token",
-		"perMinute": "Per Menit",
-		"perHour": "Per Jam",
-		"perDay": "Per Hari",
-		"requestsLabel": "Permintaan"
-	},
-	"imageWarnings": {
-		"maxImagesReached": "Maksimum 20 gambar per pesan. Hapus beberapa gambar untuk menambahkan lebih banyak.",
-		"modelNoImageSupport": "Gambar tidak didukung oleh model saat ini.",
-		"imagesRemovedNoSupport": "Gambar dihapus, tidak didukung oleh model."
-	},
-	"invalidModel": {
-		"alphaPeriodEnded": "🎉 Periode alpha untuk {{model}} telah berakhir! Ganti ke model lain untuk melanjutkan.",
-		"notAllowedForTeam": "⚠️ Organisasi Anda tidak mengizinkan penggunaan model {{model}}. Ganti ke model lain untuk melanjutkan.",
-		"modelUnavailable": "⚠️ Model {{model}} tidak tersedia. Ganti ke model lain untuk melanjutkan.",
-		"continueWith": "Lanjutkan dengan {{model}}",
-		"continue": "Lanjutkan"
-	},
-	"memoryWarning": {
-		"message": "Penggunaan memori mencapai {{percentage}}%. Silakan restart IDE Anda untuk mencegah crash."
-	},
-	"toolCallStyle": {
-		"title": "Gaya Panggilan Tool",
-		"description": "Pilih bagaimana panggilan tool diformat dalam prompt sistem. JSON saat ini bersifat eksperimental dan sebagian besar ditujukan untuk pengguna yang tertarik berkontribusi pada pengembangannya.",
-		"automatic": "Biarkan Kade yang memutuskan",
-		"xml": "XML",
-		"json": "JSON"
-	},
-	"marketplace": {
-		"mcp": {
-			"description": "Server MCP ini dipelihara oleh komunitas. Klik <1>di sini</1> untuk mengedit pengaturan MCP Anda sendiri."
-		},
-		"modes": {
-			"description": "Mode-mode ini tersedia dari komunitas. Klik <1>di sini</1> untuk mengedit mode kustom Anda sendiri."
-		}
-	},
-	"modes": {
-		"shareModesNewBanner": "Baru: Bagikan mode dengan membuat organisasi"
-	},
-	"deviceAuth": {
-		"title": "Masuk ke Kade",
-		"step1": "Buka URL berikut di browser kamu",
-		"step2": "Verifikasi kode dan otorisasi perangkat ini di browser kamu",
-		"scanQr": "Atau pindai kode QR ini dengan ponsel kamu",
-		"openBrowser": "Buka Browser",
-		"copyUrl": "Salin URL",
-		"waiting": "Menunggu otorisasi...",
-		"timeRemaining": "Kode kedaluwarsa dalam {{time}}",
-		"success": "Berhasil masuk!",
-		"authenticatedAs": "Diautentikasi sebagai {{email}}",
-		"error": "Kesalahan Autentikasi",
-		"unknownError": "Terjadi kesalahan. Silakan coba lagi.",
-		"cancel": "Batal",
-		"retry": "Coba Lagi",
-		"tryAgain": "Coba Lagi",
-		"cancelled": "Autentikasi Dibatalkan",
-		"initiating": "Memulai autentikasi..."
-	},
-	"speechToText": {
-		"startRecording": "Mulai masukan suara",
-		"stopRecording": "Hentikan input suara",
-		"unavailableOpenAiKeyMissing": "Ucapan-ke-teks tidak tersedia. Ini memerlukan penyedia OpenAI yang valid dengan kunci API untuk menggunakan transkripsi suara.",
-		"unavailableFfmpegNotInstalled": "Ucapan-ke-teks tidak tersedia. Pasang FFmpeg untuk menggunakan transkripsi suara.",
-		"unavailableBoth": "Ucapan-ke-teks tidak tersedia. Fitur ini memerlukan penyedia OpenAI yang valid dan FFmpeg harus terpasang."
-	}
+  "welcome": {
+    "greeting": "Selamat datang di Kade!",
+    "introText1": "Kade adalah agen coding AI gratis dan open source.",
+    "introText2": "Bekerja dengan model AI terbaru seperti Claude Sonnet 4.5, Gemini 2.5 Pro, GPT-5, dan lebih dari 450 model lainnya.",
+    "introText3": "Buat akun gratis dan dapatkan $20 kredit bonus saat top-up pertama kali.",
+    "ctaButton": "Mulai",
+    "manualModeButton": "Gunakan API key sendiri",
+    "alreadySignedUp": "Sudah mendaftar?",
+    "loginText": "Masuk di sini"
+  },
+  "lowCreditWarning": {
+    "addCredit": "Tambah Kredit",
+    "lowBalance": "Saldo Kade kamu rendah",
+    "newOrganization": "Menggunakan Kade untuk pekerjaan?"
+  },
+  "pagination": {
+    "previous": "Sebelumnya",
+    "next": "Selanjutnya",
+    "page": "Halaman {{page}} / {{count}}"
+  },
+  "pricing": {
+    "costUnknown": "biaya tidak diketahui",
+    "costUnknownDescription": "Penyedia API tidak memberikan data biaya atau permintaan dibatalkan.",
+    "freeModelsLink": "Temukan opsi model gratis dan hemat biaya"
+  },
+  "notifications": {
+    "toolRequest": "Permintaan tool menunggu persetujuan",
+    "browserAction": "Aksi browser menunggu persetujuan",
+    "command": "Perintah menunggu persetujuan"
+  },
+  "settings": {
+    "sections": {
+      "mcp": "Server MCP"
+    },
+    "provider": {
+      "account": "Akun Kade",
+      "apiKey": "API Key Kade",
+      "login": "Masuk ke Kade",
+      "logout": "Keluar dari Kade",
+      "automaticFetch": "Model terbaru tersedia secara otomatis di Kade. Jika Anda tidak yakin model mana yang harus dipilih, Kade bekerja paling baik dengan model yang direkomendasikan yang tercantum di bagian atas dengan <strong>huruf tebal</strong>.",
+      "providerRouting": {
+        "title": "Perutean Penyedia",
+        "managedByOrganization": "Kelola Perutean Penyedia Tingkat Organisasi",
+        "createOrganization": "Buat Organisasi untuk Mengelola Perutean Penyedia",
+        "description": "Kade merutekan permintaan ke penyedia terbaik yang tersedia untuk model Anda. Secara default, permintaan diseimbangkan bebannya di seluruh penyedia teratas untuk memaksimalkan waktu aktif. Namun, Anda dapat memilih penyedia tertentu untuk digunakan untuk model ini.",
+        "sorting": {
+          "default": "Pengurutan penyedia default",
+          "price": "Utamakan penyedia dengan harga lebih rendah",
+          "throughput": "Utamakan penyedia dengan throughput lebih tinggi",
+          "latency": "Utamakan penyedia dengan latensi lebih rendah"
+        },
+        "dataCollection": {
+          "default": "Tidak ada kebijakan data yang ditetapkan",
+          "allowFree": "Izinkan pelatihan prompt (hanya gratis)",
+          "allow": "Izinkan pelatihan prompt",
+          "deny": "Tolak pelatihan prompt",
+          "zdr": "Retensi data nol"
+        }
+      }
+    },
+    "modelInfo": {
+      "contextWindow": "Jendela konteks",
+      "providerBreakdown": "Rincian Harga dan Kemampuan Penyedia",
+      "averageKadeCodeCost": "Ini adalah rata-rata biaya aktual yang dihabiskan Kade menggunakan model ini selama seminggu terakhir. Biaya ini mungkin lebih rendah dari harga yang tercantum karena pemanfaatan cache prompt.",
+      "table": {
+        "provider": "Penyedia",
+        "context": "Endpoint dapat memproses jumlah token ini (input + output).",
+        "inputPrice": "Biaya per juta token untuk prompt.",
+        "outputPrice": "Biaya per juta token untuk completion.",
+        "cacheReadPrice": "Biaya per juta token untuk membaca dari cache.",
+        "cacheWritePrice": "Biaya per juta token untuk menulis ke cache."
+      }
+    },
+    "contextManagement": {
+      "allowVeryLargeReads": {
+        "label": "Izinkan pembacaan file yang sangat besar",
+        "description": "Saat diaktifkan, Kade akan melakukan pembacaan file atau output MCP yang sangat besar meskipun ada kemungkinan tinggi meluapnya jendela konteks (ukuran konten >80% dari jendela konteks)."
+      }
+    },
+    "systemNotifications": {
+      "label": "Aktifkan Notifikasi Sistem",
+      "description": "Saat diaktifkan, Kade akan mengirim notifikasi sistem untuk kejadian penting seperti penyelesaian tugas atau kesalahan.",
+      "testButton": "Uji Notifikasi",
+      "testTitle": "Kade",
+      "testMessage": "Ini adalah notifikasi uji dari Kade."
+    },
+    "terminal": {
+      "commandGenerator": {
+        "apiConfigId": {
+          "label": "Konfigurasi API",
+          "current": "Gunakan Konfigurasi Saat Ini",
+          "description": "Pilih konfigurasi API mana yang akan digunakan untuk menghasilkan perintah terminal. Biarkan sebagai 'Gunakan Konfigurasi Saat Ini' untuk menggunakan pengaturan default Anda."
+        },
+        "provider": "Penyedia Pembuat Perintah Terminal"
+      }
+    },
+    "codeIndex": {
+      "embeddingBatchSizeLabel": "Ukuran Batch Embedding",
+      "embeddingBatchSizeDescription": "Jumlah segmen kode yang digabung untuk pembuatan embedding dan penyisipan vector store. Nilai lebih tinggi dapat meningkatkan kecepatan pengindeksan tetapi dapat meningkatkan penggunaan memori. Nilai lebih rendah mengurangi penggunaan memori tetapi dapat memperlambat pengindeksan.",
+      "scannerMaxBatchRetriesLabel": "Maksimum Percobaan Ulang Batch Scanner",
+      "scannerMaxBatchRetriesDescription": "Jumlah maksimum percobaan ulang batch yang gagal selama pemindaian direktori. Nilai lebih tinggi meningkatkan ketahanan terhadap error sementara tetapi dapat memperlambat pengindeksan jika error berlanjut. Nilai lebih rendah gagal lebih cepat tetapi dapat melewatkan konten pada masalah sementara."
+    }
+  },
+  "chat": {
+    "condense": {
+      "wantsToCondense": "Kade ingin mengondensasi percakapan kamu",
+      "condenseConversation": "Kondensasi Percakapan"
+    },
+    "seeNewChanges": "Tampilkan Perubahan Baru",
+    "revertNewChanges": "Kembalikan Perubahan Baru",
+    "confirmRevertChanges": "Konfirmasi Kembalikan Perubahan",
+    "cancelRevertChanges": "Batalkan Kembalikan Perubahan"
+  },
+  "newTaskPreview": {
+    "task": "Tugas"
+  },
+  "profile": {
+    "title": "Profil",
+    "dashboard": "Dashboard",
+    "logOut": "Keluar",
+    "currentBalance": "SALDO SAAT INI",
+    "loading": "Memuat...",
+    "organization": "Organisasi",
+    "personal": "Pribadi",
+    "shop": {
+      "title": "Beli Kredit",
+      "popular": "Populer",
+      "credits": "kredit",
+      "action": "Beli Sekarang",
+      "viewAll": "Lihat semua opsi harga"
+    },
+    "detailedUsage": "Penggunaan Terperinci",
+    "createOrganization": "Buat Organisasi untuk Melacak Penggunaan Terperinci"
+  },
+  "docs": "Dokumentasi",
+  "rules": {
+    "tooltip": "Kelola Aturan & Alur Kerja Kade",
+    "ariaLabel": "Aturan Kade",
+    "tabs": {
+      "rules": "Aturan",
+      "workflows": "Alur Kerja"
+    },
+    "description": {
+      "rules": "Aturan memungkinkan kamu memberikan instruksi kepada Kade yang harus diikuti di semua mode dan untuk semua prompt. Mereka adalah cara persisten untuk menyertakan konteks dan preferensi untuk semua percakapan di workspace kamu atau secara global.",
+      "workflows": "Alur kerja adalah template yang disiapkan untuk percakapan. Alur kerja memungkinkan kamu menentukan prompt yang sering kamu gunakan, dan dapat mencakup serangkaian langkah untuk memandu Kade melalui tugas-tugas berulang, seperti menerapkan layanan atau mengirim PR. Untuk memanggil alur kerja, ketik",
+      "workflowsInChat": "di chat."
+    },
+    "sections": {
+      "globalRules": "Aturan Global",
+      "workspaceRules": "Aturan Workspace",
+      "globalWorkflows": "Alur Kerja Global",
+      "workspaceWorkflows": "Alur Kerja Workspace"
+    },
+    "validation": {
+      "invalidFileExtension": "Hanya ekstensi .md, .txt atau tanpa ekstensi yang diizinkan"
+    },
+    "placeholders": {
+      "workflowName": "nama-alur-kerja (.md, .txt atau tanpa ekstensi)",
+      "ruleName": "nama-aturan (.md, .txt atau tanpa ekstensi)"
+    },
+    "newFile": {
+      "newWorkflowFile": "File alur kerja baru...",
+      "newRuleFile": "File aturan baru..."
+    }
+  },
+  "taskTimeline": {
+    "tooltip": {
+      "clickToScroll": "Lihat {{messageType}} (#{{messageNumber}})",
+      "messageTypes": {
+        "browser_action": "aksi peramban",
+        "browser_action_result": "hasil tindakan peramban",
+        "browser_action_launch": "peluncuran browser",
+        "command_output": "hasil perintah",
+        "checkpoint_saved": "pos pemeriksaan tersimpan",
+        "completion_result": "hasil penyelesaian",
+        "command": "eksekusi perintah",
+        "condense_context": "ringkas konteks",
+        "error": "pesan error",
+        "followup": "pertanyaan lanjutan",
+        "mcp_server_response": "Respon server MCP",
+        "text": "Respons AI",
+        "reasoning": "Penalaran AI",
+        "tool": "penggunaan alat",
+        "unknown": "jenis pesan tidak diketahui",
+        "use_mcp_server": "Penggunaan server MCP",
+        "user": "umpan balik pengguna"
+      }
+    }
+  },
+  "userFeedback": {
+    "editCancel": "Batal",
+    "send": "Kirim",
+    "restoreAndSend": "Pulihkan & Kirim"
+  },
+  "ideaSuggestionsBox": {
+    "newHere": "Baru di sini?",
+    "suggestionText": "<suggestionButton>Klik di sini</suggestionButton> untuk ide yang keren, lalu ketuk <sendIcon /> dan lihat saya melakukan keajaiban!",
+    "ideas": {
+      "idea1": "Buat bola 3D yang berputar dan bersinar yang merespons gerakan mouse. Buat aplikasi berfungsi di browser.",
+      "idea2": "Buat website portfolio untuk pengembang perangkat lunak Python",
+      "idea3": "Buat mockup aplikasi keuangan di browser. Lalu uji apakah berfungsi",
+      "idea4": "Buat website direktori yang berisi model generasi video AI terbaik saat ini",
+      "idea5": "Buat generator gradien CSS yang mengekspor stylesheet kustom dan menampilkan pratinjau langsung",
+      "idea6": "Buat kartu yang mengungkap konten dinamis dengan indah saat dihover",
+      "idea7": "Buat starfield interaktif yang menenangkan yang bergerak dengan gerakan mouse"
+    }
+  },
+  "ghost": {
+    "title": "Autocomplete",
+    "settings": {
+      "triggers": "Pemicu",
+      "keybindingDescription": "Fitur Autocomplete dapat dipicu oleh perintah. Anda dapat mengonfigurasi <DocsLink>Pintasan Keyboard di sini</DocsLink>.",
+      "enableAutoTrigger": {
+        "label": "Aktifkan Autocomplete",
+        "description": "Ketika diaktifkan, Kade akan secara otomatis memicu Autocomplete saat Anda berhenti mengetik. Ini dapat berguna untuk perbaikan cepat dan saran."
+      },
+      "autoTriggerDelay": {
+        "label": "Penundaan Pemicu Otomatis",
+        "description": "Penundaan dalam detik sebelum Kade memicu Autocomplete setelah Anda berhenti mengetik. Penundaan yang lebih pendek berarti saran yang lebih cepat, tetapi mungkin lebih intensif sumber daya."
+      },
+      "enableQuickInlineTaskKeybinding": {
+        "label": "Tugas Cepat ({{keybinding}})",
+        "description": "Hanya perlu perubahan cepat? Pilih beberapa kode (atau tidak!) dan tekan Cmd+I. Jelaskan tujuan Anda dalam bahasa Indonesia sederhana (\"buat komponen React dengan props ini\", \"tambahkan penanganan error ke fungsi ini\"), dan dapatkan beberapa saran siap pakai langsung di editor Anda. <DocsLink>Lihat pintasan</DocsLink>"
+      },
+      "enableSmartInlineTaskKeybinding": {
+        "label": "Pelengkapan Otomatis Manual ({{keybinding}})",
+        "description": "Perlu perbaikan cepat, penyelesaian, atau refaktor? Kade akan menggunakan konteks sekitar untuk menawarkan perbaikan langsung, menjaga Anda tetap dalam alur. <DocsLink>Lihat pintasan</DocsLink>"
+      },
+      "keybindingNotFound": "tidak ditemukan",
+      "noModelConfigured": "Tidak ditemukan model autocomplete yang sesuai. Silakan konfigurasi penyedia di pengaturan API.",
+      "configureAutocompleteProfile": "Gunakan model apa pun dengan pergi ke profil dan mengonfigurasi Profil dengan Tipe Profil Autocomplete.",
+      "model": "Model",
+      "provider": "Penyedia",
+      "enableChatAutocomplete": {
+        "description": "Jika diaktifkan, Kade akan menyarankan pelengkapan saat Anda mengetik di kotak obrolan. Tekan Tab untuk menerima saran.",
+        "label": "Pelengkapan Otomatis Input Obrolan"
+      },
+      "snooze": {
+        "label": "Tunda Autocomplete",
+        "description": "Jeda sementara saran autocomplete untuk durasi tertentu.",
+        "button": "Tunda",
+        "unsnooze": "Aktifkan Kembali",
+        "currentlySnoozed": "Autocomplete sedang ditunda.",
+        "duration": {
+          "1min": "1 menit",
+          "5min": "5 menit",
+          "15min": "15 menit",
+          "30min": "30 menit",
+          "1hour": "1 jam"
+        }
+      }
+    }
+  },
+  "virtualProvider": {
+    "title": "Pengaturan Penyedia Fallback Kuota Virtual",
+    "description": "Konfigurasikan daftar profil masing-masing dengan batas kuota mereka sendiri. Ketika batas kuota suatu penyedia tercapai, profil berikutnya dalam daftar akan digunakan hingga tidak ada lagi yang tersisa.",
+    "profileLabel": "Profil {{number}}",
+    "primaryProfileLabel": "Profil {{number}} (Utama)",
+    "moveProfileUp": "Naikkan profil",
+    "moveProfileDown": "Pindahkan profil ke bawah",
+    "removeProfile": "Hapus profil",
+    "selectProfilePlaceholder": "Pilih profil...",
+    "addProfile": "Tambahkan profil",
+    "noProfilesAvailable": "Tidak ada profil tersedia. Harap konfigurasikan setidaknya satu profil penyedia non-virtual terlebih dahulu.",
+    "dangerZoneTitle": "Zona Bahaya",
+    "dangerZoneDescription": "Tindakan ini bersifat merusak dan tidak dapat dibatalkan.",
+    "clearUsageData": "Hapus Data Penggunaan",
+    "confirmClearTitle": "Apakah Anda yakin?",
+    "confirmClearDescription": "Ini akan menghapus secara permanen semua data penggunaan yang tersimpan untuk penyedia virtual. Tindakan ini tidak dapat dibatalkan.",
+    "tokensLabel": "Token",
+    "perMinute": "Per Menit",
+    "perHour": "Per Jam",
+    "perDay": "Per Hari",
+    "requestsLabel": "Permintaan"
+  },
+  "imageWarnings": {
+    "maxImagesReached": "Maksimum 20 gambar per pesan. Hapus beberapa gambar untuk menambahkan lebih banyak.",
+    "modelNoImageSupport": "Gambar tidak didukung oleh model saat ini.",
+    "imagesRemovedNoSupport": "Gambar dihapus, tidak didukung oleh model."
+  },
+  "invalidModel": {
+    "alphaPeriodEnded": "🎉 Periode alpha untuk {{model}} telah berakhir! Ganti ke model lain untuk melanjutkan.",
+    "notAllowedForTeam": "⚠️ Organisasi Anda tidak mengizinkan penggunaan model {{model}}. Ganti ke model lain untuk melanjutkan.",
+    "modelUnavailable": "⚠️ Model {{model}} tidak tersedia. Ganti ke model lain untuk melanjutkan.",
+    "continueWith": "Lanjutkan dengan {{model}}",
+    "continue": "Lanjutkan"
+  },
+  "memoryWarning": {
+    "message": "Penggunaan memori mencapai {{percentage}}%. Silakan restart IDE Anda untuk mencegah crash."
+  },
+  "toolCallStyle": {
+    "title": "Gaya Panggilan Tool",
+    "description": "Pilih bagaimana panggilan tool diformat dalam prompt sistem. JSON saat ini bersifat eksperimental dan sebagian besar ditujukan untuk pengguna yang tertarik berkontribusi pada pengembangannya.",
+    "automatic": "Biarkan Kade yang memutuskan",
+    "xml": "XML",
+    "json": "JSON"
+  },
+  "marketplace": {
+    "mcp": {
+      "description": "Server MCP ini dipelihara oleh komunitas. Klik <1>di sini</1> untuk mengedit pengaturan MCP Anda sendiri."
+    },
+    "modes": {
+      "description": "Mode-mode ini tersedia dari komunitas. Klik <1>di sini</1> untuk mengedit mode kustom Anda sendiri."
+    }
+  },
+  "modes": {
+    "shareModesNewBanner": "Baru: Bagikan mode dengan membuat organisasi"
+  },
+  "deviceAuth": {
+    "title": "Masuk ke Kade",
+    "step1": "Buka URL berikut di browser kamu",
+    "step2": "Verifikasi kode dan otorisasi perangkat ini di browser kamu",
+    "scanQr": "Atau pindai kode QR ini dengan ponsel kamu",
+    "openBrowser": "Buka Browser",
+    "copyUrl": "Salin URL",
+    "waiting": "Menunggu otorisasi...",
+    "timeRemaining": "Kode kedaluwarsa dalam {{time}}",
+    "success": "Berhasil masuk!",
+    "authenticatedAs": "Diautentikasi sebagai {{email}}",
+    "error": "Kesalahan Autentikasi",
+    "unknownError": "Terjadi kesalahan. Silakan coba lagi.",
+    "cancel": "Batal",
+    "retry": "Coba Lagi",
+    "tryAgain": "Coba Lagi",
+    "cancelled": "Autentikasi Dibatalkan",
+    "initiating": "Memulai autentikasi..."
+  },
+  "speechToText": {
+    "startRecording": "Mulai masukan suara",
+    "stopRecording": "Hentikan input suara",
+    "unavailableOpenAiKeyMissing": "Ucapan-ke-teks tidak tersedia. Ini memerlukan penyedia OpenAI yang valid dengan kunci API untuk menggunakan transkripsi suara.",
+    "unavailableFfmpegNotInstalled": "Ucapan-ke-teks tidak tersedia. Pasang FFmpeg untuk menggunakan transkripsi suara.",
+    "unavailableBoth": "Ucapan-ke-teks tidak tersedia. Fitur ini memerlukan penyedia OpenAI yang valid dan FFmpeg harus terpasang."
+  }
 }

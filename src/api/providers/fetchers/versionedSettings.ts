@@ -20,7 +20,7 @@ function isNightlyBuild(): boolean {
  *   versionedSettings: {
  *     '3.36.4': {
  *       includedTools: ['search_replace', 'apply_diff'],  // Enhanced value for 3.36.4+
- *       excludedTools: ['write_to_file'],
+ *       excludedTools: ['write'],
  *     },
  *     '3.35.0': {
  *       includedTools: ['search_replace'],  // Value for 3.35.0 - 3.36.3

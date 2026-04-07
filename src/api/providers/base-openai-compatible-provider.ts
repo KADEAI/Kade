@@ -80,6 +80,12 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 		requestOptions?: OpenAI.RequestOptions,
 	) {
 		const { id: model, info } = this.getModel()
+		const openAiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+			{ role: "system", content: systemPrompt },
+			...convertToOpenAiMessages(messages),
+		]
+
+		this.applyOpenAiPromptCaching(systemPrompt, openAiMessages, info, metadata?.taskId)
 
 		// Centralized cap: clamp to 20% of the context window (unless provider-specific exceptions apply)
 		const max_tokens =
@@ -96,12 +102,12 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 			model,
 			max_tokens,
 			temperature,
-			messages: [{ role: "system", content: systemPrompt }, ...convertToOpenAiMessages(messages)],
+			messages: openAiMessages,
 			stream: true,
 			stream_options: { include_usage: true },
 			...(metadata?.tools && { tools: this.convertToolsForOpenAI(metadata.tools) }),
 			...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
-			...(metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN && {
+			...(metadata?.toolProtocol === TOOL_PROTOCOL.JSON && {
 				parallel_tool_calls: metadata.parallelToolCalls ?? false,
 				tool_format: { type: "json" },
 			}),

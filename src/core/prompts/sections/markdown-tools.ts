@@ -4,6 +4,7 @@ import { getMcpToolsForUnified } from "../tools/mcp-tools"
 export function getMarkdownToolsPrompt(
   isIndexingEnabled: boolean = false,
   isBrowserEnabled: boolean = false,
+  isComputerEnabled: boolean = false,
   isTodoEnabled: boolean = false,
   isSubAgentEnabled: boolean = false,
   mcpHub?: McpHub,
@@ -19,7 +20,7 @@ Syntax:
   \`\`\`
 Usage: Semantic search across codebase for logic, components, patterns.
 Positional:
-  Required: query <string>
+  Required: query
 Note: ${disableBatchToolUse ? 'Primary discovery tool.' : 'Supports multi-query batching. Primary discovery tool.'}` : ""
 
   const browserRegistry = isBrowserEnabled ? `Tool: browser
@@ -38,10 +39,42 @@ Syntax:
   \`\`\`
 Usage: Virtual browser interaction.
 Methods:
-  - browse: url <string>
+  - browse: url
   - click: x,y <coordinate pair>
-  - type: text <string>
+  - type: text
   - scroll: direction <up|down>` : ""
+
+  const desktopRegistry = isComputerEnabled ? `Tool: desktop
+Syntax:
+  \`\`\`desktop
+  get_screenshot
+  \`\`\`
+  \`\`\`desktop
+  left_click:500,500
+  \`\`\`
+  \`\`\`desktop
+  type:hello world
+  \`\`\`
+  \`\`\`desktop
+  scroll:500,500:down:500
+  \`\`\`
+Usage: Local desktop automation outside the browser.
+Methods:
+  - get_screenshot
+  - mouse_move:x,y
+  - left_click:x,y
+  - left_click_drag:x,y
+  - right_click:x,y
+  - middle_click:x,y
+  - double_click:x,y
+  - key:key_combo
+  - type:text
+  - scroll:direction:amount
+  - scroll:x,y:direction:amount
+  - get_cursor_position
+Coordinate rule:
+  - After get_screenshot, plain x,y means normalized 0-1000 grid coordinates shown on the screenshot overlay.
+  - Example: 500,500 means screen center regardless of resolution.` : ""
 
   const todoRegistry = isTodoEnabled ? `Tool: todo
 Syntax (create new list):
@@ -73,11 +106,11 @@ Note: Start complex tasks with a todo list. Update status as you complete each s
   const subAgentRegistry = isSubAgentEnabled ? `tool: agent
   Syntax:
     \`\`\`agent
-    prompt
+  prompt
   \`\`\`
 Usage: Spawns an autonomous sub-agent for complex sub-tasks or research.
 Positional:
-  Required: prompt <string>` : ""
+  Required: prompt` : ""
 
   const askWorkflow = isIndexingEnabled ? `
 1. Discovery & Mapping ("Ask-First" Strategy):
@@ -147,7 +180,7 @@ Core rules:
 
 Content tools:
 - \`edit\` and \`write\` carry raw file content.
-- They use a body that starts after \`Content:\`.
+- Their content body starts immediately after the file path line.
 - They close with \`/edit\` or \`/write\` before the final fence.
 - They are the only tools in this schema that have this special closer to them.
 - All other tools are simply closed with standard code block backticks. 
@@ -171,11 +204,11 @@ Syntax:
   \`\`\`
 Usage: Read file content from local system.
 Positional:
-  Required: file_path <string, comma-separated paths, or newline-separated paths>
+  Required: file_path, comma-separated paths, or newline-separated paths
 Flags:
-  Optional: --lines <range or space separated ranges>
-  Optional: --head <number> (read first N lines)
-  Optional: --tail <number> (read last N lines)
+  Optional: --lines range or space separated ranges
+  Optional: --head (read first N lines)
+  Optional: --tail (read last N lines)
 Note: Supports recursive filename search from root (e.g if a file is nested deep within a folder, you can still just provide that file name without the full path and it'll get read)
 Tool name on first line, file path and flags on following lines. Supports reading multiple files at once with comma-separated or newline-separated paths.
 Inline line ranges are supported with \`path:Lstart-end\` (example: \`flux_config.json:L10-20\`).
@@ -185,45 +218,49 @@ Tool: edit
 Syntax:
   \`\`\`edit
   file_path
-  Content:
-  Old (n):
+  SEARCH (n):
   This is a word
-  New:
+  REPLACE:
   This is an edited word
   /edit\`\`\`
 Usage: Modify existing files with precision markers.
 Positional:
-  Required: file_path <string>
-Body: "Old (start-end):" with line range, "New:" with replacement content.
-One line edits: Use a single line number, e.g. Old (12):
-Multi line edits: Multi line edits require a line range, e.g. Old(1-5): 
+  Required: file_path
+Body: "SEARCH (start-end):" with line range, "REPLACE:" with replacement content.
+One line edits: Use a single line number, e.g. SEARCH (12):
+Inline form is also supported for compact edits: SEARCH (12): old content / REPLACE: new content
+Multi line edits: Multi line edits require a line range, e.g. SEARCH (1-5):
 End tag: /edit\`\`\`
-Note: Multiple non-overlapping Old/New blocks allowed per call.
+Note: Multiple non-overlapping SEARCH/REPLACE blocks allowed per call.
 Note: For multi-block edits, they will still go through, even if one block fails. Eg. 4/5 blocks succeeded.
+Note: Auto-formatting is applied AFTER a successful edit, right before the final save.
+Note: This is a best-effort formatter pipeline (it will fall back to saving raw content if formatting fails) so you should still generate valid code.
+Note: You do NOT need to waste tokens hand-formatting whitespace/indentation for supported languages—focus on correctness and structure.
+Note: Many languages are supported (web stack via Prettier, Python, TOML, Dockerfile, PHP, Rust, C/C++; plus others if plugins/CLIs are installed).
 
 Tool: write
 Syntax:
   \`\`\`write
   file_path
-  Content:
   Hello World
   /write\`\`\`
 Usage: Create new files or overwrite existing ones.
 Positional:
-  Required: file_path <string>
+  Required: file_path
 Flags:
 End tag: /write\`\`\`
+Note: Auto-formatting is applied BEFORE saving the file.
+Note: You can output compact/minified code in supported languages and it will be normalized automatically in the final file.
+Note: Formatting is best-effort and will fall back to raw content on formatter errors—prioritize generating syntactically valid code.
 
 Tool: ls
 Syntax:
   \`\`\`ls
-  directory_path --recursive
+  directory_path
   \`\`\`
 Usage: List directory contents. Defaults to current directory.
 Positional:
-  Optional: directory_path <string> (defaults to current directory)
-Flags:
-  Optional: --recursive (list recursively)
+  Optional: directory_path (defaults to current directory)
 
 Tool: grep
 Syntax:
@@ -234,10 +271,10 @@ Syntax:
   \`\`\`grep
   "query1|query2|query3" search_path
   \`\`\`
-Usage: Search text across files using ripgrep. Defaults to current directory. Case-insensitive by default.
+Usage: Search text across files using ripgrep. Defaults to current directory. Case-sensitive by default, with whole-word matching for simple identifier queries.
 Positional:
-  Required: query <string> (quotes required if query contains spaces)
-  Optional: search_path <string or comma-separated paths> (defaults to current directory)
+  Required: query (quotes required if query contains spaces)
+  Optional: search_path or comma-separated paths (defaults to current directory)
 Note: Searches recursively across all files by default. Supports searching in multiple files at once with comma-separated paths.
 Multi-Query: Use pipe-separated queries (e.g., "setState|updateState|context.*State") to search for multiple patterns. Results are divided evenly (max 150 total / N queries = max per query).
 
@@ -248,18 +285,8 @@ Syntax:
   \`\`\`
 Usage: Find files and folders by extension, name, or glob pattern.
 Positional:
-  Required: pattern <string> - ".ext" for extensions (.ts), "term" for names (auth)
-  Optional: path <string> (defaults to current directory)
-
-Tool: semgrep
-Syntax:
-  \`\`\`semgrep
-  query search_path
-  \`\`\`
-Usage: Semantic grep in directory (best for general/broad grep queries, effective with specific path). Defaults to current directory.
-Positional:
-  Required: query <string>
-  Optional: search_path <string> (defaults to current directory)
+  Required: pattern - ".ext" for extensions (.ts), "term" for names (auth)
+  Optional: path (defaults to current directory)
 ${askRegistry ? `
 ${askRegistry}` : ''}
 Tool: cmd
@@ -269,8 +296,8 @@ Syntax:
   \`\`\`
 Usage: Run shell commands on system. Commands default to root directory.
 Positional:
-  Required: command <string>
-  Optional: directory <string> (defaults to root)
+  Required: command 
+  Optional: directory (defaults to root)
 Note: Do NOT wrap the command in quotes unless the command itself requires them (e.g. "npm run build"). For simple commands like ls -F, just write them directly.
 ${todoRegistry ? `
 ${todoRegistry}` : ''}
@@ -281,7 +308,7 @@ Syntax:
   \`\`\`
 Usage: Search Google for info, docs, error solutions, you don't need user's permission beforehand to do web searches either, make sure to use this to your advantage.
 Positional:
-  Required: query <string>
+  Required: query
 ${subAgentRegistry ? `
 ${subAgentRegistry}
 ` : ''}
@@ -292,94 +319,112 @@ Syntax:
   \`\`\`
 Usage: Retrieve URL content and convert to markdown.
 Positional:
-  Required: url <string>
+  Required: url
 ${browserRegistry ? `
-${browserRegistry}` : ''}${mcpToolsSection ? `
+${browserRegistry}` : ''}${desktopRegistry ? `
+${desktopRegistry}` : ''}${mcpToolsSection ? `
 ${mcpToolsSection}` : ''}
 
 ### Tool Usage Examples
 ## Fast examples
 \`\`\`read
-src/main.ts --lines 1-100
+howtocookeggs.txt --lines 30-49 59-64
 \`\`\`
 
 \`\`\`read
-src/main.ts,sample.txt,game.py
+cats.txt,dogs.txt,pizza.txt
 \`\`\`
 
 \`\`\`read
-src/main.ts
-sample.txt
-game.py
+cats.txt
+dogs.txt
+funnyjokes.txt
 \`\`\`
 
 \`\`\`read
-src/main.ts:L1-100
-sample.txt
-game.py:L20-40
+howtocookeggs.txt:L30-49
+icecream.txt
+funnyjokes.txt:L1-4
 --head 20
 \`\`\`
 
-\`\`\`edit (multi-block example, preferred)
+\`\`\`edit
 src/app.ts
-Content:
-Old (12):
+SEARCH (12):
 const port = 3000
-New:
+REPLACE:
 const port = 8080
-Old (17-18):
-This is a word 
-this is another word
-New:
-This is an edit
-This is another edit
+SEARCH (17-18):
+old bad kitty
+old bad kitty 2
+REPLACE:
+new good kitty
+new good kitty 2
+/edit\`\`\`
+
+\`\`\`edit
+howtocookeggs.txt
+SEARCH (10-12):
+What came first the chicken or the egg?
+REPLACE:
+Here's how to actually make eggs....
 /edit\`\`\`
 
 \`\`\`write
-src/tools/tool.ts
-Content:
-this is a write tool test.
-this is how content goes in the write tool.
-The content that goes inside here is not a string
-It's a content body!
-After you include the closing tag,
-this is the content that will be in the file.
+funnyjokes.txt
+Hey whats the deal with airplane food?
+I mean airplane food... like yeah.
+Okay, whats the deal with shower drains huh?
+Did physics just decide to give a few strains of hair a free pass on it?
 /write\`\`\`
 
 \`\`\`ls
-src/components
+src/totallynotafolderwith100jpgsofcats
 \`\`\`
 
 \`\`\`grep
-"AuthService" src/
+"cats|dogs" src/
 \`\`\`
 
-\`\`\`grep (multi-query example)
-"setState|updateState|context.*State" src/
+\`\`\`grep
+"doggos|pizza|text" src/
 \`\`\`
 
 \`\`\`find
-.test.ts src          # Find all .test.ts files
-.ts src               # Find all .ts files  
-auth src              # Find files/folders with "auth" in name
-**/components/ src    # Find all component directories
-\`\`\`
-
-\`\`\`semgrep
-"api endpoints" src/api/providers
+\`.txt webview-ui\`       # Find all .txt files in webview-ui
+\`pizza.txt src\`         # Find pizza.txt in src
+\`cats.jpg assets\`       # Find cats.jpg in assets
+\`cutedogs.png\`          # Find cutedogs.png anywhere
+\`auth src\`              # Find files/folders with "auth" in name
 \`\`\`
 
 \`\`\`cmd
-npm run build webview-ui/src
+echo all your base are belong to us
 \`\`\`
 
 \`\`\`web
-python game engine optimization 2026
+cute pictures of doggos
 \`\`\`
 
 \`\`\`fetch
-https://docs.python.org
+https://youtube.com/funnycatvids
 \`\`\`
+${isComputerEnabled ? `
+\`\`\`desktop
+get_screenshot
+\`\`\`
+
+\`\`\`desktop
+left_click:500,500
+\`\`\`
+
+\`\`\`desktop
+type:hello world
+\`\`\`
+
+\`\`\`desktop
+scroll:500,500:down:500
+\`\`\`` : ''}
 ${isSubAgentEnabled ? `
 \`\`\`agent
 Analyze the current codebase structure and identify areas where performance optimizations could be applied, focusing on file organization and import patterns
@@ -403,9 +448,7 @@ To update that list afterwards, use the shorthand checkbox syntax for ALL tasks 
 4. [ ]
 5. [ ]
 /todo\`\`\`
-
 Pro-tip: Always include all tasks in your update blocks to maintain the full context of the project. If you only provide one line, you risk resetting the list to just that one task.
-
 #### Bad Update (Avoid this)
 \`\`\`todo
 1: completed
@@ -413,7 +456,9 @@ Pro-tip: Always include all tasks in your update blocks to maintain the full con
 (Reason: This might overwrite the entire list with just one task depending on the state. Always provide the full list of statuses.)` : ''}
 ${batchingExamples}
 ### Rules
-Task_Completion: When the task is done, respond with normal text and no tool blocks.
+Task_Completion: When the task is done, respond with normal text and no tool blocks. Calling tools in a response will always continue your loop, as for every tool you use, you will always receive a result. Not using tools will end your loop, so not using tools in a response should be seen as your 'Done' tool, once you believe a task is completed.
+Flow: What's allowed: Response - Tool Call - Tool Call... Once you do a tool call, the thing allowed after that tool call, is another tool call.
+Not Allowed: Response - Tool Call - Response, eg including trailing text after another tool call.
 Tool_Execution_Flow: Tool turns are atomic. Put tool blocks at the end of your response.
 After a tool block, do not emit normal prose. If you need to explain what you are doing, do it before the tool call.
 Use tools naturally and decisively. Do not narrate obvious actions, stall, or ask the user for information already available in the workspace or prior tool results.
@@ -421,8 +466,8 @@ REMINDER: To talk about tool syntax literally, escape the opener or closer with 
 ${askWorkflow}
 2. Autonomous Execution: Use available tool outputs directly (including prior system observations) and proceed end-to-end without asking the user to relay data already in context. Only ask the user when a product/behavior decision is required or execution is blocked.
 3. Path Usage: Use relative paths from the current working directory. Avoid full absolute paths unless necessary. The system defaults to the project root directory.
-Precision Context: Use 'grep' and 'read' with line ranges to narrow code after finding area.${disableBatchToolUse ? '' : '\n4. Grouped Actions: Group discovery tools in one turn, apply changes in next.'}
+${isComputerEnabled ? 'Desktop_Use: After a desktop screenshot, use the visible 0-1000 grid overlay for pointer coordinates. Prefer compact action-first forms like left_click:500,500, key:Cmd+K, type:hello world, and scroll:500,500:down:500.\n' : ''}Precision Context: Use 'grep' and 'read' with line ranges to narrow code after finding area.${disableBatchToolUse ? '' : '\n4. Grouped Actions: Group discovery tools in one turn, apply changes in next.'}
 ${batchingRule}
 The markdown code blocks are the tool calls. Do not call functions directly.
 `}
-export const MARKDOWN_TOOLS_PROMPT = getMarkdownToolsPrompt(false, false, true, true)
+export const MARKDOWN_TOOLS_PROMPT = getMarkdownToolsPrompt(false, false, false, true, true)

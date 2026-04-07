@@ -178,6 +178,31 @@ export function getProviderIcon(provider: string, className?: string, size: numb
 
     const baseUri = (window as any).PROVIDERS_BASE_URI || "/assets/providers"
 
+    // Model-name overrides should win over manifest/provider aliases.
+    if (originalP.includes("grok")) {
+        return renderImg(`${baseUri}/xai.svg`, "xai", className, size)
+    }
+
+    if (originalP.includes("glm")) {
+        return renderImg(`${baseUri}/zai.svg`, "zai", className, size)
+    }
+
+    if (originalP.includes("kimi")) {
+        return renderImg(`${baseUri}/moonshot.svg`, "moonshot", className, size)
+    }
+
+    if (originalP.includes("trinity")) {
+        return renderImg(`${baseUri}/arcee-color.svg`, "arcee", className, size)
+    }
+
+    if (originalP.includes("nemotron")) {
+        return renderImg(`${baseUri}/nvidia-color.svg`, "nvidia", className, size)
+    }
+
+    if (originalP.includes("xiaomi") || originalP.includes("mimo")) {
+        return renderImg(`${baseUri}/mimo.png`, "mimo", className, size)
+    }
+
     // 0. Check Lobe Icons Layout Manifest first for premium icons (Exact Match)
     const manifestIcon = typedIconManifest[p]
     if (manifestIcon) {
@@ -393,4 +418,3 @@ function renderImg(src: string, alt: string, className?: string, size: number = 
         />
     )
 }
-

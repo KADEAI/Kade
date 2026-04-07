@@ -1,7 +1,7 @@
 import type { Anthropic } from "@anthropic-ai/sdk"
 import { StringDecoder } from "string_decoder"
 
-import { type ModelInfo, type GeminiCliModelId, geminiCliDefaultModelId, geminiCliModels } from "@roo-code/types"
+import { type ModelInfo, type GeminiCliModelId, geminiCliDefaultModelId, geminiCliModels, TOOL_PROTOCOL } from "@roo-code/types"
 
 import type { ApiHandlerOptions } from "../../shared/api"
 import { t } from "../../i18n"
@@ -13,10 +13,51 @@ import { getModelParams } from "../transform/model-params"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
 import { BaseProvider } from "./base-provider"
 import { geminiOAuthManager } from "../../integrations/gemini/oauth"
+import { collectGeminiNativeFunctionDeclarations } from "./gemini-native-tools"
+
+type GeminiFunctionCallingMode = "AUTO" | "NONE" | "ANY"
 
 // Code Assist API Configuration
 const CODE_ASSIST_ENDPOINT = "https://cloudcode-pa.googleapis.com"
 const CODE_ASSIST_API_VERSION = "v1internal"
+const GEMINI_CLI_HEADERS = {
+	"User-Agent": "google-api-nodejs-client/9.15.1",
+	"x-goog-api-client": "gl-node/22.17.0",
+	"Client-Metadata": "ideType=IDE_UNSPECIFIED,platform=PLATFORM_UNSPECIFIED,pluginType=GEMINI",
+} as const
+
+function shouldUseNativeJsonTools(protocol?: string): boolean {
+	return protocol === "json" || protocol === "native" || protocol === TOOL_PROTOCOL.JSON
+}
+
+function applyGeminiToolChoice(requestBody: any, toolChoice: ApiHandlerCreateMessageMetadata["tool_choice"]) {
+	if (!toolChoice) {
+		return
+	}
+
+	let mode: GeminiFunctionCallingMode
+	let allowedFunctionNames: string[] | undefined
+
+	if (toolChoice === "auto") {
+		mode = "AUTO"
+	} else if (toolChoice === "none") {
+		mode = "NONE"
+	} else if (toolChoice === "required") {
+		mode = "ANY"
+	} else if (typeof toolChoice === "object" && "function" in toolChoice && toolChoice.type === "function") {
+		mode = "ANY"
+		allowedFunctionNames = [toolChoice.function.name]
+	} else {
+		mode = "AUTO"
+	}
+
+	requestBody.request.toolConfig = {
+		functionCallingConfig: {
+			mode,
+			...(allowedFunctionNames ? { allowedFunctionNames } : {}),
+		},
+	}
+}
 
 export class GeminiCliHandler extends BaseProvider implements SingleCompletionHandler {
 	protected options: ApiHandlerOptions
@@ -33,14 +74,9 @@ export class GeminiCliHandler extends BaseProvider implements SingleCompletionHa
 			headers: {
 				"Content-Type": "application/json",
 				"Authorization": `Bearer ${accessToken}`,
-				"User-Agent": `GeminiCLI/0.30.0/gemini-2.0-flash (${process.platform === "darwin" ? "darwin; arm64" : (process.platform === "win32" ? "windows; amd64" : "linux; amd64")}) (Pro)`,
-				"x-goog-api-client": "ca-tf-v1",
-				"Client-Metadata": JSON.stringify({
-					ideType: "VSCODE",
-					platform: process.platform === "darwin" ? "MACOS" : (process.platform === "win32" ? "WINDOWS" : "LINUX"),
-					pluginType: "GEMINI",
-					pluginVersion: "0.30.0"
-				}),
+				"User-Agent": GEMINI_CLI_HEADERS["User-Agent"],
+				"x-goog-api-client": GEMINI_CLI_HEADERS["x-goog-api-client"],
+				"Client-Metadata": GEMINI_CLI_HEADERS["Client-Metadata"],
 			},
 			body: JSON.stringify(body),
 		})
@@ -129,9 +165,16 @@ export class GeminiCliHandler extends BaseProvider implements SingleCompletionHa
 			throw new Error(t("common:errors.geminiCli.authFailed"))
 		}
 
-		const projectId = await geminiOAuthManager.getProjectId()
+		const projectId = await geminiOAuthManager.getProjectId(accessToken)
 
 		const { id: model, info, reasoning: thinkingConfig, maxTokens } = this.getModel()
+		const includeThoughtSignatures = Boolean(thinkingConfig)
+
+		type ReasoningMetaLike = { type?: string }
+		const geminiMessages = messages.filter((message): message is Anthropic.Messages.MessageParam => {
+			const meta = message as ReasoningMetaLike
+			return meta.type !== "reasoning"
+		})
 
 		// Build tool ID to name map for Gemini message transformation
 		const toolIdToName = new Map<string, string>()
@@ -146,8 +189,9 @@ export class GeminiCliHandler extends BaseProvider implements SingleCompletionHa
 		}
 
 		// Convert messages to Gemini format
-		const contents = messages.flatMap((message) =>
+		const contents = geminiMessages.flatMap((message) =>
 			convertAnthropicMessageToGemini(message, {
+				includeThoughtSignatures,
 				toolIdToName,
 			}),
 		)
@@ -181,6 +225,19 @@ export class GeminiCliHandler extends BaseProvider implements SingleCompletionHa
 			requestBody.request.generationConfig.thinkingConfig = thinkingConfig
 		}
 
+		if (metadata?.tools && metadata.tools.length > 0 && shouldUseNativeJsonTools(metadata.toolProtocol)) {
+			const functionDeclarations = collectGeminiNativeFunctionDeclarations(metadata.tools)
+			if (functionDeclarations.length > 0) {
+			requestBody.request.tools = [
+				{
+						functionDeclarations,
+				},
+			]
+			}
+		}
+
+		applyGeminiToolChoice(requestBody, metadata?.tool_choice)
+
 		try {
 			// Call Code Assist streaming endpoint using fetch
 			const url = `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:streamGenerateContent?alt=sse`
@@ -190,14 +247,9 @@ export class GeminiCliHandler extends BaseProvider implements SingleCompletionHa
 					"Content-Type": "application/json",
 					"Authorization": `Bearer ${accessToken}`,
 					"Accept": "text/event-stream",
-					"User-Agent": `GeminiCLI/0.30.0/${model} (${process.platform === "darwin" ? "darwin; arm64" : (process.platform === "win32" ? "windows; amd64" : "linux; amd64")}) (Pro)`,
-					"x-goog-api-client": "ca-tf-v1",
-					"Client-Metadata": JSON.stringify({
-						ideType: "VSCODE",
-						platform: process.platform === "darwin" ? "MACOS" : (process.platform === "win32" ? "WINDOWS" : "LINUX"),
-						pluginType: "GEMINI",
-						pluginVersion: "0.30.0"
-					}),
+					"User-Agent": GEMINI_CLI_HEADERS["User-Agent"],
+					"x-goog-api-client": GEMINI_CLI_HEADERS["x-goog-api-client"],
+					"Client-Metadata": GEMINI_CLI_HEADERS["Client-Metadata"],
 				},
 				body: JSON.stringify(requestBody),
 			})
@@ -213,13 +265,19 @@ export class GeminiCliHandler extends BaseProvider implements SingleCompletionHa
 			// Process the SSE stream
 			let lastUsageMetadata: any = undefined
 
+			let toolCallCounter = 0
+
 			for await (const jsonData of this.parseSSEStream(response.body)) {
 				// Extract content from the response
 				const responseData = jsonData.response || jsonData
 				const candidate = responseData.candidates?.[0]
 
 				if (candidate?.content?.parts) {
-					for (const part of candidate.content.parts) {
+					for (const part of candidate.content.parts as Array<{
+						text?: string
+						thought?: boolean
+						functionCall?: { id?: string; name: string; args: Record<string, unknown> }
+					}>) {
 						if (part.text) {
 							// Check if this is a thinking/reasoning part
 							if (part.thought === true) {
@@ -233,6 +291,32 @@ export class GeminiCliHandler extends BaseProvider implements SingleCompletionHa
 									text: part.text,
 								}
 							}
+						} else if (part.functionCall) {
+							const callId = part.functionCall.id || `${part.functionCall.name}-${toolCallCounter}`
+							const args = JSON.stringify(part.functionCall.args ?? {})
+
+							yield {
+								type: "tool_call_partial",
+								index: toolCallCounter,
+								id: callId,
+								name: part.functionCall.name,
+								arguments: undefined,
+							}
+
+							yield {
+								type: "tool_call_partial",
+								index: toolCallCounter,
+								id: callId,
+								name: undefined,
+								arguments: args,
+							}
+
+							yield {
+								type: "tool_call_end",
+								id: callId,
+							}
+
+							toolCallCounter++
 						}
 					}
 				}
@@ -289,7 +373,7 @@ export class GeminiCliHandler extends BaseProvider implements SingleCompletionHa
 			throw new Error(t("common:errors.geminiCli.authFailed"))
 		}
 
-		const projectId = await geminiOAuthManager.getProjectId()
+		const projectId = await geminiOAuthManager.getProjectId(accessToken)
 
 		try {
 			const { id: model } = this.getModel()

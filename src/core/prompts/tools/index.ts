@@ -7,13 +7,12 @@ import { Mode, getModeConfig, isToolAllowedForMode, getGroupName } from "../../.
 import { ToolArgs } from "./types"
 import { getExecuteCommandDescription } from "./execute-command"
 import { getReadFileDescription } from "./read-file"
-import { getSimpleReadFileDescription } from "./simple-read-file"
 import { getFetchInstructionsDescription } from "./fetch-instructions"
-import { shouldUseSingleFileRead } from "@roo-code/types"
 import { getWriteToFileDescription } from "./write-to-file"
 import { getSearchFilesDescription } from "./search-files"
 import { getListFilesDescription } from "./list-files"
 import { getBrowserActionDescription } from "./browser-action"
+import { getComputerActionDescription } from "./computer-action"
 import { getAttemptCompletionDescription } from "./attempt-completion"
 import { getUseMcpToolDescription } from "./use-mcp-tool"
 import { getAccessMcpResourceDescription } from "./access-mcp-resource"
@@ -41,41 +40,35 @@ import { ManagedIndexer } from "../../../services/code-index/managed/ManagedInde
 
 // Map of tool names to their description functions
 const toolDescriptionMap: Record<string, (args: ToolArgs) => string | undefined> = {
-	execute_command: (args) => getExecuteCommandDescription(args),
-	read_file: (args) => {
-		// Check if the current model should use the simplified read_file tool
-		const modelId = args.settings?.modelId
-		if (modelId && shouldUseSingleFileRead(modelId)) {
-			return getSimpleReadFileDescription(args)
-		}
-		return getReadFileDescription(args)
-	},
+	bash: (args) => getExecuteCommandDescription(args),
+	read: (args) => getReadFileDescription(args),
 	fetch_instructions: (args) => getFetchInstructionsDescription(args.settings?.enableMcpServerCreation),
-	write_to_file: (args) => getWriteToFileDescription(args),
+	write: (args) => getWriteToFileDescription(args),
 	grep: (args) => getSearchFilesDescription(args),
-	list_dir: (args) => getListFilesDescription(args),
+	list: (args) => getListFilesDescription(args),
 	glob: (args) => getGlobDescription(args),
 	browser_action: (args) => getBrowserActionDescription(args),
+	computer_action: (args) => getComputerActionDescription(args),
 	attempt_completion: (args) => getAttemptCompletionDescription(args),
 	use_mcp_tool: (args) => getUseMcpToolDescription(args),
-	run_sub_agent: (args) => getRunSubAgentDescription(args),
+	agent: (args) => getRunSubAgentDescription(args),
 	access_mcp_resource: (args) => getAccessMcpResourceDescription(args),
-	codebase_search: (args) => getCodebaseSearchDescription(args),
+	ask: (args) => getCodebaseSearchDescription(args),
 	switch_mode: () => getSwitchModeDescription(),
 	new_task: (args) => getNewTaskDescription(args),
 	edit_file: (args) => {
 		return `## edit_file
-Description: Edit a file by replacing a specific block of text. This tool uses Old: and New: markers for precision.
+Description: Edit a file by replacing a specific block of text. This tool uses SEARCH: and REPLACE: markers for precision.
 Parameters:
 - path: (required) Path to the file.
-- edit: (required) One or more Old:/New: blocks specifying the exact text to find and the new text to replace it with.
+- edit: (required) One or more SEARCH:/REPLACE: blocks specifying the exact text to find and the new text to replace it with.
 Usage:
 <edit_file>
 <path>...</path>
 <edit>
-Old:
+SEARCH:
 ...
-New:
+REPLACE:
 ...
 </edit>
 </edit_file>`
@@ -83,11 +76,11 @@ New:
 	delete_file: (args) => getDeleteFileDescription(args), // kade_change
 	apply_diff: (args) =>
 		args.diffStrategy ? args.diffStrategy.getToolDescription({ cwd: args.cwd, toolOptions: args.toolOptions }) : "",
-	update_todo_list: (args) => getUpdateTodoListDescription(args),
+	todo: (args) => getUpdateTodoListDescription(args),
 	run_slash_command: () => getRunSlashCommandDescription(),
 	generate_image: (args) => getGenerateImageDescription(args),
-	web_search: (args) => getWebSearchDescription(args),
-	web_fetch: (args) => getWebFetchDescription(args),
+	web: (args) => getWebSearchDescription(args),
+	fetch: (args) => getWebFetchDescription(args),
 	research_web: (args) => getResearchWebDescription(args),
 	fast_context: (args) => getFastContextDescription(args),
 }
@@ -96,6 +89,7 @@ export function getToolDescriptionsForMode(
 	mode: Mode,
 	cwd: string,
 	supportsComputerUse: boolean,
+	supportsBrowserUse?: boolean,
 	codeIndexManager?: CodeIndexManager,
 	diffStrategy?: DiffStrategy,
 	browserViewportSize?: string,
@@ -112,6 +106,7 @@ export function getToolDescriptionsForMode(
 	const config = getModeConfig(mode, customModes)
 	const args: ToolArgs = {
 		cwd,
+		supportsBrowserUse,
 		supportsComputerUse,
 		diffStrategy,
 		browserViewportSize,
@@ -153,10 +148,10 @@ export function getToolDescriptionsForMode(
 	// Add always available tools
 	ALWAYS_AVAILABLE_TOOLS.forEach((tool) => tools.add(tool))
 
-	// Conditionally exclude codebase_search if feature is disabled or not configured
+	// Conditionally exclude ask if feature is disabled or not configured
 	// kade_change start
 	// kade_change start
-	// We now always include codebase_search because it uses the JIT engine which requires no index.
+	// We now always include ask because it uses the JIT engine which requires no index.
 	// The original check for ManagedIndexer or codeIndexManager is no longer needed to gate the tool itself.
 	// kade_change end
 
@@ -164,9 +159,9 @@ export function getToolDescriptionsForMode(
 	tools.delete("edit") // Use edit_file instead
 	tools.delete("apply_diff")
 
-	// Conditionally exclude update_todo_list if disabled in settings
+	// Conditionally exclude todo if disabled in settings
 	if (settings?.todoListEnabled === false) {
-		tools.delete("update_todo_list")
+		tools.delete("todo")
 	}
 
 	// Conditionally exclude generate_image if experiment is not enabled
@@ -179,9 +174,9 @@ export function getToolDescriptionsForMode(
 		tools.delete("run_slash_command")
 	}
 
-	// Conditionally include run_sub_agent if experiment is enabled and not disabled in settings
+	// Conditionally include agent if experiment is enabled and not disabled in settings
 	if (experiments?.enableSubAgents && settings?.subAgentToolEnabled !== false) {
-		tools.add("run_sub_agent")
+		tools.add("agent")
 	}
 
 	// Map tool descriptions for allowed tools
@@ -206,12 +201,12 @@ export function getToolDescriptionsForMode(
 export {
 	getExecuteCommandDescription,
 	getReadFileDescription,
-	getSimpleReadFileDescription,
 	getFetchInstructionsDescription,
 	getWriteToFileDescription,
 	getSearchFilesDescription,
 	getListFilesDescription,
 	getBrowserActionDescription,
+	getComputerActionDescription,
 	getAttemptCompletionDescription,
 	getUseMcpToolDescription,
 	getAccessMcpResourceDescription,

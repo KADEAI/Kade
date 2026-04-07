@@ -6,13 +6,18 @@ import type { ModelInfo } from "@roo-code/types"
 import type { ApiHandler, ApiHandlerCreateMessageMetadata } from "../index"
 import { ApiStream } from "../transform/stream"
 import { countTokens } from "../../utils/countTokens"
+import type { CachePointPlacement } from "../transform/cache-strategy/types"
+import { applyOpenAiCompatiblePromptCaching } from "../transform/caching/openai-compatible"
 
 import { normalizeObjectAdditionalPropertiesFalse } from "./kilocode/openai-strict-schema" // kade_change
+import { toOpenAIFunctionTool } from "../../core/prompts/tools/native-tools/converters"
 
 /**
  * Base class for API providers that implements common functionality.
  */
 export abstract class BaseProvider implements ApiHandler {
+	private readonly promptCachePlacementsByConversation = new Map<string, CachePointPlacement[]>()
+
 	abstract createMessage(
 		systemPrompt: string,
 		messages: Anthropic.Messages.MessageParam[],
@@ -30,59 +35,18 @@ export abstract class BaseProvider implements ApiHandler {
 			return undefined
 		}
 
-		// If the model specifically requests the flat format, deliver it directly
-		if (this.getModel().info.supportsFlatTools) {
-			return tools as OpenAI.Chat.ChatCompletionTool[]
-		}
-
 		return tools.map((tool) => {
-			// If it's already in OpenAI format, just ensure strict mode
-			if (tool.type === "function") {
-				return {
-					...tool,
-					function: {
-						...tool.function,
-						strict: true,
-						parameters: this.convertToolSchemaForOpenAI(tool.function.parameters),
-					},
-				}
-			}
-
-			// If it's our simplified format, convert it!
-			const properties: Record<string, any> = {}
-			const required: string[] = tool.required || []
-
-			if (tool.params) {
-				for (const [key, value] of Object.entries(tool.params as Record<string, any>)) {
-					if (typeof value === "string") {
-						properties[key] = { type: "string", description: value }
-					} else {
-						// value is ToolParam
-						properties[key] = {
-							type: value.type || "string",
-							description: value.description,
-							...(value.enum ? { enum: value.enum } : {}),
-							...(value.items ? { items: value.items } : {}),
-						}
-					}
-				}
-			}
-
-			// If input_schema is provided (legacy/compat), use it, otherwise build from properties
-			const parameters = tool.input_schema || {
-				type: "object",
-				properties,
-				required: required.length > 0 ? required : Object.keys(properties),
-				additionalProperties: false,
-			}
+			const convertedTool = toOpenAIFunctionTool(tool) as OpenAI.Chat.ChatCompletionFunctionTool
+			const strict = convertedTool.function.strict ?? true
 
 			return {
 				type: "function",
 				function: {
-					name: tool.name,
-					description: tool.description,
-					strict: tool.strict ?? true,
-					parameters,
+					...convertedTool.function,
+					...(strict ? { strict: true } : {}),
+					parameters: strict
+						? this.convertToolSchemaForOpenAI(convertedTool.function.parameters)
+						: normalizeObjectAdditionalPropertiesFalse(convertedTool.function.parameters),
 				},
 			}
 		}) as OpenAI.Chat.ChatCompletionTool[]
@@ -148,5 +112,37 @@ export abstract class BaseProvider implements ApiHandler {
 		}
 
 		return countTokens(content, { useWorker: true })
+	}
+
+	protected applyOpenAiPromptCaching(
+		systemPrompt: string,
+		messages: OpenAI.Chat.ChatCompletionMessageParam[],
+		modelInfo: ModelInfo,
+		conversationId?: string,
+	): OpenAI.Chat.ChatCompletionMessageParam[] {
+		if (!modelInfo.supportsPromptCache) {
+			return messages
+		}
+
+		const previousCachePointPlacements = conversationId
+			? this.promptCachePlacementsByConversation.get(conversationId)
+			: undefined
+
+		const result = applyOpenAiCompatiblePromptCaching({
+			systemPrompt,
+			messages,
+			modelInfo,
+			previousCachePointPlacements,
+		})
+
+		if (conversationId) {
+			if (result.messageCachePointPlacements && result.messageCachePointPlacements.length > 0) {
+				this.promptCachePlacementsByConversation.set(conversationId, result.messageCachePointPlacements)
+			} else {
+				this.promptCachePlacementsByConversation.delete(conversationId)
+			}
+		}
+
+		return messages
 	}
 }

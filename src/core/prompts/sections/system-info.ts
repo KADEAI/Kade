@@ -4,15 +4,11 @@ import osName from "os-name"
 import { getShell } from "../../../utils/shell"
 
 export function getSystemInfoSection(cwd: string): string {
-	let details = `====
-
-SYSTEM INFORMATION
-
-Operating System: ${osName()}
-Default Shell: ${getShell()}
-Home Directory: ${os.homedir().toPosix()}
-Current Workspace Directory: ${cwd.toPosix()}
-
-The Current Workspace Directory is the active VS Code project directory, and is therefore the default directory for all tool operations.`
+	let details = `# SYSTEM INFORMATION
+OS: ${osName()}
+Shell: ${getShell()}
+Home Path: ${os.homedir().toPosix()}
+CWD: ${cwd.toPosix()}
+This is the CWD, and where tools default to. When using tools, use relative paths, not absolute`
 	return details
 }

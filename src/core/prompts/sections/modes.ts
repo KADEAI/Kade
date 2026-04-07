@@ -16,15 +16,10 @@ export async function getModesSection(
 	const currentMode = allModes.find((m) => m.slug === currentModeSlug) || allModes[0]
 
 	let details = `====
-
-CURRENT MODE
-
-- **Name:** ${currentMode.name} (\`${currentMode.slug}\`)
+# CURRENT MODE
+- **Mode:** ${currentMode.name}
 - **Model:** ${modelId || "Unknown"}
-- **Tool Format:** ${toolProtocol || "Unknown"}
 - **Persona:** ${roleDefinition}`
-
 	details += ``
-
 	return details
 }

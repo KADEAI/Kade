@@ -1,128 +1,142 @@
-import axios from "axios"
-import { z } from "zod"
-import { useQuery, UseQueryOptions } from "@tanstack/react-query"
+import axios from "axios";
+import { z } from "zod";
+import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 
-import type { ModelInfo } from "@roo-code/types"
+import type { ModelInfo } from "@roo-code/types";
 
-import { parseApiPrice } from "@roo/cost"
+import { parseApiPrice } from "@roo/cost";
 
-export const OPENROUTER_DEFAULT_PROVIDER_NAME = "[default]"
+export const OPENROUTER_DEFAULT_PROVIDER_NAME = "[default]";
 
 const openRouterEndpointsSchema = z.object({
-	data: z.object({
-		id: z.string(),
-		name: z.string(),
-		description: z.string().optional(),
-		architecture: z
-			.object({
-				input_modalities: z.array(z.string()).nullish(),
-				output_modalities: z.array(z.string()).nullish(),
-				tokenizer: z.string().nullish(),
-			})
-			.nullish(),
-		endpoints: z.array(
-			z.object({
-				name: z.string(),
-				// kade_change start
-				provider_name: z.string(),
-				// kade_change end
-				tag: z.string().optional(),
-				context_length: z.number(),
-				max_completion_tokens: z.number().nullish(),
-				pricing: z
-					.object({
-						prompt: z.union([z.string(), z.number()]).optional(),
-						completion: z.union([z.string(), z.number()]).optional(),
-						input_cache_read: z.union([z.string(), z.number()]).optional(),
-						input_cache_write: z.union([z.string(), z.number()]).optional(),
-					})
-					.optional(),
-			}),
-		),
-	}),
-})
+  data: z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+    architecture: z
+      .object({
+        input_modalities: z.array(z.string()).nullish(),
+        output_modalities: z.array(z.string()).nullish(),
+        tokenizer: z.string().nullish(),
+      })
+      .nullish(),
+    endpoints: z.array(
+      z.object({
+        name: z.string(),
+        // kade_change start
+        provider_name: z.string(),
+        // kade_change end
+        tag: z.string().optional(),
+        context_length: z.number(),
+        max_completion_tokens: z.number().nullish(),
+        pricing: z
+          .object({
+            prompt: z.union([z.string(), z.number()]).optional(),
+            completion: z.union([z.string(), z.number()]).optional(),
+            input_cache_read: z.union([z.string(), z.number()]).optional(),
+            input_cache_write: z.union([z.string(), z.number()]).optional(),
+          })
+          .optional(),
+      }),
+    ),
+  }),
+});
 
 type OpenRouterModelProvider = ModelInfo & {
-	label: string
-}
+  label: string;
+};
 
 // kade_change: baseUrl, apiKey
-async function getOpenRouterProvidersForModel(modelId: string, baseUrl?: string, apiKey?: string) {
-	const models: Record<string, OpenRouterModelProvider> = {}
+async function getOpenRouterProvidersForModel(
+  modelId: string,
+  baseUrl?: string,
+  apiKey?: string,
+) {
+  const models: Record<string, OpenRouterModelProvider> = {};
 
-	try {
-		// Extract base model ID by removing any suffix after ':' (e.g., ':thinking')
-		const baseModelId = modelId.split(':')[0]
-		
-		// kade_change start: baseUrl, apiKey
-		const response = await axios.get(
-			`${baseUrl?.trim() || "https://openrouter.ai/api/v1"}/models/${baseModelId}/endpoints`,
-			apiKey ? { headers: { Authorization: `Bearer ${apiKey}` } } : undefined,
-		)
-		// kade_change end
-		const result = openRouterEndpointsSchema.safeParse(response.data)
+  try {
+    // Extract base model ID by removing any suffix after ':' (e.g., ':thinking')
+    const baseModelId = modelId.split(":")[0];
 
-		if (!result.success) {
-			console.error("OpenRouter API response validation failed:", result.error)
-			return models
-		}
+    // kade_change start: baseUrl, apiKey
+    const response = await axios.get(
+      `${baseUrl?.trim() || "https://openrouter.ai/api/v1"}/models/${baseModelId}/endpoints`,
+      apiKey ? { headers: { Authorization: `Bearer ${apiKey}` } } : undefined,
+    );
+    // kade_change end
+    const result = openRouterEndpointsSchema.safeParse(response.data);
 
-		const { description, architecture, endpoints } = result.data.data
+    if (!result.success) {
+      console.error("OpenRouter API response validation failed:", result.error);
+      return models;
+    }
 
-		// Skip image generation models (models that output images)
-		if (architecture?.output_modalities?.includes("image")) {
-			return models
-		}
+    const { description, architecture, endpoints } = result.data.data;
 
-		for (const endpoint of endpoints) {
-			const providerName = endpoint.tag ?? endpoint.provider_name // kade_change
-			const inputPrice = parseApiPrice(endpoint.pricing?.prompt)
-			const outputPrice = parseApiPrice(endpoint.pricing?.completion)
-			const cacheReadsPrice = parseApiPrice(endpoint.pricing?.input_cache_read)
-			const cacheWritesPrice = parseApiPrice(endpoint.pricing?.input_cache_write)
+    // Skip image generation models (models that output images)
+    if (architecture?.output_modalities?.includes("image")) {
+      return models;
+    }
 
-			const modelInfo: OpenRouterModelProvider = {
-				maxTokens: endpoint.max_completion_tokens || endpoint.context_length,
-				contextWindow: endpoint.context_length,
-				supportsImages: architecture?.input_modalities?.includes("image") ?? false,
-				supportsPromptCache: typeof cacheReadsPrice !== "undefined",
-				cacheReadsPrice,
-				cacheWritesPrice,
-				inputPrice,
-				outputPrice,
-				description,
-				label: providerName,
-			}
+    for (const endpoint of endpoints) {
+      const providerName = endpoint.tag ?? endpoint.provider_name; // kade_change
+      const inputPrice = parseApiPrice(endpoint.pricing?.prompt);
+      const outputPrice = parseApiPrice(endpoint.pricing?.completion);
+      const cacheReadsPrice = parseApiPrice(endpoint.pricing?.input_cache_read);
+      const cacheWritesPrice = parseApiPrice(
+        endpoint.pricing?.input_cache_write,
+      );
 
-			models[providerName] = modelInfo
-		}
-	} catch (error) {
-		if (error instanceof z.ZodError) {
-			console.error(`OpenRouter API response validation failed:`, error.errors)
-		} else {
-			console.error(`Error fetching OpenRouter providers:`, error)
-		}
-	}
+      const modelInfo: OpenRouterModelProvider = {
+        maxTokens: endpoint.max_completion_tokens || endpoint.context_length,
+        contextWindow: endpoint.context_length,
+        supportsImages:
+          architecture?.input_modalities?.includes("image") ?? false,
+        supportsPromptCache: typeof cacheReadsPrice !== "undefined",
+        cacheReadsPrice,
+        cacheWritesPrice,
+        inputPrice,
+        outputPrice,
+        description,
+        label: providerName,
+      };
 
-	return models
+      models[providerName] = modelInfo;
+    }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error(`OpenRouter API response validation failed:`, error.errors);
+    } else {
+      console.error(`Error fetching OpenRouter providers:`, error);
+    }
+  }
+
+  return models;
 }
 
 type UseOpenRouterModelProvidersOptions = Omit<
-	UseQueryOptions<Record<string, OpenRouterModelProvider>>,
-	"queryKey" | "queryFn"
->
+  UseQueryOptions<Record<string, OpenRouterModelProvider>>,
+  "queryKey" | "queryFn"
+>;
 
 // kade_change start: baseUrl, apiKey, organizationId
 export const useOpenRouterModelProviders = (
-	modelId?: string,
-	baseUrl?: string,
-	apiKey?: string,
-	organizationId?: string,
-	options?: UseOpenRouterModelProvidersOptions,
+  modelId?: string,
+  baseUrl?: string,
+  apiKey?: string,
+  organizationId?: string,
+  options?: UseOpenRouterModelProvidersOptions,
 ) =>
-	useQuery<Record<string, OpenRouterModelProvider>>({
-		queryKey: ["openrouter-model-providers", modelId, baseUrl, apiKey, organizationId],
-		queryFn: () => (modelId ? getOpenRouterProvidersForModel(modelId, baseUrl, apiKey) : {}),
-		...options,
-	})
+  useQuery<Record<string, OpenRouterModelProvider>>({
+    queryKey: [
+      "openrouter-model-providers",
+      modelId,
+      baseUrl,
+      apiKey,
+      organizationId,
+    ],
+    queryFn: () =>
+      modelId ? getOpenRouterProvidersForModel(modelId, baseUrl, apiKey) : {},
+    ...options,
+  });
 // kade_change end

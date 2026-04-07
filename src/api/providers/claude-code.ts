@@ -152,7 +152,7 @@ export class ClaudeCodeHandler implements ApiHandler, SingleCompletionHandler {
 			const shouldIncludeNativeTools =
 				metadata?.tools &&
 				metadata.tools.length > 0 &&
-				metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN &&
+				metadata?.toolProtocol === TOOL_PROTOCOL.JSON &&
 				metadata?.tool_choice !== "none"
 
 			const anthropicTools = shouldIncludeNativeTools ? convertOpenAIToolsToAnthropic(metadata.tools!) : undefined

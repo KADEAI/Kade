@@ -234,7 +234,7 @@ Syntax:
   \`\`\`grep
   "query1|query2|query3" search_path
   \`\`\`
-Usage: Search text across files using ripgrep. Defaults to current directory. Case-insensitive by default.
+Usage: Search text across files using ripgrep. Defaults to current directory. Case-sensitive by default, with whole-word matching for simple identifier queries.
 Positional:
   Required: query <string> (quotes required if query contains spaces)
   Optional: search_path <string or comma-separated paths> (defaults to current directory)

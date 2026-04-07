@@ -3,8 +3,6 @@ import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
 import { formatResponse } from "../prompts/responses"
 import { getModeBySlug } from "../../shared/modes"
-import { AgentManagerProvider } from "../kilocode/agent-manager/AgentManagerProvider"
-
 interface RunSubAgentParams {
     prompt: string
     mode?: string
@@ -15,8 +13,8 @@ interface RunSubAgentParams {
     teamRole?: "leader" | "worker" | "validator"
 }
 
-export class RunSubAgentTool extends BaseTool<"run_sub_agent"> {
-    readonly name = "run_sub_agent" as const
+export class RunSubAgentTool extends BaseTool<"agent"> {
+    readonly name = "agent" as const
 
     parseLegacy(params: Partial<Record<string, string>>): RunSubAgentParams {
         return {
@@ -43,9 +41,9 @@ export class RunSubAgentTool extends BaseTool<"run_sub_agent"> {
 
             if (!prompt) {
                 task.consecutiveMistakeCount++
-                task.recordToolError("run_sub_agent")
+                task.recordToolError("agent")
                 task.didToolFailInCurrentTurn = true
-                pushToolResult(await task.sayAndCreateMissingParamError("run_sub_agent", "prompt"))
+                pushToolResult(await task.sayAndCreateMissingParamError("agent", "prompt"))
                 return
             }
 
@@ -67,7 +65,7 @@ export class RunSubAgentTool extends BaseTool<"run_sub_agent"> {
             const modeToUse = mode || await task.getTaskMode()
 
             const toolMessage = JSON.stringify({
-                tool: "run_sub_agent",
+                tool: "agent",
                 mode: modeToUse,
                 prompt: prompt,
                 api_provider,
@@ -146,7 +144,7 @@ export class RunSubAgentTool extends BaseTool<"run_sub_agent"> {
         }
     }
 
-    override async handlePartial(task: Task, block: ToolUse<"run_sub_agent">): Promise<void> {
+    override async handlePartial(task: Task, block: ToolUse<"agent">): Promise<void> {
         if (!block.partial) {
             return
         }
@@ -157,7 +155,7 @@ export class RunSubAgentTool extends BaseTool<"run_sub_agent"> {
         const model_id: string | undefined = block.params.model_id
 
         const partialMessage = JSON.stringify({
-            tool: "run_sub_agent",
+            tool: "agent",
             mode: this.removeClosingTag("mode", mode, block.partial),
             prompt: this.removeClosingTag("prompt", prompt, block.partial),
             api_provider: this.removeClosingTag("api_provider" as any, api_provider, block.partial),

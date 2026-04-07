@@ -3,6 +3,7 @@ import path from "path"
 
 import type { Language, Node as SyntaxNode, Query, Tree } from "web-tree-sitter"
 import { SymbolWithRange } from ".."
+import { getLanguageWasmPath, getTreeSitterCoreWasmPath } from "../../../tree-sitter/wasmPaths"
 import { getUriFileExtension } from "./uri"
 
 export enum LanguageName {
@@ -118,12 +119,31 @@ export const IGNORE_PATH_PATTERNS: Partial<Record<LanguageName, RegExp[]>> = {
 	[LanguageName.JAVASCRIPT]: [/.*node_modules/],
 }
 
+let isParserInitialized = false
+
 export async function getParserForFile(filepath: string) {
 	try {
 		// Dynamically import Parser to avoid issues with WASM loading
 		const { Parser } = require("web-tree-sitter")
 
-		await Parser.init()
+		if (!isParserInitialized) {
+			const coreWasmPath = getTreeSitterCoreWasmPath(__dirname)
+
+			if (!coreWasmPath) {
+				throw new Error("Could not find tree-sitter.wasm")
+			}
+
+			await Parser.init({
+				locateFile(scriptName: string) {
+					if (scriptName === "tree-sitter.wasm") {
+						return coreWasmPath
+					}
+
+					return scriptName
+				},
+			})
+			isParserInitialized = true
+		}
 		const parser = new Parser()
 
 		const language = await getLanguageForFile(filepath)
@@ -141,9 +161,9 @@ export async function getParserForFile(filepath: string) {
 }
 
 // Helper function to find the first existing path from a list of candidates
-function findExistingPath(candidatePaths: string[]): string | undefined {
+function findExistingPath(candidatePaths: Array<string | undefined>): string | undefined {
 	for (const p of candidatePaths) {
-		if (fs.existsSync(p)) {
+		if (p && fs.existsSync(p)) {
 			return p
 		}
 	}
@@ -227,27 +247,11 @@ async function loadLanguageForFileExt(fileExtension: string): Promise<Language> 
 	// Dynamically import Language to avoid issues with WASM loading
 	const { Language } = require("web-tree-sitter")
 
-	const filename = `tree-sitter-${supportedLanguages[fileExtension]}.wasm`
-	const repoRoot = path.resolve(__dirname, "..", "..", "..", "..")
-
-	// The WASM files are copied to src/dist/ during build
-	// In production (compiled): __dirname = /path/to/kilocode/src/dist or dist/
-	// In development: __dirname = /path/to/kilocode/src/services/continuedev/core/util
-	const candidatePaths: string[] = [
-		// Production: WASM files are in the same directory as the compiled code
-		path.join(__dirname, filename),
-		// Development: from src/services/continuedev/core/util -> src/dist
-		path.join(repoRoot, "dist", filename),
-		// Fallback: repo root
-		path.join(repoRoot, filename),
-		// Legacy: node_modules location (fallback for older setups)
-		path.join(repoRoot, "src", "node_modules", "tree-sitter-wasms", "out", filename),
-	]
-
-	const wasmPath = findExistingPath(candidatePaths)
+	const wasmPath = getLanguageWasmPath(supportedLanguages[fileExtension], { baseDir: __dirname })
 
 	if (!wasmPath) {
-		console.error(`Could not find ${filename}. Tried paths:`, candidatePaths)
+		const filename = `tree-sitter-${supportedLanguages[fileExtension]}.wasm`
+		console.error(`Could not find ${filename}`)
 		throw new Error(`Could not find language WASM file: ${filename}`)
 	}
 

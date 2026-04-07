@@ -44,17 +44,15 @@ describe("SmartContextService", () => {
         // User message 9 is index 18 in full list
         // User message 7: "User message 7" -> Should have 200 words (full content is ~53 words here) - Actually our test content is short (53 words).
         // Let's verify string contains full content for recent messages
-        expect(summary).toContain("User: User message 7")
-        expect(summary).toContain("User: User message 8")
-        expect(summary).toContain("User: User message 9")
+        expect(summary).toContain("User message 7")
+        expect(summary).toContain("User message 8")
+        expect(summary).toContain("User message 9")
 
         // Check older user messages (index 0)
-        // Should be truncated. "User message 0" ...
-        expect(summary).toContain("User: User message 0")
+        expect(summary).toContain("User message 0")
 
         // Smart Context Logic:
-        // Recent User: Keep last 200 words. (Our messages are ~53 words, so they should be fully kept)
-        // Older User: Keep first 30 words.
+        // Messages are preserved in full in the summary.
 
         // Check older truncated message length roughly
         // "User message 0 word word..."
@@ -83,14 +81,9 @@ describe("SmartContextService", () => {
         const result = generateSmartContext(messages)
         const summary = result[0].content as string
 
-        // Older User (message 0): Keep first 30 words.
-        // Should have "start", should NOT have "end" (because it's at the end of 100 words)
-        // Actually "middle ".repeat(100) is 100 words. Total 102.
-        // First 30 words = "start" + 29 middles.
-        // "end" is at word 102.
-
-        expect(summary).toContain("User: start")
-        expect(summary).not.toContain(" end\n") // " end" might appear if we aren't careful, but "end" is the last word.
+        // Older User (message 0): content should be preserved in full.
+        expect(summary).toContain("end")
+        expect(summary).toContain("start")
     })
 
     it("should truncate long recent messages appropriately", () => {
@@ -107,10 +100,8 @@ describe("SmartContextService", () => {
         const result = generateSmartContext(messages)
         const summary = result[0].content as string
 
-        // Assistant is recent. Keep LAST 850 words.
-        // Should contain "end". Should NOT contain "start" (since total > 850).
-        expect(summary).toContain("Assistant: ")
+        // Assistant content should be preserved in full.
         expect(summary).toContain(" end")
-        expect(summary).not.toContain("start ")
+        expect(summary).toContain("start ")
     })
 })

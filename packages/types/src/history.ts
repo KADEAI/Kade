@@ -29,6 +29,8 @@ export const historyItemSchema = z.object({
 	completedByChildId: z.string().optional(), // Child that completed and resumed this parent
 	completionResultSummary: z.string().optional(), // Summary from completed child
 	systemPrompt: z.string().optional(), // System prompt actually used for this task
+	diffAdditions: z.number().optional(),
+	diffDeletions: z.number().optional(),
 })
 
 export type HistoryItem = z.infer<typeof historyItemSchema>

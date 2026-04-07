@@ -128,4 +128,22 @@ describe("convertToOpenAiMessages", () => {
 		expect(toolMessage.tool_call_id).toBe("weather-123")
 		expect(toolMessage.content).toBe("Current temperature in London: 20°C")
 	})
+
+	it("should strip reasoning_details from assistant messages", () => {
+		const anthropicMessages = [
+			{
+				role: "assistant",
+				content: "Done",
+				reasoning_details: [{ type: "summary_text", summary: "internal reasoning" }],
+			},
+		] as any as Anthropic.Messages.MessageParam[]
+
+		const openAiMessages = convertToOpenAiMessages(anthropicMessages)
+		expect(openAiMessages).toHaveLength(1)
+		expect(openAiMessages[0]).toEqual({
+			role: "assistant",
+			content: "Done",
+		})
+		expect(openAiMessages[0]).not.toHaveProperty("reasoning_details")
+	})
 })

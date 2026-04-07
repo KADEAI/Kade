@@ -8,7 +8,7 @@ import { RooCodeEventName, type ClineMessage } from "@roo-code/types"
 import { waitFor, sleep } from "../utils"
 import { setDefaultSuiteTimeout } from "../test-utils"
 
-suite.skip("Roo Code write_to_file Tool", function () {
+suite.skip("Roo Code write Tool", function () {
 	setDefaultSuiteTimeout(this)
 
 	let tempDir: string
@@ -85,13 +85,13 @@ suite.skip("Roo Code write_to_file Tool", function () {
 			// Check for tool execution
 			if (message.type === "say" && message.say === "api_req_started") {
 				console.log("Tool execution:", message.text?.substring(0, 200))
-				if (message.text && message.text.includes("write_to_file")) {
+				if (message.text && message.text.includes("write")) {
 					writeToFileToolExecuted = true
 					toolExecutionDetails = message.text
 					// Try to parse the tool execution details
 					try {
 						const parsed = JSON.parse(message.text)
-						console.log("write_to_file tool called with request:", parsed.request?.substring(0, 300))
+						console.log("write tool called with request:", parsed.request?.substring(0, 300))
 					} catch (_e) {
 						console.log("Could not parse tool execution details")
 					}
@@ -248,15 +248,15 @@ suite.skip("Roo Code write_to_file Tool", function () {
 			assert.ok(fileFound, `File should have been created. Expected filename: ${baseFileName}`)
 			assert.strictEqual(actualContent.trim(), fileContent, "File content should match expected content")
 
-			// Verify that write_to_file tool was actually executed
-			assert.ok(writeToFileToolExecuted, "write_to_file tool should have been executed")
+			// Verify that write tool was actually executed
+			assert.ok(writeToFileToolExecuted, "write tool should have been executed")
 			assert.ok(
 				toolExecutionDetails.includes(baseFileName) || toolExecutionDetails.includes(fileContent),
 				"Tool execution should include the filename or content",
 			)
 
 			console.log("Test passed! File created successfully at:", actualFilePath)
-			console.log("write_to_file tool was properly executed")
+			console.log("write tool was properly executed")
 		} finally {
 			// Clean up
 			api.off(RooCodeEventName.Message, messageHandler)
@@ -285,13 +285,13 @@ suite.skip("Roo Code write_to_file Tool", function () {
 			// Check for tool execution
 			if (message.type === "say" && message.say === "api_req_started") {
 				console.log("Tool execution:", message.text?.substring(0, 200))
-				if (message.text && message.text.includes("write_to_file")) {
+				if (message.text && message.text.includes("write")) {
 					writeToFileToolExecuted = true
 					toolExecutionDetails = message.text
 					// Try to parse the tool execution details
 					try {
 						const parsed = JSON.parse(message.text)
-						console.log("write_to_file tool called with request:", parsed.request?.substring(0, 300))
+						console.log("write tool called with request:", parsed.request?.substring(0, 300))
 					} catch (_e) {
 						console.log("Could not parse tool execution details")
 					}
@@ -425,8 +425,8 @@ suite.skip("Roo Code write_to_file Tool", function () {
 			assert.ok(fileFound, `File should have been created. Expected filename: ${fileName}`)
 			assert.strictEqual(actualContent.trim(), content, "File content should match")
 
-			// Verify that write_to_file tool was actually executed
-			assert.ok(writeToFileToolExecuted, "write_to_file tool should have been executed")
+			// Verify that write tool was actually executed
+			assert.ok(writeToFileToolExecuted, "write tool should have been executed")
 			assert.ok(
 				toolExecutionDetails.includes(fileName) ||
 					toolExecutionDetails.includes(content) ||
@@ -437,7 +437,7 @@ suite.skip("Roo Code write_to_file Tool", function () {
 			// Note: We're not checking if the nested directory structure was created,
 			// just that the file exists with the correct content
 			console.log("Test passed! File created successfully at:", actualFilePath)
-			console.log("write_to_file tool was properly executed")
+			console.log("write tool was properly executed")
 		} finally {
 			// Clean up
 			api.off(RooCodeEventName.Message, messageHandler)

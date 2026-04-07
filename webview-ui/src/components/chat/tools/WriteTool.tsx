@@ -6,10 +6,12 @@ import React, {
   memo,
   useCallback,
 } from "react";
+import { Check } from "lucide-react";
 import styled, { keyframes, css } from "styled-components";
 import { ToolMessageWrapper } from "./ToolMessageWrapper";
 import { ToolError } from "./ToolError";
 import { FileIcon } from "./FileIcon";
+import { HeaderActionTooltip } from "./HeaderActionTooltip";
 import { vscode } from "@/utils/vscode";
 import { useExtensionState } from "@/context/ExtensionStateContext";
 import { useUndo } from "../../../hooks/useUndo";
@@ -18,15 +20,49 @@ import { getLanguageFromPath } from "@/utils/getLanguageFromPath";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { triggerConfetti } from "../../../utils/confetti";
+import { getVirtualizedLineWindow } from "./virtualizedToolContent";
+import {
+  toolHeaderBackgroundOverlayCss,
+  useToolHeaderBackground,
+} from "@/hooks/useToolHeaderBackground";
+import { resolveToolFilePath } from "./filePathResolver";
 
 // WriteToolProps moved below to include autoApprovalEnabled
 
-// --- ANIMATIONS ---
+const LARGE_WRITE_HIGHLIGHT_CHAR_LIMIT = 40000;
+const LARGE_WRITE_HIGHLIGHT_LINE_LIMIT = 1200;
+const HIGHLIGHT_CACHE_LIMIT = 64;
+const highlightedBlockCache = new Map<string, React.ReactNode>();
 
-const loadingSweep = keyframes`
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-`;
+const countLinesFast = (content: string) => {
+  if (!content) return 0;
+
+  let lines = 1;
+  for (let i = 0; i < content.length; i++) {
+    if (content.charCodeAt(i) === 10) {
+      lines++;
+    }
+  }
+
+  return lines;
+};
+
+const setCachedHighlight = (
+  cache: Map<string, React.ReactNode>,
+  key: string,
+  value: React.ReactNode,
+) => {
+  cache.set(key, value);
+
+  if (cache.size > HIGHLIGHT_CACHE_LIMIT) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey !== undefined) {
+      cache.delete(oldestKey);
+    }
+  }
+};
+
+// --- ANIMATIONS ---
 
 const glowGreen = keyframes`
     from { filter: drop-shadow(0 0 1px var(--vscode-testing-iconPassed)); opacity: 0.7; }
@@ -104,11 +140,6 @@ const spin = keyframes`
     to { transform: rotate(360deg); }
 `;
 
-const rainbowRotate = keyframes`
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-`;
-
 const fileNameShimmer = keyframes`
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
@@ -152,6 +183,26 @@ const _rotateCCW = keyframes`
     to { transform: rotate(0deg) scale(1); opacity: 1; }
 `;
 
+const markdownRainbowBorder = `
+  conic-gradient(
+    from var(--angle),
+    transparent 0deg,
+    transparent 52deg,
+    rgba(255, 84, 178, 0.22) 66deg,
+    rgba(255, 170, 76, 0.28) 78deg,
+    rgba(255, 244, 123, 0.38) 88deg,
+    rgba(104, 230, 154, 0.28) 98deg,
+    rgba(88, 197, 255, 0.22) 110deg,
+    transparent 124deg,
+    transparent 214deg,
+    rgba(111, 120, 255, 0.2) 228deg,
+    rgba(181, 104, 255, 0.24) 240deg,
+    rgba(255, 98, 202, 0.2) 252deg,
+    transparent 266deg,
+    transparent 360deg
+  )
+`;
+
 // --- STYLED COMPONENTS ---
 
 const WriteCardContainer = styled.div<{
@@ -160,31 +211,56 @@ const WriteCardContainer = styled.div<{
   $isError?: boolean;
   $shouldAnimate?: boolean;
   $justCompleted?: boolean;
+  $isActive?: boolean;
 }>`
   display: flex;
   flex-direction: column;
   /* Clean, modern dark surface */
-  background: ${({ $isError }) =>
-    $isError
-      ? "linear-gradient(145deg, rgba(45, 10, 10, 0.5) 0%, rgba(30, 10, 10, 0.3) 100%)"
-      : "var(--vscode-editor-background)"};
-  background-color: color-mix(
-    in srgb,
-    var(--vscode-editor-background) 80%,
-    transparent
-  );
 
   /* No external border or shadow for seamless look */
   border: none;
   box-shadow: none;
-  border-radius: 8px;
+  border-radius: 10.6px;
   overflow: hidden;
-  margin: 0px 0;
+  margin-top: 1px;
+  margin-bottom: 2px;
   width: 100%;
   transform: translateZ(0);
   backface-visibility: hidden;
   contain: layout style paint;
   will-change: transform, opacity;
+  isolation: isolate;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--angle),
+      transparent 0deg,
+      transparent 60deg,
+      rgba(56, 189, 248, 0.18) 72deg,
+      rgba(255, 255, 255, 0.42) 84deg,
+      transparent 96deg,
+      transparent 220deg,
+      rgba(56, 189, 248, 0.14) 232deg,
+      rgba(255, 255, 255, 0.3) 244deg,
+      transparent 256deg,
+      transparent 360deg
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: ${({ $isActive }) => ($isActive ? 1 : 0)};
+    transition: opacity 0.18s ease;
+    animation: rotateBorderVar 5.6s linear infinite;
+    pointer-events: none;
+    z-index: 4;
+  }
 
   /* Sleek fade-in animation */
   ${({ $shouldAnimate }) =>
@@ -228,23 +304,43 @@ const CardHeader = styled.div<{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
+  padding: 0 10.6px;
+  flex-shrink: 0;
+  min-width: 0;
 
   /* Solid header - Slightly brighter for high-tech feel */
   background: ${({ $isError }) =>
-    $isError ? "rgba(52, 0, 0, 0.45)" : "rgba(225, 225, 225, 0.041)"};
+    $isError ? "rgba(255, 70, 70, 0.12)" : "rgba(24, 24, 24, 1)"};
 
-  /* No separator for ultra-seamless look */
-  border-bottom: none;
+  /* Opaque mix: transparent borders fade at BL/BR joins vs the body below */
+   border: 1.5px solid rgba(82, 82, 82, 0.22);
+    color-mix(in srgb, var(--vscode-widget-border) 60%, var(--vscode-editor-background));
+  /* Collapsed: full radius vs parent clip; expanded: top only + CardBody bottom radius. */
+  border-radius: ${({ $isExpanded }) =>
+    $isExpanded ? "10.6px 10.6px 0 0" : "10.6px"};
 
-  /* Subtle top highlight */
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  /* Subtle top highlight for the metallic header treatment */
+  box-shadow: inset 0 0px 0 rgba(255, 255, 255, 0);
 
-  height: 34px;
+  height: 33px !important;
+  min-height: 33px !important;
   cursor: default;
-  overflow: hidden;
-  gap: 8px;
-  z-index: 5;
+  /* Avoid clipping the border at rounded corners; truncation lives on FileInfo. */
+  overflow: visible;
+  gap: 4px;
+  z-index: 1;
+  transition:
+    background 0.15s ease,
+    border-radius 0.2s ease;
+  ${toolHeaderBackgroundOverlayCss}
+
+  ${({ $isError }) =>
+    $isError &&
+    css`
+      height: auto;
+      min-height: 26px;
+      padding: 3px 12px;
+    `}
 
   ${({ $clickable }) =>
     $clickable &&
@@ -253,34 +349,13 @@ const CardHeader = styled.div<{
     `}
 `;
 
-const LoadingBarContainer = styled.div`
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  overflow: hidden;
-  z-index: 10;
-`;
-
-const LoadingBar = styled.div`
-  height: 100%;
-  width: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--vscode-textLink-activeForeground, #00f2ff) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: ${loadingSweep} 2s ease-in-out infinite;
-`;
-
 // HeaderContent removed as it was causing nesting overflow issues
 
 const TitleSection = styled.div<{
   $status: "writing" | "written" | "failed" | "normal";
 }>`
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -359,25 +434,26 @@ const FileName = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--vscode-foreground);
-  opacity: 0.57;
+  color: color-mix(in srgb, var(--vscode-foreground) 51%, transparent);
   cursor: pointer;
   max-width: 100%;
-  transition: all 0.2s ease;
-
-  /* Selection/Chip style */
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: -2px; /* Pull back slightly to align with icon visually */
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
 
   &:hover {
-    opacity: 0.75;
-    background: rgba(128, 128, 128, 0.15);
-    text-decoration: none;
+    color: var(--vscode-textLink-foreground);
+  }
+
+  &:hover > span:first-child {
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 `;
 
 const StatusSection = styled.div`
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -386,11 +462,74 @@ const StatusSection = styled.div`
   justify-content: flex-end;
 `;
 
+const hoverTooltipStyles = css`
+  &[data-tooltip] {
+    position: relative;
+  }
+
+  &[data-tooltip]::before,
+  &[data-tooltip]::after {
+    position: absolute;
+    left: 50%;
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      opacity 0.16s ease,
+      transform 0.16s ease;
+    z-index: 8;
+  }
+
+  &[data-tooltip]::before {
+    content: "";
+    bottom: calc(100% + 2px);
+    border-width: 4px;
+    border-style: solid;
+    border-color: rgba(10, 10, 10, 0.92) transparent transparent transparent;
+    transform: translateX(-50%) translateY(2px);
+  }
+
+  &[data-tooltip]::after {
+    content: attr(data-tooltip);
+    bottom: calc(100% + 9px);
+    transform: translateX(-50%) translateY(3px);
+    padding: 5px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(10, 10, 10, 0.92);
+    color: rgba(255, 255, 255, 0.94);
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0;
+    white-space: nowrap;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  &[data-tooltip]:hover::before,
+  &[data-tooltip]:hover::after,
+  &[data-tooltip]:focus-visible::before,
+  &[data-tooltip]:focus-visible::after {
+    opacity: 1;
+  }
+
+  &[data-tooltip]:hover::before,
+  &[data-tooltip]:focus-visible::before {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  &[data-tooltip]:hover::after,
+  &[data-tooltip]:focus-visible::after {
+    transform: translateX(-50%) translateY(0);
+  }
+`;
+
 const ActionButton = styled.div<{
   $isError?: boolean;
   $clickable?: boolean;
   $isRedo?: boolean;
 }>`
+  ${hoverTooltipStyles}
   display: flex;
   align-items: center;
   justify-content: center;
@@ -480,6 +619,8 @@ const PulseLoader = styled.div`
 
 const CardBody = styled.div`
   background: var(--vscode-editor-background);
+  border-radius: 0 0 10.6px 10.6px;
+  overflow: hidden;
 `;
 
 const WriteView = styled.div`
@@ -603,7 +744,7 @@ const _Chevron = styled.span<{ $isExpanded: boolean }>`
 
 // --- MARKDOWN CARD ---
 
-const MarkdownCardContainer = styled.div<{ 
+const MarkdownCardContainer = styled.div<{
   $shouldAnimate?: boolean;
   $isStreaming?: boolean;
 }>`
@@ -611,49 +752,36 @@ const MarkdownCardContainer = styled.div<{
   align-items: center;
   background: var(--vscode-editor-background);
   border: 1px solid var(--vscode-widget-border);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 12px;
-  margin: 0;
+  margin-top: 5px;
+  margin-bottom: 5px;
   position: relative;
   overflow: visible;
   box-shadow: none;
   isolation: isolate;
-  
+
   ${({ $isStreaming }) =>
     $isStreaming &&
     css`
       &::before {
         content: "";
         position: absolute;
-        inset: -2px;
-        border-radius: 10px;
-        background: conic-gradient(
-          from 0deg,
-          transparent 0%,
-          transparent 70%,
-          #ff0080 75%,
-          #ff8c00 80%,
-          #ffd700 85%,
-          #00ff00 90%,
-          #00bfff 95%,
-          #8a2be2 100%,
-          transparent 100%
-        );
-        animation: ${rainbowRotate} 3s linear infinite;
+        inset: 0;
+        border-radius: inherit;
+        padding: 1px;
+        background: ${markdownRainbowBorder};
+        -webkit-mask:
+          linear-gradient(#fff 0 0) content-box,
+          linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        animation: rotateBorderVar 5.6s linear infinite;
         pointer-events: none;
-        z-index: -1;
-      }
-      
-      &::after {
-        content: "";
-        position: absolute;
-        inset: 1px;
-        border-radius: 7px;
-        background: var(--vscode-editor-background);
-        z-index: -1;
+        z-index: 2;
       }
     `}
-  
+
   &:hover {
     border-color: color-mix(in srgb, var(--vscode-widget-border) 80%, white);
   }
@@ -808,7 +936,15 @@ import { AnimatedAccordion } from "../../common/AnimatedAccordion";
 // --- HIGHLIGHTING COMPONENT ---
 
 const HighlightedBlock = memo(
-  ({ content, language }: { content: string; language: string }) => {
+  ({
+    content,
+    language,
+    shouldHighlight,
+  }: {
+    content: string;
+    language: string;
+    shouldHighlight: boolean;
+  }) => {
     const [elements, setElements] = useState<React.ReactNode>(content);
 
     // KILOCODE LIVE-STREAM FIX: Immediately show raw content when it updates
@@ -818,17 +954,37 @@ const HighlightedBlock = memo(
     }, [content]);
 
     useEffect(() => {
+      if (!shouldHighlight || !content) {
+        setElements(content);
+        return;
+      }
+
       let isMounted = true;
+      let highlightTimeout: number | null = null;
       const highlight = async () => {
         try {
-          const highlighter = await getHighlighter(language);
-          if (!isMounted) return;
-
           const theme = document.body.className.toLowerCase().includes("light")
             ? "light-plus"
             : "dark-plus";
+          const normalizedLanguage = normalizeLanguage(language);
+          const cacheable = content.length <= 8000;
+          const cacheKey = cacheable
+            ? `${theme}:${normalizedLanguage}:${content}`
+            : null;
+
+          if (cacheKey) {
+            const cachedResult = highlightedBlockCache.get(cacheKey);
+            if (cachedResult) {
+              setElements(cachedResult);
+              return;
+            }
+          }
+
+          const highlighter = await getHighlighter(language);
+          if (!isMounted) return;
+
           const hast = await highlighter.codeToHast(content, {
-            lang: normalizeLanguage(language),
+            lang: normalizedLanguage,
             theme: theme,
             transformers: [
               {
@@ -865,19 +1021,38 @@ const HighlightedBlock = memo(
                 jsxs,
               },
             );
-            if (isMounted) setElements(reactElements);
+            if (isMounted) {
+              if (cacheKey) {
+                setCachedHighlight(
+                  highlightedBlockCache,
+                  cacheKey,
+                  reactElements,
+                );
+              }
+              setElements(reactElements);
+            }
           } else {
             if (isMounted) setElements(content);
           }
         } catch (e) {
           console.error("Highlight error:", e);
+          if (isMounted) {
+            setElements(content);
+          }
         }
       };
-      highlight();
+
+      highlightTimeout = window.setTimeout(() => {
+        void highlight();
+      }, 16);
+
       return () => {
         isMounted = false;
+        if (highlightTimeout !== null) {
+          window.clearTimeout(highlightTimeout);
+        }
       };
-    }, [content, language]);
+    }, [content, language, shouldHighlight]);
 
     return (
       <div
@@ -910,10 +1085,14 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
   autoApprovalEnabled,
 }) => {
   const { collapseCodeToolsByDefault = false } = useExtensionState();
+  const headerBackground = useToolHeaderBackground("write");
   const { isUndone, handleUndo, handleRedo } = useUndo(tool?.id);
 
   // kade_change: Handlers for manual permission buttons
   const [actionPending, setActionPending] = useState(false);
+  const [actionFlash, setActionFlash] = useState<"undone" | "redone" | null>(
+    null,
+  );
 
   const handleAllow = useCallback(() => {
     setActionPending(true);
@@ -931,14 +1110,15 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
   const [isExpanded, setIsExpanded] = useState(!collapseCodeToolsByDefault);
   const [showErrorDetails, setShowErrorDetails] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
 
   // Sticky: only animate on first mount, never re-trigger when isLastMessage flips
   const shouldAnimateOnceRef = useRef(isLastMessage && shouldAnimate);
   const didAnimate = shouldAnimateOnceRef.current;
 
   const filePath = useMemo(
-    () => tool.path || tool.file_path || tool.target_file || "",
-    [tool],
+    () => resolveToolFilePath(tool, toolResult),
+    [tool, toolResult],
   );
   const fileName = useMemo(() => {
     if (!filePath) return "Unknown File";
@@ -973,7 +1153,14 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
     return effective;
   }, [tool.content, tool.params, toolResult]);
 
+  const contentLineCount = useMemo(() => countLinesFast(content), [content]);
+  const shouldRenderBody = isExpanded;
+
   const displayContent = useMemo(() => {
+    if (!shouldRenderBody) {
+      return "";
+    }
+
     const trimmed = content.trim();
     if (trimmed.startsWith("@@") || trimmed.startsWith("diff --git")) {
       return content
@@ -989,15 +1176,58 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
         .trimEnd();
     }
     return content.trimEnd();
-  }, [content]);
+  }, [content, shouldRenderBody]);
+
+  const displayContentLineCount = useMemo(() => {
+    if (!shouldRenderBody || !displayContent) {
+      return 0;
+    }
+
+    return countLinesFast(displayContent);
+  }, [displayContent, shouldRenderBody]);
+  const displayLines = useMemo(() => {
+    if (!shouldRenderBody || !displayContent) {
+      return [];
+    }
+
+    return displayContent.split("\n");
+  }, [displayContent, shouldRenderBody]);
+  const contentWindow = useMemo(
+    () =>
+      getVirtualizedLineWindow({
+        lineCount: displayLines.length,
+        scrollTop,
+      }),
+    [displayLines.length, scrollTop],
+  );
+  const visibleContent = useMemo(() => {
+    if (!shouldRenderBody) {
+      return "";
+    }
+
+    if (!contentWindow.enabled) {
+      return displayContent;
+    }
+
+    return displayLines
+      .slice(contentWindow.start, contentWindow.end)
+      .join("\n");
+  }, [
+    contentWindow.enabled,
+    contentWindow.end,
+    contentWindow.start,
+    displayContent,
+    displayLines,
+    shouldRenderBody,
+  ]);
 
   const contentStats = useMemo(() => {
     if (!content) return null;
     return {
-      lines: content.split("\n").length,
+      lines: contentLineCount,
       chars: content.length,
     };
-  }, [content]);
+  }, [content, contentLineCount]);
 
   // Sticky: once content has been shown, never hide it (prevents unmount/remount flicker)
   const hasContentViewRef = useRef(false);
@@ -1103,9 +1333,12 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
     return diagnostics;
   }, [toolResult]);
 
-  const handleContentScroll = () => {
-    // No sync needed
-  };
+  const handleContentScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      setScrollTop(e.currentTarget.scrollTop);
+    },
+    [],
+  );
 
   // Auto-scroll for streaming content
   // Sticky: once streaming ends, don't flip back to streaming state (prevents flash)
@@ -1127,8 +1360,28 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
     return isStreamingRaw;
   }, [isStreamingRaw]);
 
+  const shouldHighlightContent = useMemo(() => {
+    if (!shouldRenderBody || isStreaming || !displayContent) {
+      return false;
+    }
+
+    return (
+      displayContent.length <= LARGE_WRITE_HIGHLIGHT_CHAR_LIMIT &&
+      displayContentLineCount <= LARGE_WRITE_HIGHLIGHT_LINE_LIMIT
+    );
+  }, [displayContent, displayContentLineCount, isStreaming, shouldRenderBody]);
+
   // Completion celebration state
   const [justCompleted, setJustCompleted] = useState(false);
+
+  useEffect(() => {
+    if (!actionFlash) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setActionFlash(null), 1400);
+    return () => window.clearTimeout(timeoutId);
+  }, [actionFlash]);
   const previousStreamingRef = useRef(isStreaming);
 
   useEffect(() => {
@@ -1146,14 +1399,20 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
     previousStreamingRef.current = isStreaming;
   }, [isStreaming, isError, toolResult]);
   useEffect(() => {
-    if (isStreaming && contentRef.current) {
+    if (isStreaming && shouldRenderBody && contentRef.current) {
       requestAnimationFrame(() => {
         if (contentRef.current) {
           contentRef.current.scrollTop = contentRef.current.scrollHeight;
         }
       });
     }
-  }, [isStreaming, content]);
+  }, [content, isStreaming, shouldRenderBody]);
+
+  useEffect(() => {
+    if (!contentWindow.enabled && scrollTop !== 0) {
+      setScrollTop(0);
+    }
+  }, [contentWindow.enabled, scrollTop]);
 
   const sendErrorsToAgent = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1167,6 +1426,10 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
     );
     setShowErrorDetails(false);
   };
+
+  if (!filePath && !isError) {
+    return null;
+  }
 
   return (
     <ToolMessageWrapper
@@ -1186,15 +1449,10 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
     >
       {/* Markdown Card UI */}
       {isMarkdown ? (
-        <MarkdownCardContainer 
+        <MarkdownCardContainer
           $shouldAnimate={isLastMessage}
           $isStreaming={isStreaming}
         >
-          {isPermissionRequest && (
-            <LoadingBarContainer>
-              <LoadingBar />
-            </LoadingBarContainer>
-          )}
           <MdIconBox>
             <span className="codicon codicon-markdown"></span>
           </MdIconBox>
@@ -1217,21 +1475,17 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
           $isError={isError}
           $shouldAnimate={didAnimate}
           $justCompleted={justCompleted}
+          $isActive={isStreaming || isPermissionRequest}
         >
           <CardHeader
             $clickable={hasContentView || isError}
             $isExpanded={isExpanded}
             $isError={isError}
+            style={headerBackground.style}
             onClick={() =>
               (hasContentView || isError) && setIsExpanded(!isExpanded)
             }
           >
-            {isPermissionRequest && (
-              <LoadingBarContainer>
-                <LoadingBar />
-              </LoadingBarContainer>
-            )}
-
             <TitleSection $status={statusValue as any}>
               {/* Icons removed for simplistic look */}
               <FileInfo>
@@ -1262,6 +1516,7 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
                       style={{
                         opacity: isStreaming ? 0 : 1,
                         transition: "opacity 0.15s ease-in",
+                        transform: "translateY(-0.94px)",
                       }}
                     >
                       <FileIcon fileName={filePath} size={14} />
@@ -1269,7 +1524,6 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
                   </div>
                 )}
                 <FileName
-                  title={filePath}
                   className="truncate"
                   style={{ fontWeight: 400 }}
                   onClick={(e) => {
@@ -1350,79 +1604,117 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
                   }}
                 >
                   {isUndone ? (
-                    <ActionButton
-                      $clickable={true}
-                      $isRedo={true}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRedo();
-                        triggerConfetti(e.clientX, e.clientY, "#4facff");
-                      }}
-                      title="Redo Write"
+                    <HeaderActionTooltip
+                      content={actionFlash === "undone" ? "Reverted" : "Redo"}
                     >
-                      <AnimIcon key="redo" $direction="cw">
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M21 7v6h-6" />
-                          <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
-                        </svg>
-                      </AnimIcon>
-                    </ActionButton>
-                  ) : (
-                    <ActionButton
-                      $isError={isError}
-                      $clickable={!isError}
-                      onClick={(e) => {
-                        if (!isError) {
+                      <ActionButton
+                        $clickable={true}
+                        $isRedo={true}
+                        onClick={(e) => {
                           e.stopPropagation();
-                          handleUndo();
-                          triggerConfetti(e.clientX, e.clientY, "#ffb86c");
+                          setActionFlash("redone");
+                          handleRedo();
+                          triggerConfetti(e.clientX, e.clientY, "#4facff");
+                        }}
+                        aria-label={
+                          actionFlash === "undone" ? "Reverted" : "Redo"
                         }
-                      }}
-                      title={
+                      >
+                        {actionFlash === "undone" ? (
+                          <AnimIcon key="undone" $direction="cw">
+                            <Check size={16} strokeWidth={2.2} />
+                          </AnimIcon>
+                        ) : (
+                          <AnimIcon key="redo" $direction="cw">
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M21 7v6h-6" />
+                              <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
+                            </svg>
+                          </AnimIcon>
+                        )}
+                      </ActionButton>
+                    </HeaderActionTooltip>
+                  ) : (
+                    <HeaderActionTooltip
+                      content={
                         isError
-                          ? "The model performed a malformed write. LLMs are not perfect and may occasionally fail to generate correct content."
-                          : "Undo Write"
+                          ? undefined
+                          : actionFlash === "redone"
+                            ? "Reapplied"
+                            : "Undo"
                       }
                     >
-                      {isError ? (
-                        <span
-                          className="codicon codicon-info"
-                          style={{ color: "var(--vscode-editor-foreground)" }}
-                        ></span>
-                      ) : (
-                        <AnimIcon key="undo" $direction="ccw">
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M3 7v6h6" />
-                            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3l-3 2.7" />
-                          </svg>
-                        </AnimIcon>
-                      )}
-                    </ActionButton>
+                      <ActionButton
+                        $isError={isError}
+                        $clickable={!isError}
+                        onClick={(e) => {
+                          if (!isError) {
+                            e.stopPropagation();
+                            setActionFlash("undone");
+                            handleUndo();
+                            triggerConfetti(e.clientX, e.clientY, "#ffb86c");
+                          }
+                        }}
+                        aria-label={
+                          isError
+                            ? undefined
+                            : actionFlash === "redone"
+                              ? "Reapplied"
+                              : "Undo"
+                        }
+                        title={
+                          isError
+                            ? "The model performed a malformed write. LLMs are not perfect and may occasionally fail to generate correct content."
+                            : undefined
+                        }
+                      >
+                        {isError ? (
+                          <span
+                            className="codicon codicon-info"
+                            style={{ color: "var(--vscode-editor-foreground)" }}
+                          ></span>
+                        ) : actionFlash === "redone" ? (
+                          <AnimIcon key="redone" $direction="cw">
+                            <Check size={16} strokeWidth={2.2} />
+                          </AnimIcon>
+                        ) : (
+                          <AnimIcon key="undo" $direction="ccw">
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M3 7v6h6" />
+                              <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3l-3 2.7" />
+                            </svg>
+                          </AnimIcon>
+                        )}
+                      </ActionButton>
+                    </HeaderActionTooltip>
                   )}
                 </div>
               </div>
             </StatusSection>
           </CardHeader>
 
-          <AnimatedAccordion isExpanded={isExpanded}>
+          <AnimatedAccordion
+            isExpanded={isExpanded}
+            unmountWhenCollapsed={true}
+          >
             <CardBody>
               {hasContentView && (
                 <WriteView>
@@ -1433,11 +1725,32 @@ const WriteToolComponent: React.FC<WriteToolProps> = ({
                       onScroll={handleContentScroll}
                     >
                       <ContentText>
+                        {contentWindow.enabled &&
+                          contentWindow.topSpacerHeight > 0 && (
+                            <div
+                              aria-hidden="true"
+                              style={{ height: contentWindow.topSpacerHeight }}
+                            />
+                          )}
                         <HighlightedBlock
-                          content={displayContent}
+                          content={visibleContent}
                           language={getLanguageFromPath(filePath) || "txt"}
+                          shouldHighlight={shouldHighlightContent}
                         />
-                        {isPermissionRequest && <TypingCursor />}
+                        {contentWindow.enabled &&
+                          contentWindow.bottomSpacerHeight > 0 && (
+                            <div
+                              aria-hidden="true"
+                              style={{
+                                height: contentWindow.bottomSpacerHeight,
+                              }}
+                            />
+                          )}
+                        {isPermissionRequest &&
+                          (!contentWindow.enabled ||
+                            contentWindow.end === displayLines.length) && (
+                            <TypingCursor />
+                          )}
                       </ContentText>
                     </WriteContent>
                   </WriteScrollContainer>

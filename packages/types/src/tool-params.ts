@@ -10,6 +10,8 @@ export interface LineRange {
 export interface FileEntry {
 	path: string
 	lineRanges?: LineRange[]
+	head?: number
+	tail?: number
 }
 
 export interface Coordinate {

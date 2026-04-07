@@ -39,18 +39,29 @@ export const commandIds = [
 	"activationCompleted",
 
 	"plusButtonClicked",
+	"sidebarPlusButtonClicked",
+	"tabPlusButtonClicked",
 	"promptsButtonClicked",
 	"mcpButtonClicked",
+	"sidebarMcpButtonClicked",
+	"tabMcpButtonClicked",
 
 	"historyButtonClicked",
+	"sidebarHistoryButtonClicked",
+	"tabHistoryButtonClicked",
 	"marketplaceButtonClicked",
 	"popoutButtonClicked",
+	"sidebarPopoutButtonClicked",
+	"tabPopoutButtonClicked",
 	"cloudButtonClicked",
 	"settingsButtonClicked",
+	"sidebarSettingsButtonClicked",
+	"tabSettingsButtonClicked",
+	"sidebarHelpButtonClicked",
+	"tabHelpButtonClicked",
 
 	"openInNewTab",
 	"agentManagerOpen", // kade_change
-	"groupChatOpen", // kade_change
 
 	"showHumanRelayDialog",
 	"registerHumanRelayCallback",

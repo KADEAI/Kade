@@ -24,7 +24,7 @@ import {
 
 /**
  * Simplified read file tool for models that only support single file reads
- * Uses the format: <read_file><path>file/path.ext</path></read_file>
+ * Uses the format: <read><path>file/path.ext</path></read>
  *
  * This is a streamlined version of readFileTool that:
  * - Only accepts a single path parameter
@@ -66,8 +66,8 @@ export async function simpleReadFileTool(
 	// Validate path parameter
 	if (!filePath) {
 		cline.consecutiveMistakeCount++
-		cline.recordToolError("read_file")
-		const errorMsg = await cline.sayAndCreateMissingParamError("read_file", "path")
+		cline.recordToolError("read")
+		const errorMsg = await cline.sayAndCreateMissingParamError("read", "path")
 		pushToolResult(`<file><error>${errorMsg}</error></file>`)
 		return
 	}
@@ -206,17 +206,17 @@ export async function simpleReadFileTool(
 			try {
 				const defResult = await parseSourceCodeDefinitionsForFile(fullPath, cline.rooIgnoreController)
 				if (defResult) {
-					let xmlInfo = `<notice>Showing only definitions. Use standard read_file if you need to read actual content</notice>\n`
+					let xmlInfo = `<notice>Showing only definitions. Use standard read if you need to read actual content</notice>\n`
 					pushToolResult(
 						`<file><path>${relPath}</path>\n<list_code_definition_names>${defResult}</list_code_definition_names>\n${xmlInfo}</file>`,
 					)
 				}
 			} catch (error) {
 				if (error instanceof Error && error.message.startsWith("Unsupported language:")) {
-					console.warn(`[simple_read_file] Warning: ${error.message}`)
+					console.warn(`[simple_read] Warning: ${error.message}`)
 				} else {
 					console.error(
-						`[simple_read_file] Unhandled error: ${error instanceof Error ? error.message : String(error)}`,
+						`[simple_read] Unhandled error: ${error instanceof Error ? error.message : String(error)}`,
 					)
 				}
 			}
@@ -238,10 +238,10 @@ export async function simpleReadFileTool(
 				pushToolResult(`<file><path>${relPath}</path>\n${xmlInfo}</file>`)
 			} catch (error) {
 				if (error instanceof Error && error.message.startsWith("Unsupported language:")) {
-					console.warn(`[simple_read_file] Warning: ${error.message}`)
+					console.warn(`[simple_read] Warning: ${error.message}`)
 				} else {
 					console.error(
-						`[simple_read_file] Unhandled error: ${error instanceof Error ? error.message : String(error)}`,
+						`[simple_read] Unhandled error: ${error instanceof Error ? error.message : String(error)}`,
 					)
 				}
 			}

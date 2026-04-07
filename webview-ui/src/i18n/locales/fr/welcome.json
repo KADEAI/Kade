@@ -1,45 +1,45 @@
 {
-	"greeting": "Salut, je suis Kade !",
-	"introduction": "<strong>Kade est l'agent de codage autonome de premier plan.</strong> Prépare-toi à architecturer, coder, déboguer et à augmenter ta productivité comme jamais auparavant. Pour continuer, Kade nécessite une clé API.",
-	"notice": "Pour commencer, cette extension a besoin d'un fournisseur d'API.",
-	"start": "C'est parti !",
-	"routers": {
-		"requesty": {
-			"description": "Ton routeur LLM optimisé",
-			"incentive": "1$ de crédit gratuit"
-		},
-		"openrouter": {
-			"description": "Une interface unifiée pour les LLMs"
-		},
-		"roo": {
-			"description": "Les meilleurs modèles gratuits pour commencer",
-			"incentive": "Essayez Roo gratuitement"
-		}
-	},
-	"chooseProvider": "Pour faire sa magie, Kade a besoin d'une clé API.",
-	"providerSignup": {
-		"rooCloudProvider": "Fournisseur Roo Code Cloud",
-		"rooCloudDescription": "La façon la plus simple d'utiliser Roo. Un mélange sélectionné de modèles gratuits et payants à faible coût",
-		"learnMore": "en savoir plus",
-		"useAnotherProvider": "Utiliser un autre fournisseur",
-		"useAnotherProviderDescription": "Entre une clé API et commence.",
-		"noApiKeys": "Tu ne veux pas te soucier des clés? Opte pour le Fournisseur Roo Code Cloud.",
-		"getStarted": "Commencer"
-	},
-	"waitingForCloud": {
-		"heading": "Nous te menons à Roo Code Cloud...",
-		"description": "Termine l'inscription dans ton navigateur et tu reviendras ici automatiquement.",
-		"noPrompt": "Si tu n'es pas invité à ouvrir une URL, <clickHere>clique ici</clickHere>.",
-		"havingTrouble": "Si tu as terminé l'inscription mais que tu rencontres des problèmes, <clickHere>clique ici</clickHere>.",
-		"pasteUrl": "Colle l'URL de rappel depuis ton navigateur :",
-		"invalidURL": "Cela ne ressemble pas à une URL de rappel valide. Copie ce que Roo Code Cloud affiche dans ton navigateur.",
-		"goBack": "Retour"
-	},
-	"startRouter": "Nous recommandons d'utiliser un routeur LLM :",
-	"startCustom": "Ou tu peux apporter ta propre clé API :",
-	"telemetry": {
-		"helpImprove": "Aide à améliorer Kade",
-		"helpImproveMessage": "Kade collecte des données d'erreurs et d'utilisation pour nous aider à corriger les bugs et améliorer l'extension. Cette télémétrie ne collecte pas de code, de prompts ou d'informations personnelles. Tu peux désactiver cela dans les <settingsLink>paramètres</settingsLink>."
-	},
-	"importSettings": "Importer les paramètres"
+  "greeting": "Salut, je suis Kade !",
+  "introduction": "<strong>Kade est l'agent de codage autonome de premier plan.</strong> Prépare-toi à architecturer, coder, déboguer et à augmenter ta productivité comme jamais auparavant. Pour continuer, Kade nécessite une clé API.",
+  "notice": "Pour commencer, cette extension a besoin d'un fournisseur d'API.",
+  "start": "C'est parti !",
+  "routers": {
+    "requesty": {
+      "description": "Ton routeur LLM optimisé",
+      "incentive": "1$ de crédit gratuit"
+    },
+    "openrouter": {
+      "description": "Une interface unifiée pour les LLMs"
+    },
+    "roo": {
+      "description": "Les meilleurs modèles gratuits pour commencer",
+      "incentive": "Essayez Roo gratuitement"
+    }
+  },
+  "chooseProvider": "Pour faire sa magie, Kade a besoin d'une clé API.",
+  "providerSignup": {
+    "rooCloudProvider": "Fournisseur Roo Code Cloud",
+    "rooCloudDescription": "La façon la plus simple d'utiliser Roo. Un mélange sélectionné de modèles gratuits et payants à faible coût",
+    "learnMore": "en savoir plus",
+    "useAnotherProvider": "Utiliser un autre fournisseur",
+    "useAnotherProviderDescription": "Entre une clé API et commence.",
+    "noApiKeys": "Tu ne veux pas te soucier des clés? Opte pour le Fournisseur Roo Code Cloud.",
+    "getStarted": "Commencer"
+  },
+  "waitingForCloud": {
+    "heading": "Nous te menons à Roo Code Cloud...",
+    "description": "Termine l'inscription dans ton navigateur et tu reviendras ici automatiquement.",
+    "noPrompt": "Si tu n'es pas invité à ouvrir une URL, <clickHere>clique ici</clickHere>.",
+    "havingTrouble": "Si tu as terminé l'inscription mais que tu rencontres des problèmes, <clickHere>clique ici</clickHere>.",
+    "pasteUrl": "Colle l'URL de rappel depuis ton navigateur :",
+    "invalidURL": "Cela ne ressemble pas à une URL de rappel valide. Copie ce que Roo Code Cloud affiche dans ton navigateur.",
+    "goBack": "Retour"
+  },
+  "startRouter": "Nous recommandons d'utiliser un routeur LLM :",
+  "startCustom": "Ou tu peux apporter ta propre clé API :",
+  "telemetry": {
+    "helpImprove": "Aide à améliorer Kade",
+    "helpImproveMessage": "Kade collecte des données d'erreurs et d'utilisation pour nous aider à corriger les bugs et améliorer l'extension. Cette télémétrie ne collecte pas de code, de prompts ou d'informations personnelles. Tu peux désactiver cela dans les <settingsLink>paramètres</settingsLink>."
+  },
+  "importSettings": "Importer les paramètres"
 }

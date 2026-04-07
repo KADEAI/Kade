@@ -29,6 +29,7 @@ export const generateSystemPrompt = async (provider: ClineProvider, message: Web
 		maxReadFileLine,
 		maxConcurrentFileReads,
 		enabledSkills,
+		showVibeStyling,
 	} = state // kade_change
 
 	// Fetch installed skills
@@ -73,49 +74,57 @@ export const generateSystemPrompt = async (provider: ClineProvider, message: Web
 	// Only enable browser tools if the model supports it, the mode includes browser tools,
 	// and browser tools are enabled in settings
 	const canUseBrowserTool = modelSupportsBrowser && modeSupportsBrowser && (browserToolEnabled ?? true)
+	const canUseComputerTool = modelSupportsBrowser && modeSupportsBrowser && (state.computerUseToolEnabled ?? true)
 
 	// Resolve tool protocol for system prompt generation
 	const toolProtocol = resolveToolProtocol(apiConfiguration, modelInfo)
 
 	const systemPrompt = await SYSTEM_PROMPT(
-		provider.context,
-		cwd,
-		canUseBrowserTool,
-		mcpEnabled ? provider.getMcpHub() : undefined,
-		diffStrategy,
-		browserViewportSize ?? "900x600",
-		mode,
-		customModePrompts,
-		customModes,
-		customInstructions,
-		diffEnabled,
-		experiments,
-		enableMcpServerCreation,
-		language,
-		rooIgnoreInstructions,
-		maxReadFileLine !== -1,
-		{
-			maxConcurrentFileReads: maxConcurrentFileReads ?? 5,
-			todoListEnabled: apiConfiguration?.todoListEnabled ?? true,
-			useAgentRules: vscode.workspace.getConfiguration(Package.name).get<boolean>("useAgentRules") ?? true,
-			newTaskRequireTodos: vscode.workspace
-				.getConfiguration(Package.name)
-				.get<boolean>("newTaskRequireTodos", false),
-			toolProtocol,
-			unifiedFormatVariant: apiConfiguration?.unifiedFormatVariant,
-			isStealthModel: modelInfo?.isStealthModel,
-			disableBatchToolUse: apiConfiguration?.disableBatchToolUse,
-			maxToolCalls: apiConfiguration?.maxToolCalls,
-			minimalSystemPrompt: apiConfiguration?.minimalSystemPrompt,
-		},
-		// kade_change start
-		undefined,
-		undefined,
-		state,
-		enabledSkills,
-		installedSkills,
-		// kade_change end
-	)
+    provider.context,
+    cwd,
+    canUseBrowserTool,
+    canUseComputerTool,
+    mcpEnabled ? provider.getMcpHub() : undefined,
+    diffStrategy,
+    browserViewportSize ?? "900x600",
+    mode,
+    customModePrompts,
+    customModes,
+    customInstructions,
+    diffEnabled,
+    experiments,
+    enableMcpServerCreation,
+    language,
+    rooIgnoreInstructions,
+    maxReadFileLine !== -1,
+    {
+      maxConcurrentFileReads: maxConcurrentFileReads ?? 5,
+      todoListEnabled: apiConfiguration?.todoListEnabled ?? true,
+      browserToolEnabled: browserToolEnabled ?? true,
+      computerUseToolEnabled: state.computerUseToolEnabled ?? true,
+      useAgentRules:
+        vscode.workspace
+          .getConfiguration(Package.name)
+          .get<boolean>("useAgentRules") ?? true,
+      newTaskRequireTodos: vscode.workspace
+        .getConfiguration(Package.name)
+        .get<boolean>("newTaskRequireTodos", false),
+      toolProtocol,
+      unifiedFormatVariant: apiConfiguration?.unifiedFormatVariant,
+      isStealthModel: modelInfo?.isStealthModel,
+      disableBatchToolUse: apiConfiguration?.disableBatchToolUse,
+      maxToolCalls: apiConfiguration?.maxToolCalls,
+      minimalSystemPrompt: apiConfiguration?.minimalSystemPrompt,
+      showVibeStyling: showVibeStyling === true,
+    },
+    // kade_change start
+    undefined,
+    undefined,
+    state,
+    enabledSkills,
+    installedSkills,
+    // kade_change end
+  );
 
 	return systemPrompt
 }

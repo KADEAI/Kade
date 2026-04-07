@@ -113,6 +113,8 @@ export default defineConfig(({ mode }) => {
 		plugins,
 		resolve: {
 			alias: {
+				"@virtuoso.dev/message-list": resolve(__dirname, "./vendor/virtuoso-message-list.js"),
+				"@virtuoso.dev/gurx": resolve(__dirname, "./vendor/virtuoso-gurx.js"),
 				"@": resolve(__dirname, "./src"),
 				"@src": resolve(__dirname, "./src"),
 				"@roo": resolve(__dirname, "../src/shared"),
@@ -129,22 +131,15 @@ export default defineConfig(({ mode }) => {
 			// Use a single combined CSS bundle so both webviews share styles
 			cssCodeSplit: false, // kade_change: changed to true to enable cssPerEntryPlugin
 			rollupOptions: {
-				input: {
-					index: resolve(__dirname, "index.html"), // kade_change - DO NOT CHANGE
-					"agent-manager": resolve(__dirname, "agent-manager.html"), // kade_change
-					"group-chat": resolve(__dirname, "group-chat.html"), // kade_change
-					"browser-panel": resolve(__dirname, "browser-panel.html"),
-				},
+                input: {
+                    index: resolve(__dirname, "index.html"), // kade_change - DO NOT CHANGE
+                    "browser-panel": resolve(__dirname, "browser-panel.html"),
+                    "agent-manager": resolve(__dirname, "src/kilocode/native-agent-manager/index.tsx"),
+                },
 				external: ["vscode"], // kade_change: we inadvertently import vscode into the webview: @roo/modes => src/shared/modes => ../core/prompts/sections/custom-instructions
 				output: {
 					entryFileNames: `assets/[name].js`,
-					chunkFileNames: (chunkInfo) => {
-						if (chunkInfo.name === "mermaid-bundle") {
-							return `assets/mermaid-bundle.js`
-						}
-						// Default naming for other chunks, ensuring uniqueness from entry
-						return `assets/chunk-[hash].js`
-					},
+					chunkFileNames: `assets/chunk-[hash].js`,
 					assetFileNames: (assetInfo) => {
 						const name = assetInfo.name || ""
 
@@ -164,29 +159,62 @@ export default defineConfig(({ mode }) => {
 						}
 						return "assets/[name][extname]"
 					},
-					manualChunks: (id, { getModuleInfo }) => {
-						// Consolidate all mermaid code and its direct large dependencies (like dagre)
-						// into a single chunk. The 'channel.js' error often points to dagre.
+					manualChunks: (id) => {
+						if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
+							return "react-vendor"
+						}
 						if (
-							id.includes("node_modules/mermaid") ||
-							id.includes("node_modules/dagre") || // dagre is a common dep for graph layout
-							id.includes("node_modules/cytoscape") // another potential graph lib
-							// Add other known large mermaid dependencies if identified
+							id.includes("node_modules/styled-components") ||
+							id.includes("node_modules/@emotion")
 						) {
-							return "mermaid-bundle"
+							return "style-vendor"
+						}
+						if (
+							id.includes("node_modules/shiki") ||
+							id.includes("node_modules/katex") ||
+							id.includes("node_modules/rehype-") ||
+							id.includes("node_modules/remark-") ||
+							id.includes("node_modules/react-markdown") ||
+							id.includes("node_modules/hast-util-")
+						) {
+							return "markdown-vendor"
+						}
+						if (
+							id.includes("node_modules/@radix-ui") ||
+							id.includes("node_modules/lucide-react") ||
+							id.includes("node_modules/framer-motion")
+						) {
+							return "ui-vendor"
+						}
+						if (
+							id.includes("node_modules/i18next") ||
+							id.includes("node_modules/react-i18next") ||
+							id.includes("node_modules/i18next-http-backend")
+						) {
+							return "i18n-vendor"
+						}
+						if (
+							id.includes("node_modules/@tanstack") ||
+							id.includes("node_modules/jotai") ||
+							id.includes("node_modules/react-use")
+						) {
+							return "state-vendor"
 						}
 
-						// Check if the module is part of any explicitly defined mermaid-related dynamic import
-						// This is a more advanced check if simple path matching isn't enough.
-						const moduleInfo = getModuleInfo(id)
-						if (moduleInfo?.importers.some((importer) => importer.includes("node_modules/mermaid"))) {
-							return "mermaid-bundle"
+						if (!id.includes("node_modules")) {
+							if (
+								id.includes("/src/components/settings/") ||
+								id.includes("/src/components/history/") ||
+								id.includes("/src/components/marketplace/") ||
+								id.includes("/src/components/resources/") ||
+								id.includes("/src/components/kilocode/profile/") ||
+								id.includes("/src/components/kilocode/auth/") ||
+								id.includes("/src/components/kilocode/welcome/")
+							) {
+								return "tab-views"
+							}
 						}
-						if (
-							moduleInfo?.dynamicImporters.some((importer) => importer.includes("node_modules/mermaid"))
-						) {
-							return "mermaid-bundle"
-						}
+
 					},
 				},
 			},

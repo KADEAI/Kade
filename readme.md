@@ -1,8 +1,14 @@
-# 🚀 Kade AI Agent - The Next Generation of Coding
+# 🚀 Kade 3.0 - The Next Iteration of Agentic Coding
+
+Kade has gone open source! Feel free to contribute, open issues, and star the [GitHub repo](https://github.com/KADEAI/Kade).
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/tadeonkipp-dev/repoforimgs/main/screenshot-top.png" width="400" alt="Kade AI Interface Preview" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);" />
 </p>
+
+## Kade 3.0 is here
+
+**Completely redesigned, heavily upgraded, and built as the next major evolution of Kade.** This release overhauls basically every aspect of the UI, improves the overall workflow from top to bottom, introduces a new Agent Manager page, and delivers more than a thousand fixes across the product.
 
 **This is not your average coding assistant.** Kade is a revolutionary fork of Cline/RooCode/KiloCode designed to become the most powerful agentic IDE on the market - with unlimited rate limits, beautiful visual interfaces, and zero CLI bullshit.
 
@@ -122,7 +128,7 @@ Kade is the only agent that gives you the freedom to choose, supporting all four
       "id": "call_abc123",
       "type": "function",
       "function": {
-        "name": "read_file",
+        "name": "read",
         "arguments": "{\"path\": \"src/main.ts\", \"lines\": \"1-50\"}"
       }
     }

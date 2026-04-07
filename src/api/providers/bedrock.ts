@@ -353,7 +353,7 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 			supportsNativeTools &&
 			metadata?.tools &&
 			metadata.tools.length > 0 &&
-			metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN &&
+			metadata?.toolProtocol === TOOL_PROTOCOL.JSON &&
 			metadata?.tool_choice !== "none"
 
 		const conversationId =

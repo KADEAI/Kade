@@ -20,7 +20,7 @@ export const moonshotModels = {
 		cacheReadsPrice: 0.15, // $0.15 per million tokens (cache hit)
 		preserveReasoning: true,
 		supportsNativeTools: true,
-		defaultToolProtocol: "markdown",
+		defaultToolProtocol: "unified",
 		supportsTemperature: false,
 		defaultTemperature: 0.6,
 		description: `Kimi for coding`,
@@ -32,7 +32,7 @@ export const moonshotModels = {
 		supportsImages: false,
 		supportsPromptCache: true,
 		supportsNativeTools: true,
-		defaultToolProtocol: "markdown",
+		defaultToolProtocol: "unified",
 		inputPrice: 0.6, // $0.60 per million tokens (cache miss)
 		outputPrice: 2.5, // $2.50 per million tokens
 		cacheWritesPrice: 0, // $0 per million tokens (cache miss)
@@ -45,7 +45,7 @@ export const moonshotModels = {
 		supportsImages: false,
 		supportsPromptCache: true,
 		supportsNativeTools: true,
-		defaultToolProtocol: "markdown",
+		defaultToolProtocol: "unified",
 		inputPrice: 0.6,
 		outputPrice: 2.5,
 		cacheReadsPrice: 0.15,
@@ -58,7 +58,7 @@ export const moonshotModels = {
 		supportsImages: false,
 		supportsPromptCache: true,
 		supportsNativeTools: true,
-		defaultToolProtocol: "markdown",
+		defaultToolProtocol: "unified",
 		inputPrice: 2.4, // $2.40 per million tokens (cache miss)
 		outputPrice: 10, // $10.00 per million tokens
 		cacheWritesPrice: 0, // $0 per million tokens (cache miss)
@@ -86,7 +86,7 @@ export const moonshotModels = {
 		supportsImages: false, // Text-only (no image/vision support)
 		supportsPromptCache: true,
 		supportsNativeTools: true,
-		defaultToolProtocol: "markdown",
+		defaultToolProtocol: "unified",
 		inputPrice: 0.6, // $0.60 per million tokens (cache miss)
 		outputPrice: 2.5, // $2.50 per million tokens
 		cacheWritesPrice: 0, // $0 per million tokens (cache miss)
@@ -106,7 +106,7 @@ export const moonshotModels = {
 		supportsAdaptiveThinking: true,
 		preserveReasoning: true,
 		supportsNativeTools: true,
-		defaultToolProtocol: "markdown",
+		defaultToolProtocol: "unified",
 		inputPrice: 0.6, // $0.60 per million tokens (cache miss)
 		outputPrice: 3.0, // $3.00 per million tokens
 		cacheReadsPrice: 0.1, // $0.10 per million tokens (cache hit)

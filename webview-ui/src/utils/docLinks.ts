@@ -7,11 +7,14 @@
  */
 // kade_change: unused campaign param
 export function buildDocLink(path: string, _campaign: string): string {
-	// Remove any leading slash from path
-	const cleanPath = path
-		.replace(/^\//, "")
-		.replace("troubleshooting/shell-integration/", "features/shell-integration") // kade_change
-	const [basePath, hash] = cleanPath.split("#")
-	const baseUrl = `https://kilo.ai/docs/${basePath}`
-	return hash ? `${baseUrl}#${hash}` : baseUrl
+  // Remove any leading slash from path
+  const cleanPath = path
+    .replace(/^\//, "")
+    .replace(
+      "troubleshooting/shell-integration/",
+      "features/shell-integration",
+    ); // kade_change
+  const [basePath, hash] = cleanPath.split("#");
+  const baseUrl = `https://kilo.ai/docs/${basePath}`;
+  return hash ? `${baseUrl}#${hash}` : baseUrl;
 }

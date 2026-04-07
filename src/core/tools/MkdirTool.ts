@@ -3,13 +3,12 @@ import fs from "fs/promises"
 
 import { Task } from "../task/Task"
 import { ClineSayTool } from "../../shared/ExtensionMessage"
-import { getReadablePath } from "../../utils/path"
 import { isPathOutsideWorkspace } from "../../utils/pathUtils"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
 
 interface MkdirParams {
-	path: string
+	path?: string
 }
 
 export class MkdirTool extends BaseTool<"mkdir"> {
@@ -17,66 +16,45 @@ export class MkdirTool extends BaseTool<"mkdir"> {
 
 	parseLegacy(params: Partial<Record<string, string>>): MkdirParams {
 		return {
-			path: params.path || "",
+			path: params.path || ".",
 		}
 	}
 
 	async execute(params: MkdirParams, task: Task, callbacks: ToolCallbacks): Promise<void> {
-		const { path: relPathStr } = params
-		const { askApproval, handleError, pushToolResult } = callbacks
+		const relPathStr = params.path?.trim() || "."
+		const { handleError, pushToolResult } = callbacks
 
 		try {
-			if (!relPathStr) {
+			const absolutePath = path.resolve(task.cwd, relPathStr)
+			if (isPathOutsideWorkspace(absolutePath)) {
 				task.consecutiveMistakeCount++
 				task.recordToolError("mkdir")
 				task.didToolFailInCurrentTurn = true
-				pushToolResult(await task.sayAndCreateMissingParamError("mkdir", "path"))
+				pushToolResult(`Error: Path ${relPathStr} is outside workspace.`)
 				return
 			}
 
+			const stat = await fs.stat(absolutePath)
+			if (!stat.isDirectory()) {
+				task.consecutiveMistakeCount++
+				task.recordToolError("mkdir")
+				task.didToolFailInCurrentTurn = true
+				pushToolResult(`Error: ${relPathStr} is not a directory.`)
+				return
+			}
+
+			const entries = await fs.readdir(absolutePath, { withFileTypes: true })
 			task.consecutiveMistakeCount = 0
 
-			const relPaths = relPathStr.split(",").map((p) => p.trim()).filter(Boolean)
-			const results: string[] = []
+			const listing = entries
+				.slice()
+				.sort((left, right) => left.name.localeCompare(right.name))
+				.map((entry) => (entry.isDirectory() ? `${entry.name}/` : entry.name))
+				.join("\n")
 
-			const sharedMessageProps: ClineSayTool = {
-				tool: "mkdir",
-				path: relPathStr, // Pass the whole string to show all in UI
-				isOutsideWorkspace: relPaths.some(p => isPathOutsideWorkspace(path.resolve(task.cwd, p))),
-			}
-
-			const completeMessage = JSON.stringify({ ...sharedMessageProps, id: callbacks.toolCallId } satisfies ClineSayTool)
-			const didApprove = await askApproval("tool", completeMessage)
-
-			if (!didApprove) {
-				pushToolResult("mkdir denied by user.")
-				return
-			}
-
-			for (const relPath of relPaths) {
-				const absolutePath = path.resolve(task.cwd, relPath)
-				const isOutsideWorkspace = isPathOutsideWorkspace(absolutePath)
-
-				if (isOutsideWorkspace) {
-					results.push(`Error: Path ${relPath} is outside workspace.`)
-					continue
-				}
-
-				try {
-					await fs.mkdir(absolutePath, { recursive: true })
-					results.push(`Successfully created directory: ${relPath}`)
-
-					// Track file context for the created directory
-					await task.fileContextTracker.trackFileContext(relPath, "roo_edited" as any)
-				} catch (error) {
-					const errorMsg = error instanceof Error ? error.message : String(error)
-					results.push(`Error creating ${relPath}: ${errorMsg}`)
-				}
-			}
-
-			pushToolResult(results.join("\n"))
+			pushToolResult(listing || "(empty directory)")
 		} catch (error) {
-			await handleError("creating directories", error)
+			await handleError("listing directory", error)
 		}
 	}
 

@@ -164,7 +164,7 @@ export function isNonBlockingAsk(ask: ClineAsk): ask is NonBlockingAsk {
  * - `diff_error`: Error occurred while applying a diff/patch
  * - `condense_context`: Context condensation/summarization has started
  * - `condense_context_error`: Error occurred during context condensation
- * - `codebase_search_result`: Results from searching the codebase
+ * - `ask_result`: Results from searching the codebase
  */
 export const clineSays = [
 	"error",
@@ -194,7 +194,7 @@ export const clineSays = [
 	"condense_context",
 	"condense_context_error",
 	"sliding_window_truncation",
-	"codebase_search_result",
+	"ask_result",
 	"user_edit_todos",
 	"task",
 	"tool",

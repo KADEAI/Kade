@@ -3,6 +3,8 @@ import axios from "axios"
 
 import type { ModelInfo } from "@roo-code/types"
 
+import { getAihubmixModelsUrl } from "../utils/aihubmix-url"
+
 /**
  * Parse features field (may be comma-separated string or array)
  */
@@ -32,10 +34,15 @@ export interface GetAihubmixModelsOptions {
  */
 export async function getAihubmixModels(options?: GetAihubmixModelsOptions): Promise<Record<string, ModelInfo>> {
 	const models: Record<string, ModelInfo> = {}
-	const baseUrl = options?.baseUrl || "https://aihubmix.com"
 
 	try {
-		const response = await axios.get(`${baseUrl}/api/v1/models?type=llm&sort_by=coding`)
+		const response = await axios.get(getAihubmixModelsUrl(options?.baseUrl), {
+			params: {
+				type: "llm",
+				sort_by: "coding",
+			},
+			headers: options?.apiKey ? { Authorization: `Bearer ${options.apiKey}` } : undefined,
+		})
 
 		if (!response.data?.success || !Array.isArray(response.data?.data)) {
 			console.error("Invalid response from AIhubmix API:", response.data)
@@ -61,19 +68,17 @@ export async function getAihubmixModels(options?: GetAihubmixModelsOptions): Pro
 			const supportsThinking = features.includes("thinking")
 
 			// Check if model supports native tools
-			const supportsNativeTools = features.includes("tools") || features.includes("function_calling")
-
 			// Check if model supports prompt cache: cache_read price differs from input price
 			const supportsPromptCache =
 				pricing.cache_read !== undefined && pricing.input !== undefined && pricing.cache_read !== pricing.input
 
 			const modelInfo: ModelInfo = {
-				maxTokens: rawModel.max_output ?? 8192,
-				contextWindow: rawModel.context_length ?? 128000,
+				maxTokens: Number(rawModel.max_output) || 8192,
+				contextWindow: Number(rawModel.context_length) || 128000,
 				supportsImages,
 				supportsPromptCache,
-				supportsNativeTools,
-				defaultToolProtocol: "markdown",
+				supportsNativeTools: false,
+				defaultToolProtocol: "unified",
 				inputPrice: pricing.input,
 				outputPrice: pricing.output,
 				cacheWritesPrice: pricing.cache_write,

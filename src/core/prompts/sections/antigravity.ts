@@ -1,4 +1,31 @@
-import * as os from "os"
+const joinPromptSections = (...sections: Array<string | undefined>) =>
+	sections.filter((section) => section && section.trim().length > 0).join("\n")
+
+const VIBE_STYLING_GUIDE = `This chat supports inline "vibe" styling.
+Syntax:
+~tag content~
+~tag1:tag2 content~
+Examples:
+- ~shout:pro important~
+- ~cool smooth and clean~
+- ~spooky something feels wrong~
+- ~terminal:quiet npm install complete~
+Use it sparingly for emphasis, headings, warnings, punchlines, and short key phrases, not full paragraphs.
+Main tags:
+glitch, shimmer, bounce, pulse, wave, rainbow, neon, fire, shake, slide, fade, chromatic, emphasis, pop, spotlight, echo
+Style tags:
+retro, cyberpunk, holographic, terminal, frost, inferno, galaxy, gold, dark, vapor, pro, glass, loud, quiet, big, huge, mega, shout
+Emotion shorthand:
+- happy
+- sad
+- angry
+- excited
+- cool
+- spooky
+- shout
+- whisper
+Combos are supported with \`:.\`
+If a vibe tag isn't recognized, treat it as normal markdown.`
 
 export const ANTIGRAVITY_TEMPLATE = (
 	toolDefinitions: string,
@@ -12,26 +39,21 @@ export const ANTIGRAVITY_TEMPLATE = (
 	subAgentsSection: string,
 	skillsSection: string,
 	projectInit: string,
+	showVibeStyling: boolean = true,
 	disableBatchToolUse: boolean = false,
 	maxToolCalls?: number,
 ) =>
-	`<identity>
-${projectInit ? "\n# PROJECT OVERVIEW\n" + projectInit + "\n\n" : ""}${userInformation}
-# USER RULES
-${userRules}
-${subAgentsSection}
-${skillsSection}
-${mcpServers}
-${capabilities}
-${modes}
-${customInstructions}
-# TOOL PROTOCOL
-# AUTOMATIC CONTEXT UPDATING (MANDATORY)
-When you \`edit\` or \`write\` a file, the system **AUTOMATICALLY UPDATES** all previous \`read\` results for that file in your history.
-- **ACTION:** Treat updated \`read\` blocks as ground truth.
-- **NEVER** re-\`read\` a file immediately after editing; the context is already current. Only reread a file if your getting errors with the edit tool.
-- **DEDUPLICATION:** Do not request the same file multiple times in one turn (e.g., full read + line range). Pick the most efficient format and stick to it.
-- Your read results are akin to a live file in a vs code editor tab rather then stale context that never updates. 
-- After making an edit to a file, your old blocks can be used to reference what the previous content was for that read
-${toolUseGuidelines}
-${toolDefinitions}`
+	joinPromptSections(
+		projectInit ? `# PROJECT OVERVIEW${projectInit}` : "",
+		userInformation,
+		userRules,
+		subAgentsSection,
+		skillsSection,
+		mcpServers,
+		capabilities,
+		modes,
+		customInstructions,
+		showVibeStyling ? VIBE_STYLING_GUIDE : "",
+		toolUseGuidelines,
+		toolDefinitions,
+	)

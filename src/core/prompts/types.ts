@@ -8,6 +8,8 @@ export interface SystemPromptSettings {
 	todoListEnabled: boolean
 	subAgentToolEnabled?: boolean
 	browserToolEnabled?: boolean
+	computerUseToolEnabled?: boolean
+	showVibeStyling?: boolean
 	useAgentRules: boolean
 	newTaskRequireTodos: boolean
 	toolProtocol?: ToolProtocol

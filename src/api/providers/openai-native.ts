@@ -287,21 +287,24 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			// Enable extended prompt cache retention for models that support it.
 			// This uses the OpenAI Responses API `prompt_cache_retention` parameter.
 			...(promptCacheRetention ? { prompt_cache_retention: promptCacheRetention } : {}),
-			...(metadata?.tools && {
-				tools: metadata.tools
-					.filter((tool) => tool.type === "function")
-					.map((tool) => ({
-						type: "function",
-						name: tool.function.name,
-						description: tool.function.description,
-						// kade_change start: normalize invalid schemes for strict mode
-						parameters: normalizeObjectAdditionalPropertiesFalse(
-							ensureAllRequired(tool.function.parameters),
-						),
-						// kilocode_chang end
-						strict: true,
-					})),
-			}),
+				...(metadata?.tools && {
+					tools: metadata.tools
+						.filter((tool) => tool.type === "function")
+						.map((tool) => ({
+							type: "function",
+							name: tool.function.name,
+							description: tool.function.description,
+							// Preserve non-strict router schemas; only force OpenAI strict normalization
+							// when the tool explicitly opted into strict mode.
+							parameters:
+								tool.function.strict === false
+									? normalizeObjectAdditionalPropertiesFalse(tool.function.parameters)
+									: normalizeObjectAdditionalPropertiesFalse(
+											ensureAllRequired(tool.function.parameters),
+									  ),
+							...(tool.function.strict === false ? {} : { strict: true }),
+						})),
+				}),
 			...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
 		}
 
@@ -309,7 +312,7 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		// When parallelToolCalls is true, allow parallel tool calls (OpenAI's parallel_tool_calls=true).
 		// When false (default), explicitly disable parallel tool calls (false).
 		// For XML or when protocol is unset, omit the field entirely so the API default applies.
-		if (metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN) {
+		if (metadata?.toolProtocol === TOOL_PROTOCOL.JSON) {
 			body.parallel_tool_calls = metadata.parallelToolCalls ?? false
 		}
 
@@ -825,11 +828,11 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 								// MCP list tools status events
 							}
 							// Handle web search events
-							else if (parsed.type === "response.web_search_call.searching") {
+							else if (parsed.type === "response.web_call.searching") {
 								// Web search in progress
-							} else if (parsed.type === "response.web_search_call.in_progress") {
+							} else if (parsed.type === "response.web_call.in_progress") {
 								// Processing web search results
-							} else if (parsed.type === "response.web_search_call.completed") {
+							} else if (parsed.type === "response.web_call.completed") {
 								// Web search completed
 							}
 							// Handle code interpreter events
@@ -1108,7 +1111,13 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			event?.type === "response.tool_call_arguments.done" ||
 			event?.type === "response.function_call_arguments.done"
 		) {
-			// Tool call complete - no action needed, NativeToolCallParser handles completion
+			const callId = event.call_id || event.tool_call_id || event.id
+			if (typeof callId === "string" && callId.length > 0) {
+				yield {
+					type: "tool_call_end",
+					id: callId,
+				}
+			}
 			return
 		}
 
@@ -1140,7 +1149,12 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 							type: "tool_call",
 							id: callId,
 							name: item.name || item.function?.name || item.function_name || "",
-							arguments: typeof args === "string" ? args : "{}",
+							arguments:
+								typeof args === "string"
+									? args
+									: args && typeof args === "object"
+										? JSON.stringify(args)
+										: "",
 						}
 					}
 				}

@@ -15,8 +15,8 @@ interface CodebaseSearchParams {
 	tests?: boolean
 }
 
-export class CodebaseSearchTool extends BaseTool<"codebase_search"> {
-	readonly name = "codebase_search" as const
+export class CodebaseSearchTool extends BaseTool<"ask"> {
+	readonly name = "ask" as const
 
 	parseLegacy(params: Partial<Record<string, string>>): { query: string; path?: string } {
 		let query = params.query
@@ -40,14 +40,14 @@ export class CodebaseSearchTool extends BaseTool<"codebase_search"> {
 		const workspacePath = task.cwd && task.cwd.trim() !== "" ? task.cwd : getWorkspacePath()
 
 		if (!workspacePath) {
-			await handleError("codebase_search", new Error("Could not determine workspace path."))
+			await handleError("ask", new Error("Could not determine workspace path."))
 			return
 		}
 
 		if (queries.length === 0) {
 			task.consecutiveMistakeCount++
 			task.didToolFailInCurrentTurn = true
-			pushToolResult(await task.sayAndCreateMissingParamError("codebase_search", "query"))
+			pushToolResult(await task.sayAndCreateMissingParamError("ask", "query"))
 			return
 		}
 
@@ -106,7 +106,7 @@ export class CodebaseSearchTool extends BaseTool<"codebase_search"> {
 				const normalizedMessage = status.message || defaultStatusMessage
 
 				// Return helpful error if truly no index exists
-				await task.say("codebase_search_result", JSON.stringify({
+				await task.say("ask_result", JSON.stringify({
 					tool: "codebaseSearch",
 					content: { error: `Index unavailable: ${normalizedMessage}. Please wait for indexing to start.` }
 				}))
@@ -198,18 +198,18 @@ export class CodebaseSearchTool extends BaseTool<"codebase_search"> {
 				},
 			}
 
-			await task.say("codebase_search_result", JSON.stringify(finalJsonPayload))
+			await task.say("ask_result", JSON.stringify(finalJsonPayload))
 
 			const output = formatSearchResults(finalJsonPayload.content.queries)
 			const finalOutput = warningMessage ? `[WARNING: ${warningMessage}]\n\n${output}` : output
 
 			pushToolResult(finalOutput)
 		} catch (error: any) {
-			await handleError("codebase_search", error)
+			await handleError("ask", error)
 		}
 	}
 
-	override async handlePartial(task: Task, block: ToolUse<"codebase_search">): Promise<void> {
+	override async handlePartial(task: Task, block: ToolUse<"ask">): Promise<void> {
 		const queryOrQueries: string | string[] | undefined = block.params.query
 		const directoryPrefix: string | undefined = block.params.path
 

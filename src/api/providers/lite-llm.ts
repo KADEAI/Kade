@@ -44,70 +44,13 @@ export class LiteLLMHandler extends RouterProvider implements SingleCompletionHa
 		metadata?: ApiHandlerCreateMessageMetadata,
 	): ApiStream {
 		const { id: modelId, info } = await this.fetchModel()
-
-		const openAiMessages = convertToOpenAiMessages(messages)
-
-		// Prepare messages with cache control if enabled and supported
-		let systemMessage: OpenAI.Chat.ChatCompletionMessageParam
-		let enhancedMessages: OpenAI.Chat.ChatCompletionMessageParam[]
+		const requestMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+			{ role: "system", content: systemPrompt },
+			...convertToOpenAiMessages(messages),
+		]
 
 		if (this.options.litellmUsePromptCache && info.supportsPromptCache) {
-			// Create system message with cache control in the proper format
-			systemMessage = {
-				role: "system",
-				content: [
-					{
-						type: "text",
-						text: systemPrompt,
-						cache_control: { type: "ephemeral" },
-					} as any,
-				],
-			}
-
-			// Find the last two user messages to apply caching
-			const userMsgIndices = openAiMessages.reduce(
-				(acc, msg, index) => (msg.role === "user" ? [...acc, index] : acc),
-				[] as number[],
-			)
-			const lastUserMsgIndex = userMsgIndices[userMsgIndices.length - 1] ?? -1
-			const secondLastUserMsgIndex = userMsgIndices[userMsgIndices.length - 2] ?? -1
-
-			// Apply cache_control to the last two user messages
-			enhancedMessages = openAiMessages.map((message, index) => {
-				if ((index === lastUserMsgIndex || index === secondLastUserMsgIndex) && message.role === "user") {
-					// Handle both string and array content types
-					if (typeof message.content === "string") {
-						return {
-							...message,
-							content: [
-								{
-									type: "text",
-									text: message.content,
-									cache_control: { type: "ephemeral" },
-								} as any,
-							],
-						}
-					} else if (Array.isArray(message.content)) {
-						// Apply cache control to the last content item in the array
-						return {
-							...message,
-							content: message.content.map((content, contentIndex) =>
-								contentIndex === message.content.length - 1
-									? ({
-											...content,
-											cache_control: { type: "ephemeral" },
-										} as any)
-									: content,
-							),
-						}
-					}
-				}
-				return message
-			})
-		} else {
-			// No cache control - use simple format
-			systemMessage = { role: "system", content: systemPrompt }
-			enhancedMessages = openAiMessages
+			this.applyOpenAiPromptCaching(systemPrompt, requestMessages, info, metadata?.taskId)
 		}
 
 		// Required by some providers; others default to max tokens allowed
@@ -122,11 +65,11 @@ export class LiteLLMHandler extends RouterProvider implements SingleCompletionHa
 			supportsNativeTools &&
 			metadata?.tools &&
 			metadata.tools.length > 0 &&
-			metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN
+			metadata?.toolProtocol === TOOL_PROTOCOL.JSON
 
 		const requestOptions: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
 			model: modelId,
-			messages: [systemMessage, ...enhancedMessages],
+			messages: requestMessages,
 			stream: true,
 			stream_options: {
 				include_usage: true,

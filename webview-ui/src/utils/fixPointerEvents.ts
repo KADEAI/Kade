@@ -16,7 +16,7 @@
  * This should be called after dialog interactions, especially when switching tabs.
  */
 export function ensureBodyPointerEventsRestored(): void {
-	if (document.body.style.pointerEvents === "none") {
-		document.body.style.pointerEvents = ""
-	}
+  if (document.body.style.pointerEvents === "none") {
+    document.body.style.pointerEvents = "";
+  }
 }

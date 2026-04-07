@@ -73,6 +73,7 @@ export class ProfileValidator {
 			case "fireworks":
 			case "synthetic": // kade_change
 			case "antigravity": // kade_change
+			case "zed":
 			case "openai-codex":
 			case "featherless":
 				return profile.apiModelId

@@ -13,6 +13,8 @@
 !CHANGELOG.md
 !LICENSE
 !walkthrough/**
+!integrations/theme/default-themes/**
+
 
 # Explicitly exclude source directories
 src/**
@@ -21,6 +23,10 @@ api/**
 services/**
 utils/**
 integrations/**
+!integrations/theme/
+!integrations/theme/default-themes/
+!integrations/theme/default-themes/**
+
 shared/**
 activate/**
 workers/**

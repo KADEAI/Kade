@@ -7,7 +7,6 @@ import type { ApiHandlerOptions } from "../../shared/api"
 
 import { ApiStream, ApiStreamUsageChunk } from "../transform/stream"
 import { convertToOpenAiMessages } from "../transform/openai-format"
-import { addCacheBreakpoints as addAnthropicCacheBreakpoints } from "../transform/caching/anthropic"
 import { addCacheBreakpoints as addGeminiCacheBreakpoints } from "../transform/caching/gemini"
 import { addCacheBreakpoints as addVertexCacheBreakpoints } from "../transform/caching/vertex"
 
@@ -93,7 +92,7 @@ export class UnboundHandler extends RouterProvider implements SingleCompletionHa
 			if (modelId.startsWith("google/")) {
 				addGeminiCacheBreakpoints(systemPrompt, openAiMessages)
 			} else if (modelId.startsWith("anthropic/")) {
-				addAnthropicCacheBreakpoints(systemPrompt, openAiMessages)
+				this.applyOpenAiPromptCaching(systemPrompt, openAiMessages, info, metadata?.taskId)
 			}
 		}
 		// Custom models from Vertex AI (no configuration) need to be handled differently.
@@ -111,7 +110,7 @@ export class UnboundHandler extends RouterProvider implements SingleCompletionHa
 		// Check if model supports native tools and tools are provided with native protocol
 		const supportsNativeTools = info.supportsNativeTools ?? false
 		const useNativeTools =
-			supportsNativeTools && metadata?.tools && metadata.tools.length > 0 && metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN
+			supportsNativeTools && metadata?.tools && metadata.tools.length > 0 && metadata?.toolProtocol === TOOL_PROTOCOL.JSON
 
 		const requestOptions: UnboundChatCompletionCreateParamsStreaming = {
 			model: modelId.split("/")[1],

@@ -61,7 +61,7 @@ export async function getZenmuxModels(
 				supportsPromptCache: false,
 				// kade_change start
 				supportsNativeTools: true,
-				defaultToolProtocol: "markdown",
+				defaultToolProtocol: "unified",
 				// kade_change end
 				inputPrice: 0,
 				outputPrice: 0,

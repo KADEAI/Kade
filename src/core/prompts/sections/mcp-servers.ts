@@ -60,16 +60,10 @@ export async function getMcpServersSection(
 
 	// Different instructions based on protocol
 	const toolAccessInstructions = includeToolDescriptions
-		? `When a server is connected, you can use the server's tools via the \`use_mcp_tool\` tool, and access the server's resources via the \`access_mcp_resource\` tool.`
-		: `When a server is connected, each server's tools are available as native tools with the naming pattern \`mcp_{server_name}_{tool_name}\`. For example, a tool named 'get_forecast' from a server named 'weather' would be available as \`mcp_weather_get_forecast\`. You can also access server resources using the \`access_mcp_resource\` tool.`
+		? ``
+		: ``
 
-	const baseSection = `MCP SERVERS
-
-The Model Context Protocol (MCP) enables communication between the system and MCP servers that provide additional tools and resources to extend your capabilities. MCP servers can be one of two types:
-
-1. Local (Stdio-based) servers: These run locally on the user's machine and communicate via standard input/output
-2. Remote (SSE-based) servers: These run on remote machines and communicate via Server-Sent Events (SSE) over HTTP/HTTPS
-
+	const baseSection = `
 # Connected MCP Servers
 
 ${toolAccessInstructions}
@@ -82,12 +76,6 @@ ${connectedServers}`
 
 	return (
 		baseSection +
-		`
-## Creating an MCP Server
-
-The user may ask you something along the lines of "add a tool" that does some function, in other words to create an MCP server that provides tools and resources that may connect to external APIs for example. If they do, you should obtain detailed instructions on this topic using the fetch_instructions tool, like this:
-<fetch_instructions>
-<task>create_mcp_server</task>
-</fetch_instructions>`
+		``
 	)
 }

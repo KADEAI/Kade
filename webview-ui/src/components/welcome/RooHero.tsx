@@ -1,28 +1,33 @@
-import { useState } from "react"
+import { useState } from "react";
 
 const RooHero = () => {
-	const [imagesBaseUri] = useState(() => {
-		const w = window as any
-		return w.IMAGES_BASE_URI || ""
-	})
+  const [imagesBaseUri] = useState(() => {
+    const w = window as any;
+    return w.IMAGES_BASE_URI || "";
+  });
 
-	return (
-		<div className="pb-4 forced-color-adjust-none group">
-			<div
-				style={{
-					backgroundColor: "var(--vscode-foreground)",
-					WebkitMaskImage: `url('${imagesBaseUri}/roo-logo.svg')`,
-					WebkitMaskRepeat: "no-repeat",
-					WebkitMaskSize: "contain",
-					maskImage: `url('${imagesBaseUri}/roo-logo.svg')`,
-					maskRepeat: "no-repeat",
-					maskSize: "contain",
-				}}
-				className="mx-auto group-hover:animate-bounce translate-y-0 transition-transform duration-500">
-				<img src={imagesBaseUri + "/roo-logo.svg"} alt="Roo logo" className="h-8 opacity-0" />
-			</div>
-		</div>
-	)
-}
+  return (
+    <div className="pb-4 forced-color-adjust-none group">
+      <div
+        style={{
+          backgroundColor: "var(--vscode-foreground)",
+          WebkitMaskImage: `url('${imagesBaseUri}/roo-logo.svg')`,
+          WebkitMaskRepeat: "no-repeat",
+          WebkitMaskSize: "contain",
+          maskImage: `url('${imagesBaseUri}/roo-logo.svg')`,
+          maskRepeat: "no-repeat",
+          maskSize: "contain",
+        }}
+        className="mx-auto group-hover:animate-bounce translate-y-0 transition-transform duration-500"
+      >
+        <img
+          src={imagesBaseUri + "/roo-logo.svg"}
+          alt="Roo logo"
+          className="h-8 opacity-0"
+        />
+      </div>
+    </div>
+  );
+};
 
-export default RooHero
+export default RooHero;

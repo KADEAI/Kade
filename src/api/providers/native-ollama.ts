@@ -281,7 +281,7 @@ export class NativeOllamaHandler extends BaseProvider implements SingleCompletio
 		// Check if we should use native tool calling
 		const supportsNativeTools = modelInfo.supportsNativeTools ?? false
 		const useNativeTools =
-			supportsNativeTools && metadata?.tools && metadata.tools.length > 0 && metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN
+			supportsNativeTools && metadata?.tools && metadata.tools.length > 0 && metadata?.toolProtocol === TOOL_PROTOCOL.JSON
 
 		try {
 			// Build options object conditionally

@@ -7,11 +7,15 @@
  * @param maxImages - The maximum number of images allowed
  * @returns The updated images array
  */
-export function appendImages(currentImages: string[], newImages: string[] | undefined, maxImages: number): string[] {
-	const imagesToAdd = newImages ?? []
-	if (imagesToAdd.length === 0) {
-		return currentImages
-	}
+export function appendImages(
+  currentImages: string[],
+  newImages: string[] | undefined,
+  maxImages: number,
+): string[] {
+  const imagesToAdd = newImages ?? [];
+  if (imagesToAdd.length === 0) {
+    return currentImages;
+  }
 
-	return [...currentImages, ...imagesToAdd].slice(0, maxImages)
+  return [...currentImages, ...imagesToAdd].slice(0, maxImages);
 }

@@ -3,11 +3,11 @@ import { describe, test, expect, vi } from "vitest"
 // Module under test
 import { generateSystemPrompt } from "../generateSystemPrompt"
 
-// Mock SYSTEM_PROMPT to capture its third argument (browser capability flag)
+// Mock SYSTEM_PROMPT to capture browser and desktop capability flags
 vi.mock("../../prompts/system", () => ({
-	SYSTEM_PROMPT: vi.fn(async (_ctx, _cwd, canUseBrowserTool: boolean) => {
+	SYSTEM_PROMPT: vi.fn(async (_ctx, _cwd, canUseBrowserTool: boolean, canUseComputerTool: boolean) => {
 		// return a simple string to satisfy return type
-		return `SYSTEM_PROMPT:${canUseBrowserTool}`
+		return `SYSTEM_PROMPT:${canUseBrowserTool}:${canUseComputerTool}`
 	}),
 }))
 
@@ -24,6 +24,14 @@ vi.mock("../../../api", () => ({
 			},
 		}),
 	})),
+}))
+
+vi.mock("vscode", () => ({
+	workspace: {
+		getConfiguration: vi.fn(() => ({
+			get: vi.fn(() => true),
+		})),
+	},
 }))
 
 // Minimal mode utilities: provide a custom mode that includes the "browser" group
@@ -45,6 +53,7 @@ function makeProviderStub() {
 		customModesManager: {
 			getCustomModes: async () => mockCustomModes,
 		},
+		fetchInstalledSkills: async () => [],
 		getCurrentTask: () => ({
 			rooIgnoreController: { getInstructions: () => undefined },
 		}),
@@ -59,10 +68,11 @@ function makeProviderStub() {
 			browserViewportSize: "900x600",
 			diffEnabled: false,
 			mcpEnabled: false,
-			fuzzyMatchThreshold: 1.0,
+			fuzzyMatchThreshold: 0.8,
 			experiments: {},
 			enableMcpServerCreation: false,
 			browserToolEnabled: true, // critical: enabled in settings
+			computerUseToolEnabled: true,
 			language: "en",
 			maxReadFileLine: -1,
 			maxConcurrentFileReads: 5,
@@ -78,6 +88,6 @@ describe("generateSystemPrompt browser capability (supportsImages=true)", () => 
 		const result = await generateSystemPrompt(provider, message)
 
 		// SYSTEM_PROMPT mock encodes the boolean into the returned string
-		expect(result).toBe("SYSTEM_PROMPT:true")
+		expect(result).toBe("SYSTEM_PROMPT:true:true")
 	})
 })

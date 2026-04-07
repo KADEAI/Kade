@@ -360,7 +360,7 @@ export class ProviderSettingsManager {
 
 			if (fuzzyMatchThreshold === undefined) {
 				// Failed to get the existing value, use the default.
-				fuzzyMatchThreshold = 1.0
+				fuzzyMatchThreshold = 0.8
 			}
 
 			for (const [_name, apiConfig] of Object.entries(providerProfiles.apiConfigs)) {

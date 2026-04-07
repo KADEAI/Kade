@@ -255,7 +255,7 @@ function buildGatekeeperPrompt(
 
 	// Add key parameters based on tool type
 	switch (toolName) {
-		case "write_to_file":
+		case "write":
 		case "apply_diff":
 		case "search_and_replace":
 		case "edit_file": {
@@ -268,7 +268,7 @@ function buildGatekeeperPrompt(
 			}
 			break
 		}
-		case "execute_command": {
+		case "bash": {
 			const command = toolParams.command || "unknown"
 			actionDescription += `Command: ${command}\n`
 			if (toolParams.cwd) {
@@ -287,12 +287,12 @@ function buildGatekeeperPrompt(
 			}
 			break
 		}
-		case "update_todo_list":
+		case "todo":
 		case "list_code_definition_names":
 		case "list_files":
 		case "search_files":
-		case "codebase_search":
-		case "read_file": {
+		case "ask":
+		case "read": {
 			return { preApproved: true, systemPrompt: "", userPrompt: "" }
 		}
 		case "browser_action":
@@ -328,7 +328,7 @@ CORE PRINCIPLES:
 	- These cannot cause harm
 
 2. TASK MANAGEMENT OPERATIONS ARE SAFE
-	- update_todo_list: Always safe, just tracks task progress
+	- todo: Always safe, just tracks task progress
 	- These are internal state management, not file operations
 
 3. WRITE OPERATIONS WITHIN WORKSPACE ARE GENERALLY SAFE

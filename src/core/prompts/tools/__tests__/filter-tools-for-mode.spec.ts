@@ -3,6 +3,7 @@ import type OpenAI from "openai"
 import type { ModeConfig, ModelInfo } from "@roo-code/types"
 import { filterNativeToolsForMode, filterMcpToolsForMode, applyModelToolCustomization } from "../filter-tools-for-mode"
 import * as toolsModule from "../../../../shared/tools"
+import * as editFileToolModule from "../../../tools/kilocode/editFileTool"
 
 // kade_change start
 vi.mock("../../../../services/code-index/managed/ManagedIndexer", () => ({
@@ -12,6 +13,9 @@ vi.mock("../../../../services/code-index/managed/ManagedIndexer", () => ({
 		}),
 	},
 }))
+vi.mock("../../../tools/kilocode/editFileTool", () => ({
+	isFastApplyAvailable: vi.fn(() => false),
+}))
 // kade_change end
 
 describe("filterNativeToolsForMode", () => {
@@ -19,7 +23,7 @@ describe("filterNativeToolsForMode", () => {
 		{
 			type: "function",
 			function: {
-				name: "read_file",
+				name: "read",
 				description: "Read files",
 				parameters: {},
 			},
@@ -27,7 +31,7 @@ describe("filterNativeToolsForMode", () => {
 		{
 			type: "function",
 			function: {
-				name: "write_to_file",
+				name: "write",
 				description: "Write files",
 				parameters: {},
 			},
@@ -43,7 +47,7 @@ describe("filterNativeToolsForMode", () => {
 		{
 			type: "function",
 			function: {
-				name: "execute_command",
+				name: "bash",
 				description: "Execute command",
 				parameters: {},
 			},
@@ -95,14 +99,14 @@ describe("filterNativeToolsForMode", () => {
 		const toolNames = filtered.map((t) => ("function" in t ? t.function.name : ""))
 
 		// Should include read tools
-		expect(toolNames).toContain("read_file")
+		expect(toolNames).toContain("read")
 
 		// Should NOT include edit tools
-		expect(toolNames).not.toContain("write_to_file")
+		expect(toolNames).not.toContain("write")
 		expect(toolNames).not.toContain("apply_diff")
 
 		// Should NOT include command tools
-		expect(toolNames).not.toContain("execute_command")
+		expect(toolNames).not.toContain("bash")
 
 		// Should include browser tools
 		expect(toolNames).toContain("browser_action")
@@ -125,10 +129,10 @@ describe("filterNativeToolsForMode", () => {
 		const toolNames = filtered.map((t) => ("function" in t ? t.function.name : ""))
 
 		// Should include all tools (code mode has all groups)
-		expect(toolNames).toContain("read_file")
-		expect(toolNames).toContain("write_to_file")
+		expect(toolNames).toContain("read")
+		expect(toolNames).toContain("write")
 		expect(toolNames).toContain("apply_diff")
-		expect(toolNames).toContain("execute_command")
+		expect(toolNames).toContain("bash")
 		expect(toolNames).toContain("browser_action")
 		expect(toolNames).toContain("ask_followup_question")
 		expect(toolNames).toContain("attempt_completion")
@@ -159,9 +163,9 @@ describe("filterNativeToolsForMode", () => {
 		expect(toolNames).toContain("attempt_completion")
 
 		// Should NOT include any other tools
-		expect(toolNames).not.toContain("read_file")
-		expect(toolNames).not.toContain("write_to_file")
-		expect(toolNames).not.toContain("execute_command")
+		expect(toolNames).not.toContain("read")
+		expect(toolNames).not.toContain("write")
+		expect(toolNames).not.toContain("bash")
 	})
 
 	it("should handle undefined mode by using default mode", () => {
@@ -175,7 +179,34 @@ describe("filterNativeToolsForMode", () => {
 		expect(toolNames).toContain("attempt_completion")
 	})
 
-	it("should exclude codebase_search when codeIndexManager is not configured", () => {
+	it("should keep write available when Fast Apply is enabled", () => {
+		vi.mocked(editFileToolModule.isFastApplyAvailable).mockReturnValue(true)
+
+		const codeMode: ModeConfig = {
+			slug: "code",
+			name: "Code",
+			roleDefinition: "Test",
+			groups: ["read", "edit", "browser", "command", "mcp"] as const,
+		}
+
+		const filtered = filterNativeToolsForMode(
+			mockNativeTools,
+			"code",
+			[codeMode],
+			{},
+			undefined,
+			{},
+			{} as any,
+		)
+
+		const toolNames = filtered.map((t) => ("function" in t ? t.function.name : ""))
+		expect(toolNames).toContain("write")
+		expect(toolNames).not.toContain("apply_diff")
+
+		vi.mocked(editFileToolModule.isFastApplyAvailable).mockReturnValue(false)
+	})
+
+	it("should exclude ask when codeIndexManager is not configured", () => {
 		const codeMode: ModeConfig = {
 			slug: "code",
 			name: "Code",
@@ -186,7 +217,7 @@ describe("filterNativeToolsForMode", () => {
 		const mockCodebaseSearchTool: OpenAI.Chat.ChatCompletionTool = {
 			type: "function",
 			function: {
-				name: "codebase_search",
+				name: "ask",
 				description: "Search codebase",
 				parameters: {},
 			},
@@ -205,7 +236,7 @@ describe("filterNativeToolsForMode", () => {
 			undefined,
 		)
 		const toolNames = filtered.map((t) => ("function" in t ? t.function.name : ""))
-		expect(toolNames).not.toContain("codebase_search")
+		expect(toolNames).not.toContain("ask")
 	})
 
 	it("should exclude access_mcp_resource when mcpHub is not provided", () => {
@@ -327,7 +358,7 @@ describe("filterNativeToolsForMode", () => {
 		expect(toolNames).toContain("access_mcp_resource")
 	})
 
-	it("should exclude update_todo_list when todoListEnabled is false", () => {
+	it("should exclude todo when todoListEnabled is false", () => {
 		const codeMode: ModeConfig = {
 			slug: "code",
 			name: "Code",
@@ -338,7 +369,7 @@ describe("filterNativeToolsForMode", () => {
 		const mockTodoTool: OpenAI.Chat.ChatCompletionTool = {
 			type: "function",
 			function: {
-				name: "update_todo_list",
+				name: "todo",
 				description: "Update todo list",
 				parameters: {},
 			},
@@ -358,8 +389,9 @@ describe("filterNativeToolsForMode", () => {
 			undefined,
 		)
 		const toolNames = filtered.map((t) => ("function" in t ? t.function.name : ""))
-		expect(toolNames).not.toContain("update_todo_list")
+		expect(toolNames).not.toContain("todo")
 	})
+
 
 	it("should exclude generate_image when experiment is not enabled", () => {
 		const codeMode: ModeConfig = {
@@ -497,67 +529,67 @@ describe("filterMcpToolsForMode", () => {
 		}
 
 		it("should return original tools when modelInfo is undefined", () => {
-			const tools = new Set(["read_file", "write_to_file", "apply_diff"])
+			const tools = new Set(["read", "write", "apply_diff"])
 			const result = applyModelToolCustomization(tools, codeMode, undefined)
 			expect(result.allowedTools).toEqual(tools)
 		})
 
 		it("should exclude tools specified in excludedTools", () => {
-			const tools = new Set(["read_file", "write_to_file", "apply_diff"])
+			const tools = new Set(["read", "write", "apply_diff"])
 			const modelInfo: ModelInfo = {
 				contextWindow: 100000,
 				supportsPromptCache: false,
 				excludedTools: ["apply_diff"],
 			}
 			const result = applyModelToolCustomization(tools, codeMode, modelInfo)
-			expect(result.allowedTools.has("read_file")).toBe(true)
-			expect(result.allowedTools.has("write_to_file")).toBe(true)
+			expect(result.allowedTools.has("read")).toBe(true)
+			expect(result.allowedTools.has("write")).toBe(true)
 			expect(result.allowedTools.has("apply_diff")).toBe(false)
 		})
 
 		it("should exclude multiple tools", () => {
-			const tools = new Set(["read_file", "write_to_file", "apply_diff", "execute_command"])
+			const tools = new Set(["read", "write", "apply_diff", "bash"])
 			const modelInfo: ModelInfo = {
 				contextWindow: 100000,
 				supportsPromptCache: false,
-				excludedTools: ["apply_diff", "write_to_file"],
+				excludedTools: ["apply_diff", "write"],
 			}
 			const result = applyModelToolCustomization(tools, codeMode, modelInfo)
-			expect(result.allowedTools.has("read_file")).toBe(true)
-			expect(result.allowedTools.has("execute_command")).toBe(true)
-			expect(result.allowedTools.has("write_to_file")).toBe(false)
+			expect(result.allowedTools.has("read")).toBe(true)
+			expect(result.allowedTools.has("bash")).toBe(true)
+			expect(result.allowedTools.has("write")).toBe(false)
 			expect(result.allowedTools.has("apply_diff")).toBe(false)
 		})
 
 		it("should include tools only if they belong to allowed groups", () => {
-			const tools = new Set(["read_file"])
+			const tools = new Set(["read"])
 			const modelInfo: ModelInfo = {
 				contextWindow: 100000,
 				supportsPromptCache: false,
-				includedTools: ["write_to_file", "apply_diff"], // Both in edit group
+				includedTools: ["write", "apply_diff"], // Both in edit group
 			}
 			const result = applyModelToolCustomization(tools, codeMode, modelInfo)
-			expect(result.allowedTools.has("read_file")).toBe(true)
-			expect(result.allowedTools.has("write_to_file")).toBe(true)
+			expect(result.allowedTools.has("read")).toBe(true)
+			expect(result.allowedTools.has("write")).toBe(true)
 			expect(result.allowedTools.has("apply_diff")).toBe(true)
 		})
 
 		it("should NOT include tools from groups not allowed by mode", () => {
-			const tools = new Set(["read_file"])
+			const tools = new Set(["read"])
 			const modelInfo: ModelInfo = {
 				contextWindow: 100000,
 				supportsPromptCache: false,
-				includedTools: ["write_to_file", "apply_diff"], // Edit group tools
+				includedTools: ["write", "apply_diff"], // Edit group tools
 			}
 			// Architect mode doesn't have edit group
 			const result = applyModelToolCustomization(tools, architectMode, modelInfo)
-			expect(result.allowedTools.has("read_file")).toBe(true)
-			expect(result.allowedTools.has("write_to_file")).toBe(false) // Not in allowed groups
+			expect(result.allowedTools.has("read")).toBe(true)
+			expect(result.allowedTools.has("write")).toBe(false) // Not in allowed groups
 			expect(result.allowedTools.has("apply_diff")).toBe(false) // Not in allowed groups
 		})
 
 		it("should apply both exclude and include operations", () => {
-			const tools = new Set(["read_file", "write_to_file", "apply_diff"])
+			const tools = new Set(["read", "write", "apply_diff"])
 			const modelInfo: ModelInfo = {
 				contextWindow: 100000,
 				supportsPromptCache: false,
@@ -565,14 +597,14 @@ describe("filterMcpToolsForMode", () => {
 				includedTools: ["search_and_replace"], // Another edit tool (customTool)
 			}
 			const result = applyModelToolCustomization(tools, codeMode, modelInfo)
-			expect(result.allowedTools.has("read_file")).toBe(true)
-			expect(result.allowedTools.has("write_to_file")).toBe(true)
+			expect(result.allowedTools.has("read")).toBe(true)
+			expect(result.allowedTools.has("write")).toBe(true)
 			expect(result.allowedTools.has("apply_diff")).toBe(false) // Excluded
 			expect(result.allowedTools.has("search_and_replace")).toBe(true) // Included
 		})
 
 		it("should handle empty excludedTools and includedTools arrays", () => {
-			const tools = new Set(["read_file", "write_to_file"])
+			const tools = new Set(["read", "write"])
 			const modelInfo: ModelInfo = {
 				contextWindow: 100000,
 				supportsPromptCache: false,
@@ -584,20 +616,20 @@ describe("filterMcpToolsForMode", () => {
 		})
 
 		it("should ignore excluded tools that are not in the original set", () => {
-			const tools = new Set(["read_file", "write_to_file"])
+			const tools = new Set(["read", "write"])
 			const modelInfo: ModelInfo = {
 				contextWindow: 100000,
 				supportsPromptCache: false,
 				excludedTools: ["apply_diff", "nonexistent_tool"],
 			}
 			const result = applyModelToolCustomization(tools, codeMode, modelInfo)
-			expect(result.allowedTools.has("read_file")).toBe(true)
-			expect(result.allowedTools.has("write_to_file")).toBe(true)
+			expect(result.allowedTools.has("read")).toBe(true)
+			expect(result.allowedTools.has("write")).toBe(true)
 			expect(result.allowedTools.size).toBe(2)
 		})
 
 		it("should NOT include customTools by default", () => {
-			const tools = new Set(["read_file", "write_to_file"])
+			const tools = new Set(["read", "write"])
 			// Assume 'edit' group has a customTool defined in TOOL_GROUPS
 			const modelInfo: ModelInfo = {
 				contextWindow: 100000,
@@ -606,24 +638,24 @@ describe("filterMcpToolsForMode", () => {
 			}
 			const result = applyModelToolCustomization(tools, codeMode, modelInfo)
 			// customTools should not be in the result unless explicitly included
-			expect(result.allowedTools.has("read_file")).toBe(true)
-			expect(result.allowedTools.has("write_to_file")).toBe(true)
+			expect(result.allowedTools.has("read")).toBe(true)
+			expect(result.allowedTools.has("write")).toBe(true)
 		})
 
 		it("should NOT include tools that are not in any TOOL_GROUPS", () => {
-			const tools = new Set(["read_file"])
+			const tools = new Set(["read"])
 			const modelInfo: ModelInfo = {
 				contextWindow: 100000,
 				supportsPromptCache: false,
 				includedTools: ["my_custom_tool"], // Not in any tool group
 			}
 			const result = applyModelToolCustomization(tools, codeMode, modelInfo)
-			expect(result.allowedTools.has("read_file")).toBe(true)
+			expect(result.allowedTools.has("read")).toBe(true)
 			expect(result.allowedTools.has("my_custom_tool")).toBe(false)
 		})
 
 		it("should NOT include undefined tools even with allowed groups", () => {
-			const tools = new Set(["read_file"])
+			const tools = new Set(["read"])
 			const modelInfo: ModelInfo = {
 				contextWindow: 100000,
 				supportsPromptCache: false,
@@ -631,7 +663,7 @@ describe("filterMcpToolsForMode", () => {
 			}
 			// Even though architect mode has read group, undefined tools are not added
 			const result = applyModelToolCustomization(tools, architectMode, modelInfo)
-			expect(result.allowedTools.has("read_file")).toBe(true)
+			expect(result.allowedTools.has("read")).toBe(true)
 			expect(result.allowedTools.has("custom_edit_tool")).toBe(false)
 		})
 
@@ -652,33 +684,33 @@ describe("filterMcpToolsForMode", () => {
 			})
 
 			it("should include customTools when explicitly specified in includedTools", () => {
-				const tools = new Set(["read_file", "write_to_file"])
+				const tools = new Set(["read", "write"])
 				const modelInfo: ModelInfo = {
 					contextWindow: 100000,
 					supportsPromptCache: false,
 					includedTools: ["special_edit_tool"], // customTool from edit group
 				}
 				const result = applyModelToolCustomization(tools, codeMode, modelInfo)
-				expect(result.allowedTools.has("read_file")).toBe(true)
-				expect(result.allowedTools.has("write_to_file")).toBe(true)
+				expect(result.allowedTools.has("read")).toBe(true)
+				expect(result.allowedTools.has("write")).toBe(true)
 				expect(result.allowedTools.has("special_edit_tool")).toBe(true) // customTool should be included
 			})
 
 			it("should NOT include customTools when not specified in includedTools", () => {
-				const tools = new Set(["read_file", "write_to_file"])
+				const tools = new Set(["read", "write"])
 				const modelInfo: ModelInfo = {
 					contextWindow: 100000,
 					supportsPromptCache: false,
 					// No includedTools specified
 				}
 				const result = applyModelToolCustomization(tools, codeMode, modelInfo)
-				expect(result.allowedTools.has("read_file")).toBe(true)
-				expect(result.allowedTools.has("write_to_file")).toBe(true)
+				expect(result.allowedTools.has("read")).toBe(true)
+				expect(result.allowedTools.has("write")).toBe(true)
 				expect(result.allowedTools.has("special_edit_tool")).toBe(false) // customTool should NOT be included by default
 			})
 
 			it("should NOT include customTools from groups not allowed by mode", () => {
-				const tools = new Set(["read_file"])
+				const tools = new Set(["read"])
 				const modelInfo: ModelInfo = {
 					contextWindow: 100000,
 					supportsPromptCache: false,
@@ -686,7 +718,7 @@ describe("filterMcpToolsForMode", () => {
 				}
 				// Architect mode doesn't have edit group
 				const result = applyModelToolCustomization(tools, architectMode, modelInfo)
-				expect(result.allowedTools.has("read_file")).toBe(true)
+				expect(result.allowedTools.has("read")).toBe(true)
 				expect(result.allowedTools.has("special_edit_tool")).toBe(false) // customTool should NOT be included
 			})
 		})
@@ -697,7 +729,7 @@ describe("filterMcpToolsForMode", () => {
 			{
 				type: "function",
 				function: {
-					name: "read_file",
+					name: "read",
 					description: "Read files",
 					parameters: {},
 				},
@@ -705,7 +737,7 @@ describe("filterMcpToolsForMode", () => {
 			{
 				type: "function",
 				function: {
-					name: "write_to_file",
+					name: "write",
 					description: "Write files",
 					parameters: {},
 				},
@@ -721,7 +753,7 @@ describe("filterMcpToolsForMode", () => {
 			{
 				type: "function",
 				function: {
-					name: "execute_command",
+					name: "bash",
 					description: "Execute command",
 					parameters: {},
 				},
@@ -756,8 +788,8 @@ describe("filterMcpToolsForMode", () => {
 
 			const toolNames = filtered.map((t) => ("function" in t ? t.function.name : ""))
 
-			expect(toolNames).toContain("read_file")
-			expect(toolNames).toContain("write_to_file")
+			expect(toolNames).toContain("read")
+			expect(toolNames).toContain("write")
 			expect(toolNames).not.toContain("apply_diff") // Excluded by model
 		})
 
@@ -795,7 +827,7 @@ describe("filterMcpToolsForMode", () => {
 			const modelInfo: ModelInfo = {
 				contextWindow: 100000,
 				supportsPromptCache: false,
-				includedTools: ["write_to_file", "apply_diff"], // Edit group tools
+				includedTools: ["write", "apply_diff"], // Edit group tools
 			}
 
 			const filtered = filterNativeToolsForMode(mockNativeTools, "architect", [architectMode], {}, undefined, {
@@ -804,8 +836,8 @@ describe("filterMcpToolsForMode", () => {
 
 			const toolNames = filtered.map((t) => ("function" in t ? t.function.name : ""))
 
-			expect(toolNames).toContain("read_file")
-			expect(toolNames).not.toContain("write_to_file") // Not in mode's allowed groups
+			expect(toolNames).toContain("read")
+			expect(toolNames).not.toContain("write") // Not in mode's allowed groups
 			expect(toolNames).not.toContain("apply_diff") // Not in mode's allowed groups
 		})
 
@@ -830,7 +862,7 @@ describe("filterMcpToolsForMode", () => {
 
 			const toolNames = filtered.map((t) => ("function" in t ? t.function.name : ""))
 
-			expect(toolNames).toContain("write_to_file")
+			expect(toolNames).toContain("write")
 			expect(toolNames).toContain("search_and_replace") // Included
 			expect(toolNames).not.toContain("apply_diff") // Excluded
 		})
@@ -858,7 +890,7 @@ describe("filterMcpToolsForMode", () => {
 			expect(toolNames).toContain("edit_file")
 			expect(toolNames).toContain("write_file")
 			expect(toolNames).not.toContain("apply_diff")
-			expect(toolNames).not.toContain("write_to_file")
+			expect(toolNames).not.toContain("write")
 		})
 	})
 })

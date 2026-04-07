@@ -122,20 +122,49 @@ async function migrateCustomModesToYaml(settingsDir: string, outputChannel: vsco
 }
 
 /**
- * Ensures toolProtocol setting is explicitly set to unified
+ * Ensures toolProtocol setting is explicitly set to unified and rewrites
+ * legacy values so unified remains the only allowed user-facing protocol.
  * VSCode package.json defaults don't actually initialize settings, so we must do it explicitly
  */
 async function ensureToolProtocolDefault(outputChannel: vscode.OutputChannel): Promise<void> {
 	try {
 		const config = vscode.workspace.getConfiguration("kade")
 		const inspect = config.inspect<string>("toolProtocol")
-		
-		// If there's no user-set value (neither global nor workspace), set it to unified
-		if (!inspect?.globalValue && !inspect?.workspaceValue) {
+
+		const migrateTarget = async (
+			value: string | undefined,
+			target: vscode.ConfigurationTarget,
+			label: string,
+		) => {
+			if (value && value !== "unified") {
+				await config.update("toolProtocol", "unified", target)
+				outputChannel.appendLine(
+					`[Tool Protocol Migration] Migrated ${label} toolProtocol from '${value}' to 'unified'`,
+				)
+				return true
+			}
+			return false
+		}
+
+		const migratedGlobal = await migrateTarget(inspect?.globalValue, vscode.ConfigurationTarget.Global, "global")
+		const migratedWorkspace = await migrateTarget(
+			inspect?.workspaceValue,
+			vscode.ConfigurationTarget.Workspace,
+			"workspace",
+		)
+		const migratedWorkspaceFolder = await migrateTarget(
+			inspect?.workspaceFolderValue,
+			vscode.ConfigurationTarget.WorkspaceFolder,
+			"workspace folder",
+		)
+
+		if (!inspect?.globalValue && !inspect?.workspaceValue && !inspect?.workspaceFolderValue) {
 			await config.update("toolProtocol", "unified", vscode.ConfigurationTarget.Global)
 			outputChannel.appendLine("[Tool Protocol Migration] Set toolProtocol to 'unified' (default)")
-		} else {
-			outputChannel.appendLine(`[Tool Protocol Migration] toolProtocol already set to: ${inspect?.globalValue || inspect?.workspaceValue}`)
+		} else if (!migratedGlobal && !migratedWorkspace && !migratedWorkspaceFolder) {
+			outputChannel.appendLine(
+				`[Tool Protocol Migration] toolProtocol already set to: ${inspect?.workspaceFolderValue || inspect?.workspaceValue || inspect?.globalValue}`,
+			)
 		}
 	} catch (error) {
 		outputChannel.appendLine(`[Tool Protocol Migration] Error ensuring toolProtocol default: ${error}`)

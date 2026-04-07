@@ -27,6 +27,7 @@ import { isMcpTool } from "../../utils/mcp-name"
 import { sanitizeOpenAiCallId } from "../../utils/tool-id"
 import { openAiCodexOAuthManager } from "../../integrations/openai-codex/oauth"
 import { t } from "../../i18n"
+import { normalizeObjectAdditionalPropertiesFalse } from "./kilocode/openai-strict-schema"
 
 import { DEFAULT_HEADERS } from "./constants" // kilocode-change
 
@@ -40,6 +41,97 @@ export type OpenAiCodexModel = ReturnType<OpenAiCodexHandler["getModel"]>
  * Per the implementation guide: requests are routed to chatgpt.com/backend-api/codex
  */
 const CODEX_API_BASE_URL = "https://chatgpt.com/backend-api/codex"
+
+function shouldUseNativeJsonTools(protocol?: string): boolean {
+    return protocol === "json" || protocol === "native" || protocol === TOOL_PROTOCOL.JSON
+}
+
+function schemaUsesComposition(schema: any): boolean {
+    if (!schema || typeof schema !== "object") {
+        return false
+    }
+
+    if (Array.isArray(schema)) {
+        return schema.some((item) => schemaUsesComposition(item))
+    }
+
+    if (
+        (Array.isArray(schema.oneOf) && schema.oneOf.length > 0) ||
+        (Array.isArray(schema.anyOf) && schema.anyOf.length > 0) ||
+        (Array.isArray(schema.allOf) && schema.allOf.length > 0)
+    ) {
+        return true
+    }
+
+    return Object.values(schema).some((value) => schemaUsesComposition(value))
+}
+
+function simplifySchemaForCodex(schema: any): any {
+    if (!schema || typeof schema !== "object") {
+        return schema
+    }
+
+    if (Array.isArray(schema)) {
+        return schema.map((item) => simplifySchemaForCodex(item))
+    }
+
+    const result: Record<string, any> = { ...schema }
+    const variants =
+        (Array.isArray(result.oneOf) && result.oneOf) ||
+        (Array.isArray(result.anyOf) && result.anyOf) ||
+        (Array.isArray(result.allOf) && result.allOf) ||
+        undefined
+
+    if (variants) {
+        const simplifiedVariants = variants.map((variant) => simplifySchemaForCodex(variant))
+        const objectVariants = simplifiedVariants.filter(
+            (variant) =>
+                variant &&
+                typeof variant === "object" &&
+                !Array.isArray(variant) &&
+                (variant.type === "object" || variant.properties),
+        )
+
+        if (objectVariants.length === simplifiedVariants.length && objectVariants.length > 0) {
+            const mergedProperties: Record<string, any> = {}
+            for (const variant of objectVariants) {
+                Object.assign(mergedProperties, variant.properties ?? {})
+            }
+
+            return normalizeObjectAdditionalPropertiesFalse({
+                type: "object",
+                description: result.description,
+                properties: mergedProperties,
+                additionalProperties: false,
+            })
+        }
+
+        return {
+            type: "string",
+            description:
+                result.description ||
+                simplifiedVariants
+                    .map((variant) => (variant && typeof variant === "object" ? variant.description : undefined))
+                    .filter(Boolean)
+                    .join(" / ") ||
+                "Schema simplified for Codex compatibility.",
+        }
+    }
+
+    if (result.items !== undefined) {
+        result.items = simplifySchemaForCodex(result.items)
+    }
+
+    if (result.properties && typeof result.properties === "object" && !Array.isArray(result.properties)) {
+        const nextProperties: Record<string, any> = { ...result.properties }
+        for (const [key, value] of Object.entries(nextProperties)) {
+            nextProperties[key] = simplifySchemaForCodex(value)
+        }
+        result.properties = nextProperties
+    }
+
+    return normalizeObjectAdditionalPropertiesFalse(result)
+}
 
 /**
  * OpenAiCodexHandler - Uses OpenAI Responses API with OAuth authentication
@@ -55,6 +147,9 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
     protected options: ApiHandlerOptions
     private readonly providerName = "OpenAI Codex"
     private client?: OpenAI
+    private clientAccessToken?: string
+    private accountId?: string | null
+    private accountIdPromise?: Promise<string | null>
     // Complete response output array
     private lastResponseOutput: any[] | undefined
     // Last top-level response id
@@ -70,6 +165,8 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
      */
     private pendingToolCallId: string | undefined
     private pendingToolCallName: string | undefined
+    private streamedToolCallIds = new Set<string>()
+    private completedToolCallIds = new Set<string>()
 
     // Event types handled by the shared event processor
     private readonly coreHandledEventTypes = new Set<string>([
@@ -95,6 +192,22 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
         this.options = options
         // Generate a new session ID for standalone handler usage (fallback)
         this.sessionId = uuidv7()
+    }
+
+    private async getCachedAccountId(): Promise<string | null> {
+        if (this.accountId !== undefined) {
+            return this.accountId
+        }
+
+        if (!this.accountIdPromise) {
+            this.accountIdPromise = openAiCodexOAuthManager.getAccountId().then((accountId) => {
+                this.accountId = accountId
+                this.accountIdPromise = undefined
+                return accountId
+            })
+        }
+
+        return this.accountIdPromise
     }
 
     private normalizeUsage(usage: any, model: OpenAiCodexModel): ApiStreamUsageChunk | undefined {
@@ -155,6 +268,8 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
         this.lastResponseId = undefined
         this.pendingToolCallId = undefined
         this.pendingToolCallName = undefined
+        this.streamedToolCallIds.clear()
+        this.completedToolCallIds.clear()
 
         // Get access token from OAuth manager
         let accessToken = await openAiCodexOAuthManager.getAccessToken()
@@ -213,65 +328,56 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
         reasoningEffort: ReasoningEffortExtended | undefined,
         metadata?: ApiHandlerCreateMessageMetadata,
     ): any {
-        const ensureAllRequired = (schema: any): any => {
-            if (!schema || typeof schema !== "object" || schema.type !== "object") {
-                return schema
-            }
-
-            const result = { ...schema }
-            if (result.additionalProperties !== false) {
-                result.additionalProperties = false
-            }
-
-            if (result.properties) {
-                const allKeys = Object.keys(result.properties)
-                result.required = allKeys
-
-                const newProps = { ...result.properties }
-                for (const key of allKeys) {
-                    const prop = newProps[key]
-                    if (prop.type === "object") {
-                        newProps[key] = ensureAllRequired(prop)
-                    } else if (prop.type === "array" && prop.items?.type === "object") {
-                        newProps[key] = {
-                            ...prop,
-                            items: ensureAllRequired(prop.items),
-                        }
-                    }
-                }
-                result.properties = newProps
-            }
-
-            return result
+        type ResponseToolDefinition = {
+            type: "function"
+            name: string
+            description?: string
+            parameters?: any
+            strict?: boolean
         }
 
-        const ensureAdditionalPropertiesFalse = (schema: any): any => {
-            if (!schema || typeof schema !== "object" || schema.type !== "object") {
-                return schema
+        const responseTools: ResponseToolDefinition[] = []
+        for (const tool of metadata?.tools ?? []) {
+            if (tool?.type === "function" && isMcpTool(tool.function?.name)) {
+                responseTools.push({
+                    type: "function",
+                    name: tool.function.name,
+                    description: tool.function.description,
+                    parameters: normalizeObjectAdditionalPropertiesFalse(tool.function.parameters),
+                    strict: false,
+                })
+                continue
             }
 
-            const result = { ...schema }
-            if (result.additionalProperties !== false) {
-                result.additionalProperties = false
+            const convertedTool = this.convertToolsForOpenAI([tool])?.[0]
+            if (!convertedTool || convertedTool.type !== "function") {
+                continue
             }
 
-            if (result.properties) {
-                const newProps = { ...result.properties }
-                for (const key of Object.keys(result.properties)) {
-                    const prop = newProps[key]
-                    if (prop && prop.type === "object") {
-                        newProps[key] = ensureAdditionalPropertiesFalse(prop)
-                    } else if (prop && prop.type === "array" && prop.items?.type === "object") {
-                        newProps[key] = {
-                            ...prop,
-                            items: ensureAdditionalPropertiesFalse(prop.items),
-                        }
-                    }
-                }
-                result.properties = newProps
+            // Codex/OpenAI strict schemas reject the batch tool's open-ended
+            // nested arguments object. Native parallel tool calls cover the same use case.
+            if (convertedTool.function.name === "batch") {
+                continue
             }
 
-            return result
+            const hasComposedSchema = schemaUsesComposition(convertedTool.function.parameters)
+
+            responseTools.push({
+                type: "function",
+                name: convertedTool.function.name,
+                description: convertedTool.function.description,
+                parameters: convertedTool.function.strict === false
+                    ? normalizeObjectAdditionalPropertiesFalse(convertedTool.function.parameters)
+                    : hasComposedSchema
+                    ? simplifySchemaForCodex(convertedTool.function.parameters)
+                    : this.convertToolSchemaForOpenAI(convertedTool.function.parameters),
+                strict:
+                    convertedTool.function.strict === false
+                        ? false
+                        : hasComposedSchema
+                            ? false
+                            : (convertedTool.function.strict ?? true),
+            })
         }
 
         interface ResponsesRequestBody {
@@ -282,6 +388,7 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
             temperature?: number
             store?: boolean
             instructions?: string
+            prompt_cache_key?: string
             include?: string[]
             tools?: Array<{
                 type: "function"
@@ -294,6 +401,8 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
             parallel_tool_calls?: boolean
         }
 
+        const promptCacheKey = model.info.supportsPromptCache ? metadata?.taskId : undefined
+
         // Per the implementation guide: Codex backend may reject max_output_tokens
         // and prompt_cache_retention, so we omit them
         const body: ResponsesRequestBody = {
@@ -302,6 +411,7 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
             stream: true,
             store: false,
             instructions: systemPrompt,
+            ...(promptCacheKey ? { prompt_cache_key: promptCacheKey } : {}),
             // Only include encrypted reasoning content when reasoning effort is set
             ...(reasoningEffort ? { include: ["reasoning.encrypted_content"] } : {}),
             ...(reasoningEffort
@@ -312,27 +422,14 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
                     },
                 }
                 : {}),
-            ...(metadata?.tools && {
-                tools: metadata.tools
-                    .filter((tool) => tool.type === "function")
-                    .map((tool) => {
-                        const isMcp = isMcpTool(tool.function.name)
-                        return {
-                            type: "function",
-                            name: tool.function.name,
-                            description: tool.function.description,
-                            parameters: isMcp
-                                ? ensureAdditionalPropertiesFalse(tool.function.parameters)
-                                : ensureAllRequired(tool.function.parameters),
-                            strict: !isMcp,
-                        }
-                    }),
+            ...(responseTools && responseTools.length > 0 && {
+                tools: responseTools,
             }),
             ...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
         }
 
         // For native tool protocol, control parallel tool calls
-        if (metadata && metadata.toolProtocol === TOOL_PROTOCOL.MARKDOWN) {
+        if (metadata && shouldUseNativeJsonTools(metadata.toolProtocol)) {
             body.parallel_tool_calls = metadata.parallelToolCalls ?? false
         }
 
@@ -353,7 +450,7 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
             // is consistent across providers.
             try {
                 // Get ChatGPT account ID for organization subscriptions
-                const accountId = await openAiCodexOAuthManager.getAccountId()
+                const accountId = await this.getCachedAccountId()
 
                 // Build Codex-specific headers. Authorization is provided by the SDK apiKey.
                 const codexHeaders: Record<string, string> = {
@@ -361,16 +458,19 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
                     session_id: taskId || this.sessionId,
                     "User-Agent": DEFAULT_HEADERS["User-Agent"], // kade_change
                     ...(accountId ? { "ChatGPT-Account-Id": accountId } : {}),
+                    ...(taskId ? { conversation_id: taskId } : {}),
                 }
 
                 // Allow tests to inject a client. If none is injected, create one for this request.
-                const client =
-                    this.client ??
-                    new OpenAI({
+                if (!this.client || this.clientAccessToken !== accessToken) {
+                    this.client = new OpenAI({
                         apiKey: accessToken,
                         baseURL: CODEX_API_BASE_URL,
-                        defaultHeaders: codexHeaders,
                     })
+                    this.clientAccessToken = accessToken
+                }
+
+                const client = this.client
 
                 const stream = (await (client as any).responses.create(requestBody, {
                     signal: this.abortController.signal,
@@ -496,7 +596,7 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
         const url = `${CODEX_API_BASE_URL}/responses`
 
         // Get ChatGPT account ID for organization subscriptions
-        const accountId = await openAiCodexOAuthManager.getAccountId()
+        const accountId = await this.getCachedAccountId()
 
         // Build headers with required Codex-specific fields
         const headers: Record<string, string> = {
@@ -505,6 +605,7 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
             originator: "kilo-code", // kade_change
             session_id: taskId || this.sessionId,
             "User-Agent": DEFAULT_HEADERS["User-Agent"], // kade_change
+            ...(taskId ? { conversation_id: taskId } : {}),
         }
 
         // Add ChatGPT-Account-Id if available (required for organization subscriptions)
@@ -899,6 +1000,7 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
             // to include a stable id/name. Avoid emitting incomplete tool_call_partial chunks because
             // NativeToolCallParser requires a name to start a call.
             if (typeof callId === "string" && callId.length > 0 && typeof name === "string" && name.length > 0) {
+                this.streamedToolCallIds.add(callId)
                 yield {
                     type: "tool_call_partial",
                     index: event.index ?? 0,
@@ -915,6 +1017,14 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
             event?.type === "response.tool_call_arguments.done" ||
             event?.type === "response.function_call_arguments.done"
         ) {
+            const callId = event.call_id || event.tool_call_id || event.id || this.pendingToolCallId
+            if (typeof callId === "string" && callId.length > 0 && !this.completedToolCallIds.has(callId)) {
+                this.completedToolCallIds.add(callId)
+                yield {
+                    type: "tool_call_end",
+                    id: callId,
+                }
+            }
             return
         }
 
@@ -940,13 +1050,18 @@ export class OpenAiCodexHandler extends BaseProvider /* kade_change: implements 
                     event.type === "response.output_item.done"
                 ) {
                     const callId = item.call_id || item.tool_call_id || item.id
-                    if (callId) {
+                    if (typeof callId === "string" && callId.length > 0 && !this.streamedToolCallIds.has(callId)) {
                         const args = item.arguments || item.function?.arguments || item.function_arguments
                         yield {
                             type: "tool_call",
                             id: callId,
                             name: item.name || item.function?.name || item.function_name || "",
-                            arguments: typeof args === "string" ? args : "{}",
+                            arguments:
+                                typeof args === "string"
+                                    ? args
+                                    : args && typeof args === "object"
+                                      ? JSON.stringify(args)
+                                      : "",
                         }
                     }
                 }

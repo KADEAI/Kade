@@ -1,6 +1,6 @@
 /**
- * Configuration for models that should use simplified single-file read_file tool
- * These models will use the simpler <read_file><path>...</path></read_file> format
+ * Configuration for models that should use simplified single-file read tool
+ * These models will use the simpler <read><path>...</path></read> format
  * instead of the more complex multi-file args format
  */
 

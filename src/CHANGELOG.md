@@ -1,15 +1,18 @@
 # Changelog
-All notable changes to this project will be documented in #this file.
+All notable changes to this project will be documented in this file.
 
-### [2.3.0] - Current
+### [3.0.0] - Current
 ### Fixed
-- MONUMENTAL improvments and fixes have been made to the GUI, it is on another level now
-- Numerous GUI issues that could be summarized as janky and buggy have been fixed.
-- The terminal gui has been redesigned once again, now on Gen 5 terminal design.
-- Huge improvements to the edit tool. Agents can now provide flat content in their edits and it will get auto structured, no need to include whitespace etc. This is also implemented in the write tool as well, but on a more minimal level. This also allows the edit tool to be roughly 10x more accurate as well with Old and New blocks & applying edits. We made that up, but nonetheless, "It just works" - Todd Howard
+- More than 1,000 fixes have been made across Kade in this release.
+- Numerous tool issues have been fixed, with major reliability improvements across core workflows.
+- Countless UI bugs, rough edges, and broken interactions throughout the app have been cleaned up.
 
 ### Added
-- Added the option to option to close bash, edit, and write gui tool blocks by default in the display settings (Where they're not auto expanded when called)
+- A new Agent Manager page for managing agents in a more organized way.
+
+### Changed
+- Completely redesigned basically every aspect of the UI.
+- This is the next iteration of Kade, with a broad overhaul to the overall experience, layout, and polish.
 
 ## Known Issues
 - Currently the edit tool when set to native, isnt live streaming in the GUI block, this will be fixed in another update. Works just fine when tool protocol is set to Aero.

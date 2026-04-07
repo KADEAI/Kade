@@ -41,6 +41,52 @@ describe("MarkdownToolCallParser", () => {
     expect(toolBlock.partial).toBe(false);
   });
 
+  it("parses multi-file fenced read blocks with per-line --lines flags", () => {
+    const message = [
+      "```read",
+      "src/core/tools/EditTool.ts --lines 1050-1150",
+      "src/core/assistant-message/UnifiedToolCallParser.ts --lines 168-250",
+      "src/core/task/LuxurySpa.ts --lines 60-150",
+      "src/core/task/AgentLoop.ts --lines 600-700",
+      "```",
+    ].join("\n");
+
+    const { blocks } = parser.processChunk(message);
+    const toolBlocks = blocks.filter((block) => block.type === "tool_use") as any[];
+
+    expect(toolBlocks).toHaveLength(4);
+    expect(toolBlocks.map((block) => block.params.path)).toEqual([
+      "src/core/tools/EditTool.ts",
+      "src/core/assistant-message/UnifiedToolCallParser.ts",
+      "src/core/task/LuxurySpa.ts",
+      "src/core/task/AgentLoop.ts",
+    ]);
+    expect(toolBlocks.map((block) => block.params.lineRange)).toEqual([
+      "1050-1150",
+      "168-250",
+      "60-150",
+      "600-700",
+    ]);
+  });
+
+  it("parses multi-file fenced read blocks with inline H and T specifiers", () => {
+    const message = [
+      "```read",
+      "src/core/tools/EditTool.ts H20",
+      "src/core/task/AgentLoop.ts T15",
+      "```",
+    ].join("\n");
+
+    const { blocks } = parser.processChunk(message);
+    const toolBlocks = blocks.filter((block) => block.type === "tool_use") as any[];
+
+    expect(toolBlocks).toHaveLength(2);
+    expect(toolBlocks[0].params.path).toBe("src/core/tools/EditTool.ts");
+    expect(toolBlocks[0].params.head).toBe("20");
+    expect(toolBlocks[1].params.path).toBe("src/core/task/AgentLoop.ts");
+    expect(toolBlocks[1].params.tail).toBe("15");
+  });
+
   it("parses multiple hybrid edit blocks from a single edit tool call", () => {
     const message = JSON.stringify({
       edit: [
@@ -226,7 +272,7 @@ function test() {
     const toolBlock = blocks.find((block) => block.type === "tool_use") as any;
 
     expect(toolBlock).toBeDefined();
-    expect(toolBlock.name).toBe("web_fetch");
+    expect(toolBlock.name).toBe("fetch");
     expect(toolBlock.params.url).toBe("https://example.com/docs");
     expect(toolBlock.params.include_links).toBe(true);
     expect(toolBlock.nativeArgs.include_links).toBe(true);
@@ -413,5 +459,69 @@ I changed the file and now I'm done talking.`;
     expect(finalizedToolBlock.nativeArgs.edits[0].newText).toBe(
       "function test() {\n  return true;\n}",
     );
+  });
+
+  it("recovers a strict markdown tool when the next tool starts without a closer", () => {
+    const message = [
+      "```write file.txt",
+      "alpha",
+      "```read src/app.ts --lines 1-5",
+      "```",
+    ].join("\n");
+
+    const { blocks } = parser.processChunk(message);
+    const toolBlocks = blocks.filter((block) => block.type === "tool_use") as any[];
+
+    expect(toolBlocks).toHaveLength(2);
+    expect(toolBlocks[0].name).toBe("write");
+    expect(toolBlocks[0].partial).toBe(false);
+    expect(toolBlocks[0].params.path).toBe("file.txt");
+    expect(toolBlocks[0].params.content).toBe("alpha");
+    expect(toolBlocks[1].name).toBe("read");
+    expect(toolBlocks[1].partial).toBe(false);
+    expect(toolBlocks[1].params.path).toBe("src/app.ts");
+    expect(toolBlocks[1].params.lineRange).toBe("1-5");
+  });
+
+  it("does not let an unterminated non-tool code fence swallow a later tool block", () => {
+    const message = [
+      "Here is some broken markdown:",
+      "```typescript",
+      "const example = true;",
+      "```read src/app.ts --lines 1-5",
+      "```",
+    ].join("\n");
+
+    const { blocks } = parser.processChunk(message);
+    const textBlock = blocks.find((block) => block.type === "text") as any;
+    const toolBlock = blocks.find((block) => block.type === "tool_use") as any;
+
+    expect(textBlock?.content ?? "").toContain("Here is some broken markdown:");
+    expect(toolBlock).toBeDefined();
+    expect(toolBlock.name).toBe("read");
+    expect(toolBlock.partial).toBe(false);
+    expect(toolBlock.params.path).toBe("src/app.ts");
+    expect(toolBlock.params.lineRange).toBe("1-5");
+  });
+
+  it("recovers a later tool in streaming after an unterminated non-tool code fence", () => {
+    const chunks = [
+      "```typescript\nconst x = 1;\n",
+      "```read src/app.ts --lines 1-5\n",
+      "```",
+    ];
+
+    let blocks: any[] = [];
+    for (const chunk of chunks) {
+      blocks = parser.processChunk(chunk).blocks as any[];
+    }
+
+    const toolBlock = blocks.find((block) => block.type === "tool_use") as any;
+
+    expect(toolBlock).toBeDefined();
+    expect(toolBlock.name).toBe("read");
+    expect(toolBlock.partial).toBe(false);
+    expect(toolBlock.params.path).toBe("src/app.ts");
+    expect(toolBlock.params.lineRange).toBe("1-5");
   });
 });

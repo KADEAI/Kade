@@ -39,7 +39,7 @@ describe("MarkdownToolCallParser — MEGA GAUNTLET", () => {
 			const msg = JSON.stringify({ write: ["test.ts", "hello world"] })
 			const blocks = parse(msg)
 			const t = tool(blocks)
-			expect(t.name).toBe("write_to_file")
+			expect(t.name).toBe("write")
 			expect(t.params.path).toBe("test.ts")
 			expect(t.params.content).toBe("hello world")
 		})
@@ -48,7 +48,7 @@ describe("MarkdownToolCallParser — MEGA GAUNTLET", () => {
 			const msg = `  { \n "ls" \n : \n [ \n "src" \n ] \n }  `
 			const blocks = parse(msg)
 			const t = tool(blocks)
-			expect(t.name).toBe("list_dir")
+			expect(t.name).toBe("list")
 			expect(t.params.path).toBe("src")
 		})
 
@@ -57,14 +57,14 @@ describe("MarkdownToolCallParser — MEGA GAUNTLET", () => {
 			const blocks = parse(msg)
 			const ts = tools(blocks)
 			expect(ts).toHaveLength(2)
-			expect(ts.map(t => t.name)).toContain("read_file")
-			expect(ts.map(t => t.name)).toContain("list_dir")
+			expect(ts.map(t => t.name)).toContain("read")
+			expect(ts.map(t => t.name)).toContain("list")
 		})
 
 		it("recovers from invalid JSON tokens preceding a valid JSON", () => {
 			const msg = `Wait, ignore this: { invalid } \n Now do this: { "ls": ["src"] }`
 			const blocks = parse(msg)
-			expect(tool(blocks).name).toBe("list_dir")
+			expect(tool(blocks).name).toBe("list")
 			expect(textContent(blocks)).toContain("Wait, ignore this:")
 			expect(textContent(blocks)).toContain("Now do this:")
 		})
@@ -114,7 +114,7 @@ describe("MarkdownToolCallParser — MEGA GAUNTLET", () => {
 			const msg = "Check this:\n```json\n{ \"ls\": [\"src\"] }\n```"
 			const blocks = parse(msg)
 			expect(textContent(blocks)).toBe("Check this:")
-			expect(tool(blocks).name).toBe("list_dir")
+			expect(tool(blocks).name).toBe("list")
 		})
 	})
 
@@ -219,7 +219,7 @@ describe("MarkdownToolCallParser — MEGA GAUNTLET", () => {
 			const blocks = parse(msg)
 			const ts = tools(blocks)
 			expect(ts).toHaveLength(1)
-			expect(ts[0].name).toBe("write_to_file")
+			expect(ts[0].name).toBe("write")
 			expect(ts[0].params.content).toBe('{ "ls": ["src"] }')
 		})
 

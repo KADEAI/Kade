@@ -136,7 +136,7 @@ export class RequestyHandler extends BaseProvider implements SingleCompletionHan
 
 		// Check if native tool protocol is enabled
 		const toolProtocol = resolveToolProtocol(this.options, info)
-		const useNativeTools = toolProtocol === TOOL_PROTOCOL.MARKDOWN
+		const useNativeTools = toolProtocol === TOOL_PROTOCOL.JSON
 
 		const completionParams: RequestyChatCompletionParamsStreaming = {
 			messages: openAiMessages,

@@ -62,15 +62,19 @@ export class FileContextTracker {
 			new vscode.RelativePattern(path.dirname(fileUri.fsPath), path.basename(fileUri.fsPath)),
 		)
 
-		// Track file changes
-		watcher.onDidChange(() => {
+		const handleExternalChange = () => {
 			if (this.recentlyEditedByRoo.has(filePath)) {
 				this.recentlyEditedByRoo.delete(filePath) // This was an edit by Roo, no need to inform Roo
 			} else {
 				this.recentlyModifiedFiles.add(filePath) // This was a user edit, we will inform Roo
 				this.trackFileContext(filePath, "user_edited") // Update the task metadata with file tracking
 			}
-		})
+		}
+
+		// Track file changes, including replace-style workflows that surface as create/delete.
+		watcher.onDidChange(handleExternalChange)
+		watcher.onDidCreate(handleExternalChange)
+		watcher.onDidDelete(handleExternalChange)
 
 		// Store the watcher so we can dispose it later
 		this.fileWatchers.set(filePath, watcher)
@@ -215,6 +219,10 @@ export class FileContextTracker {
 		const files = Array.from(this.recentlyModifiedFiles)
 		this.recentlyModifiedFiles.clear()
 		return files
+	}
+
+	peekRecentlyModifiedFiles(): string[] {
+		return Array.from(this.recentlyModifiedFiles)
 	}
 
 	getAndClearCheckpointPossibleFile(): string[] {

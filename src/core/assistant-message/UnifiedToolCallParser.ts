@@ -1,6 +1,24 @@
-import { ToolName, ToolUse, McpToolUse } from "../../shared/tools";
+import {
+  ToolName,
+  ToolUse,
+  McpToolUse,
+  TOOL_ALIASES,
+} from "../../shared/tools";
+import { resolveToolAlias } from "../../shared/tool-aliases";
 import { AssistantMessageContent } from "./parseAssistantMessage";
-import { populateToolParamsFromXmlArgs } from "./XmlToolParser";
+import {
+  applyParamsDefaulting,
+  populateToolParamsFromXmlArgs,
+} from "./XmlToolParser";
+import {
+  HISTORY_CONTENT_PLACEMENT_PLACEHOLDER,
+  formatWriteHistoryPlaceholderBody,
+  redactEditHistoryBody,
+  isEditHistoryPlaceholder,
+  isWriteHistoryPlaceholder,
+} from "../prompts/responses";
+import { splitGlobPatternList } from "../../shared/globPatterns";
+import { stripRedundantLineRangePipePrefix } from "../tools/EditTool";
 
 export class UnifiedToolCallParser {
   private pendingBuffer = "";
@@ -10,12 +28,12 @@ export class UnifiedToolCallParser {
     new Map();
   private toolCounter = 0; // Increments for each NEW tool block encountered
 
-  constructor() { }
+  constructor() {}
 
   private static readonly CONTENT_TOOL_SHORT_NAMES = new Set([
     "write",
     "edit",
-    "write_to_file",
+    "write",
     "edit_file",
     "new_rule",
     "todo",
@@ -29,32 +47,13 @@ export class UnifiedToolCallParser {
     "edit",
     "write",
     "edit_file",
-    "write_to_file",
+    "write",
     "new_rule",
     "todo",
     "wrap",
     "E",
     "W",
     "T",
-  ]);
-
-  private static readonly SINGLE_LETTER_TOOL_CLOSERS = new Set([
-    "R",
-    "E",
-    "W",
-    "M",
-    "V",
-    "L",
-    "G",
-    "F",
-    "S",
-    "B",
-    "X",
-    "Y",
-    "Z",
-    "U",
-    "T",
-    "D",
   ]);
 
   private static readonly KNOWN_TOOL_SHORT_NAMES = new Set([
@@ -66,7 +65,7 @@ export class UnifiedToolCallParser {
     "grep",
     "search",
     "cmd",
-    "execute_command",
+    "bash",
     "todo",
     "done",
     "web",
@@ -82,7 +81,7 @@ export class UnifiedToolCallParser {
     "new_rule",
     "report_bug",
     "agent",
-    "run_sub_agent",
+    "agent",
     "condense",
     "sub",
     "diff",
@@ -95,36 +94,49 @@ export class UnifiedToolCallParser {
     "rename",
     "browser_action",
     "browser",
+    "computer_action",
+    "computer",
+    "desktop",
     "semgrep",
     "wrap",
     "mkdir",
     "find",
-    "R",
-    "E",
-    "W",
-    "M",
-    "V",
-    "L",
-    "G",
-    "F",
-    "S",
-    "B",
-    "X",
-    "Y",
-    "Z",
-    "U",
-    "T",
-    "D",
     "use_mcp_tool",
     "access_mcp_resource",
   ]);
 
-  private static readonly TOOL_START_REGEX =
-    /(?:(?:^|(?<=[\s]))(?<!\\)([A-Z])(?:[ \t]+((?:(?!\s*\/[A-Z](?:\s|$))[^\r\n])*?))?(?:\s*\/([A-Z]))?[ \t]*(?:\r?\n|$))|(?:<((?:use_mcp_tool|access_mcp_resource))>)/gm;
-  private static readonly TRIM_TOOL_START_REGEX =
-    /(?:(?:^|(?<=[\s]))(?<!\\)([A-Z])(?:[ \t]+((?:(?!\s*\/[A-Z](?:\s|$))[^\r\n])*?))?(?:\s*\/([A-Z]))?[ \t]*(?:\r?\n|$))|(?:<((?:use_mcp_tool|access_mcp_resource))>)/gm;
-  private static readonly NEXT_SINGLE_LETTER_TOOL_REGEX =
-    /(?:^|\s+)(?<!\\)([A-Z])(?:[ \t]+[^\r\n]*?)?(?:\r?\n|$)/;
+  private static readonly XML_TOOL_START_REGEX =
+    /<((?:use_mcp_tool|access_mcp_resource))>/gm;
+  private static readonly WRAPPED_TOOL_CALL_START_REGEX =
+    /<(?:[\w-]+:)?tool_call>/gm;
+  private static readonly TOOL_FENCE_BLOCK_START_REGEX =
+    /(?:^|[\r\n]|[.!?])[ \t]*```tool[ \t]*(?:\r?\n|$)/gi;
+  private static readonly ACTIONS_BLOCK_START_REGEX =
+    /(?:^|[\r\n]|[.!?])[ \t]*ACTIONS?/g;
+  private static readonly ACTIONS_COMMANDS = [
+    "write",
+    "bash",
+    "fetch",
+    "agent",
+    "grep",
+    "find",
+    "read",
+    "list",
+    "mkdir",
+    "edit",
+    "todo",
+    "ask",
+    "web",
+    "desktop",
+    "computer_action",
+  ] as const;
+  private static readonly ACTIONS_COMMAND_CANDIDATES = [
+    ...new Set([
+      ...UnifiedToolCallParser.ACTIONS_COMMANDS,
+      "shell",
+      ...Object.keys(TOOL_ALIASES),
+    ]),
+  ].sort((left, right) => right.length - left.length);
 
   private splitPipe(input: string[] | string): string | string[] {
     const arr = Array.isArray(input) ? input : [input];
@@ -135,6 +147,88 @@ export class UnifiedToolCallParser {
         .filter(Boolean);
     }
     return arr.length > 1 ? arr : arr[0];
+  }
+
+  private splitGlobPatterns(input: string[] | string): string | string[] {
+    const patterns = splitGlobPatternList(input, { allowLegacyPipe: true });
+    return patterns.length > 1 ? patterns : patterns[0] || "";
+  }
+
+  private splitOnFirstUnescapedColon(
+    input: string,
+  ): { before: string; after: string } | null {
+    for (let index = 0; index < input.length; index++) {
+      const char = input[index];
+      if (char === "\\") {
+        index++;
+        continue;
+      }
+      if (char === ":") {
+        return {
+          before: input.slice(0, index),
+          after: input.slice(index + 1),
+        };
+      }
+    }
+
+    return null;
+  }
+
+  private unescapeInlineColon(value: string): string {
+    return value.replace(/\\:/g, ":");
+  }
+
+  private parseScopedInlineArg(
+    value: string,
+    options: { allowWhitespaceScope?: boolean } = {},
+  ): { scope: string; payload: string } | null {
+    const normalized = this.stripMatchingOuterQuotes(value);
+    const split = this.splitOnFirstUnescapedColon(normalized);
+    if (!split) {
+      return null;
+    }
+
+    const scope = this.unescapeInlineColon(split.before.trim());
+    const payload = this.unescapeInlineColon(split.after.trim());
+
+    if (!scope || !payload) {
+      return null;
+    }
+
+    if (options.allowWhitespaceScope === false && /\s/.test(scope)) {
+      return null;
+    }
+
+    return { scope, payload };
+  }
+
+  private parseGrepScopeArg(scope: string): {
+    path?: string;
+    include?: string;
+  } {
+    const normalizedScope = this.stripMatchingOuterQuotes(scope).trim();
+    if (!normalizedScope) {
+      return {};
+    }
+
+    if (/^include\s*=/i.test(normalizedScope)) {
+      const pipeIndex = normalizedScope.indexOf("|");
+      const includeSegment =
+        pipeIndex === -1
+          ? normalizedScope
+          : normalizedScope.slice(0, pipeIndex).trim();
+      const pathSegment =
+        pipeIndex === -1
+          ? "."
+          : normalizedScope.slice(pipeIndex + 1).trim() || ".";
+
+      return {
+        include: includeSegment.replace(/^include\s*=\s*/i, "").trim(),
+        path: pathSegment,
+      };
+    }
+
+    return { path: normalizedScope };
   }
 
   /**
@@ -163,16 +257,57 @@ export class UnifiedToolCallParser {
     );
   }
 
+  private looksLikePathArg(argsStr: string): boolean {
+    const trimmed = argsStr.trim();
+    if (!trimmed) {
+      return false;
+    }
+
+    if (
+      trimmed === "." ||
+      trimmed === ".." ||
+      trimmed.startsWith("/") ||
+      trimmed.startsWith("./") ||
+      trimmed.startsWith("../") ||
+      trimmed.startsWith("~/") ||
+      trimmed.startsWith('"') ||
+      trimmed.startsWith("'") ||
+      trimmed.startsWith("`")
+    ) {
+      return true;
+    }
+
+    if (/\s+--/.test(trimmed) || trimmed.startsWith("--")) {
+      return true;
+    }
+
+    if (!/\s/.test(trimmed)) {
+      return true;
+    }
+
+    return false;
+  }
+
   private isFinalized = false;
   private hasFinalizedTool = false;
+  private hasCompletedToolFenceBatch = false;
   private currentTurnId = Date.now().toString();
 
   /**
    * Returns true if a tool call has been finalized (closed) in this turn.
    * Used by AgentLoop to stop accumulating trailing text after tool calls.
+   * Note: This also handles "brain farts" where the model forgets to populate tool actions.
    */
   public hasCompletedToolCall(): boolean {
     return this.hasFinalizedTool;
+  }
+
+  /**
+   * Returns true only when the current unified stream can be terminated early
+   * without risking additional tool blocks being cut off.
+   */
+  public hasCompletedStreamingToolBatch(): boolean {
+    return this.hasCompletedToolFenceBatch;
   }
 
   public reset() {
@@ -181,6 +316,7 @@ export class UnifiedToolCallParser {
     this.bufferStartIndex = 0;
     this.isFinalized = false;
     this.hasFinalizedTool = false;
+    this.hasCompletedToolFenceBatch = false;
     this.currentTurnId = Date.now().toString();
     this.toolCounter = 0;
   }
@@ -189,6 +325,18 @@ export class UnifiedToolCallParser {
     blocks: AssistantMessageContent[];
     safeIndex: number;
   } {
+    if (this.hasCompletedToolFenceBatch && !this.isFinalized) {
+      const continuationCandidate = this.pendingBuffer + chunk;
+      if (!this.canResumeAfterCompletedTool(continuationCandidate)) {
+        return {
+          blocks: [...this.finalizedBlocks],
+          safeIndex: 0,
+        };
+      }
+
+      this.hasCompletedToolFenceBatch = false;
+    }
+
     this.pendingBuffer += chunk;
     const { finalized, pending, safeIndex } = this.parseMessage(
       this.pendingBuffer,
@@ -206,8 +354,43 @@ export class UnifiedToolCallParser {
     };
   }
 
+  public canResumeAfterCompletedTool(message: string): boolean {
+    const leadingWhitespaceLength = message.match(/^\s*/)?.[0].length ?? 0;
+    const trimmedStart = message.slice(leadingWhitespaceLength);
+
+    if (!trimmedStart) {
+      return false;
+    }
+
+    if (this.findToolFenceBlockStart(trimmedStart, 0) === 0) {
+      return true;
+    }
+
+    if (this.findWrappedToolCallStart(trimmedStart, 0) === 0) {
+      return true;
+    }
+
+    if (this.findAtActionsBlockStart(trimmedStart, 0) === 0) {
+      return true;
+    }
+
+    if (this.findActionsBlockStart(trimmedStart, 0) === 0) {
+      return true;
+    }
+
+    if (this.findImplicitActionsBlockStart(trimmedStart, 0) === 0) {
+      return true;
+    }
+
+    return /^(?:<(?:use_mcp_tool|access_mcp_resource)>)/.test(trimmedStart);
+  }
+
   public finalizeContentBlocks(): void {
     this.isFinalized = true;
+    if (this.hasCompletedToolFenceBatch) {
+      this.pendingBuffer = "";
+      return;
+    }
     // Parse everything remaining as final
     const { finalized, pending } = this.parseMessage(this.pendingBuffer, true);
     // Everything returned is finalized (since isFinalized=true)
@@ -216,6 +399,10 @@ export class UnifiedToolCallParser {
   }
 
   public getContentBlocks(): AssistantMessageContent[] {
+    if (this.hasCompletedToolFenceBatch && !this.isFinalized) {
+      return [...this.finalizedBlocks];
+    }
+
     const { finalized, pending } = this.parseMessage(
       this.pendingBuffer,
       this.isFinalized,
@@ -224,162 +411,13 @@ export class UnifiedToolCallParser {
   }
 
   public trimRawMessageAfterLastCompletedTool(message: string): string {
-    let lastCompletedToolEnd = -1;
-
-    const knownToolShortNames = UnifiedToolCallParser.KNOWN_TOOL_SHORT_NAMES;
-    const toolStartRegex = new RegExp(
-      UnifiedToolCallParser.TRIM_TOOL_START_REGEX,
+    const lastCompletedWrapperlessToolEnd =
+      this.findLastCompletedWrapperlessToolEnd(message);
+    const lastCompletedXmlToolEnd = this.findLastCompletedXmlToolEnd(message);
+    const lastCompletedToolEnd = Math.max(
+      lastCompletedWrapperlessToolEnd,
+      lastCompletedXmlToolEnd,
     );
-    let match: RegExpExecArray | null;
-
-    while ((match = toolStartRegex.exec(message)) !== null) {
-      let toolShortName = match[1] || match[4];
-      let argsStr = (match[2] || "").trim();
-      const isXml = !!match[4];
-
-      if (toolShortName.startsWith("tool_")) {
-        toolShortName = toolShortName.slice(5);
-      }
-
-      const isMcpTool = this.isRegisteredMcpTool(toolShortName);
-      if (!knownToolShortNames.has(toolShortName) && !isMcpTool) {
-        continue;
-      }
-
-      const startIndex = match.index;
-      let startTagEndIndex = startIndex + match[0].length;
-      let isOneLiner = !!match[3];
-      const remaining = message.slice(startTagEndIndex);
-      const isCompact =
-        argsStr.startsWith("(") ||
-        (!argsStr.trim() && remaining.trimStart().startsWith("("));
-
-      if (isCompact) {
-        if (!argsStr.trim()) {
-          const wsMatch = remaining.match(/^\s+/);
-          if (wsMatch) startTagEndIndex += wsMatch[0].length;
-        }
-
-        const parenSearch = message.slice(startTagEndIndex);
-        if (parenSearch.startsWith("(")) {
-          let depth = 0;
-          let quote: string | null = null;
-          let escape = false;
-          let foundEnd = false;
-          for (let i = 0; i < parenSearch.length; i++) {
-            const char = parenSearch[i];
-            if (escape) {
-              escape = false;
-              continue;
-            }
-            if (char === "\\") {
-              escape = true;
-              continue;
-            }
-            if (quote) {
-              if (char === quote) quote = null;
-              continue;
-            }
-            if (char === '"' || char === "'" || char === "`") {
-              quote = char;
-              continue;
-            }
-            if (char === "(") depth++;
-            else if (char === ")") {
-              depth--;
-              if (depth === 0) {
-                argsStr = parenSearch.slice(1, i);
-                startTagEndIndex += i + 1;
-                foundEnd = true;
-                break;
-              }
-            }
-          }
-          if (!foundEnd) {
-            break;
-          }
-        }
-
-        isOneLiner = true;
-      }
-
-      const isContentTool =
-        UnifiedToolCallParser.CONTENT_TOOL_SHORT_NAMES.has(toolShortName);
-      if (isContentTool && !isOneLiner) {
-        const explicitCloserRegex = new RegExp(`\\/?${toolShortName}$`);
-        const trimmedArgs = argsStr.trim();
-        const closerMatch = trimmedArgs.match(explicitCloserRegex);
-        if (closerMatch) {
-          isOneLiner = true;
-          argsStr = trimmedArgs.slice(0, -closerMatch[0].length).trim();
-        }
-      }
-
-      let endIndex = -1;
-      if (isOneLiner) {
-        endIndex = startTagEndIndex;
-      } else {
-        const remainingText = message.slice(startTagEndIndex);
-        let closingRegex: RegExp;
-        if (
-          [
-            "edit",
-            "write",
-            "edit_file",
-            "write_to_file",
-            "todo",
-            "wrap",
-            "E",
-            "W",
-            "T",
-          ].includes(toolShortName)
-        ) {
-          const closer =
-            toolShortName === "E" || toolShortName === "edit"
-              ? "edit"
-              : toolShortName === "W" || toolShortName === "write"
-                ? "write"
-                : toolShortName === "T" || toolShortName === "todo"
-                  ? "todo"
-                  : toolShortName;
-          closingRegex = new RegExp(
-            `(?:^|[\\r\\n])[ \\t]*(?<!\\\\)\\/${closer}(?:[ \\t]*(?:[\\r\\n]|$))`,
-          );
-        } else if (isXml) {
-          closingRegex = new RegExp(`(?:^|[\\r\\n])[ \t]*<\\/${toolShortName}>(?:[ \\t]*(?:[\\r\\n]|$))`);
-        } else if (toolShortName.length === 1 && /[A-Z]/.test(toolShortName)) {
-          closingRegex = new RegExp(
-            `(?:^|[\\r\\n])[ \t]*(?<!\\\\)\\/[${toolShortName}${toolShortName.toLowerCase()}](?=$|[ \\t]|[\\r\\n])`,
-          );
-        } else {
-          closingRegex = /$^/;
-        }
-        const endMatch = remainingText.match(closingRegex);
-        const isStrictTool =
-          UnifiedToolCallParser.STRICT_TOOL_SHORT_NAMES.has(toolShortName);
-
-        let actualEndMatch = endMatch;
-        let isImplicitClose = false;
-        let consumeClosingMatch = true;
-
-        if (!actualEndMatch || actualEndMatch.index === undefined) {
-          break;
-        }
-
-        if (isImplicitClose && !consumeClosingMatch) {
-          endIndex = startTagEndIndex + actualEndMatch.index;
-          toolStartRegex.lastIndex = endIndex;
-        } else {
-          endIndex =
-            startTagEndIndex + actualEndMatch.index + actualEndMatch[0].length;
-          toolStartRegex.lastIndex = endIndex;
-        }
-      }
-
-      if (endIndex > startIndex) {
-        lastCompletedToolEnd = Math.max(lastCompletedToolEnd, endIndex);
-      }
-    }
 
     if (lastCompletedToolEnd === -1) {
       return message;
@@ -388,7 +426,938 @@ export class UnifiedToolCallParser {
     return message.slice(0, lastCompletedToolEnd).trimEnd();
   }
 
+  public compactMessageForHistory(message: string): string {
+    const trimmed = this.trimRawMessageAfterLastCompletedTool(message);
+    return this.stripWriteBodiesFromHistory(trimmed);
+  }
+
+  private stripWriteBodiesFromHistory(message: string): string {
+    const lines = message.split(/\r?\n/);
+    const compacted: string[] = [];
+    let inToolFence = false;
+    let inActionsBlock = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (!inToolFence && !inActionsBlock) {
+        if (/^```tool$/i.test(trimmed)) {
+          inToolFence = true;
+        } else if (/^ACTIONS?$/i.test(trimmed)) {
+          inActionsBlock = true;
+        }
+        compacted.push(line);
+        continue;
+      }
+
+      if (inToolFence && trimmed === "```") {
+        inToolFence = false;
+        compacted.push(line);
+        continue;
+      }
+
+      if (inActionsBlock && /^END$/i.test(trimmed)) {
+        inActionsBlock = false;
+        compacted.push(line);
+        continue;
+      }
+
+      const command = this.parseActionsCommand(line);
+      if (command?.command !== "write" && command?.command !== "edit") {
+        compacted.push(line);
+        continue;
+      }
+
+      compacted.push(line);
+
+      const contentLines: string[] = [];
+
+      let consumedCloser = false;
+      for (i = i + 1; i < lines.length; i++) {
+        const bodyLine = lines[i];
+        const bodyTrimmed = bodyLine.trim();
+
+        if (this.isContentToolCloserLine(bodyLine, "eof")) {
+          if (command.command === "write") {
+            compacted.push(
+              formatWriteHistoryPlaceholderBody(contentLines.join("\n")),
+            );
+          }
+          if (command.command === "edit") {
+            compacted.push(redactEditHistoryBody(contentLines.join("\n")));
+          }
+          compacted.push(bodyLine);
+          consumedCloser = true;
+          break;
+        }
+
+        if (inToolFence && bodyTrimmed === "```") {
+          if (command.command === "write") {
+            compacted.push(
+              formatWriteHistoryPlaceholderBody(contentLines.join("\n")),
+            );
+          }
+          if (command.command === "edit") {
+            compacted.push(redactEditHistoryBody(contentLines.join("\n")));
+          }
+          inToolFence = false;
+          compacted.push(bodyLine);
+          consumedCloser = true;
+          break;
+        }
+
+        if (inActionsBlock && /^END$/i.test(bodyTrimmed)) {
+          if (command.command === "write") {
+            compacted.push(
+              formatWriteHistoryPlaceholderBody(contentLines.join("\n")),
+            );
+          }
+          if (command.command === "edit") {
+            compacted.push(redactEditHistoryBody(contentLines.join("\n")));
+          }
+          inActionsBlock = false;
+          compacted.push(bodyLine);
+          consumedCloser = true;
+          break;
+        }
+
+        contentLines.push(bodyLine);
+      }
+
+      if (!consumedCloser) {
+        break;
+      }
+    }
+
+    return compacted.join("\n").trimEnd();
+  }
+
+  private findLastCompletedWrapperlessToolEnd(message: string): number {
+    let lastCompletedToolEnd = -1;
+    let allowInlineFirstAtTool = true;
+
+    let currentIndex = 0;
+    while (currentIndex < message.length) {
+      const toolFenceStart = this.findToolFenceBlockStart(
+        message,
+        currentIndex,
+      );
+      const atActionsStart = this.findAtActionsBlockStartInternal(
+        message,
+        currentIndex,
+        allowInlineFirstAtTool,
+      );
+      const actionsStart = this.findActionsBlockStart(message, currentIndex);
+      const implicitStart = this.findImplicitActionsBlockStart(
+        message,
+        currentIndex,
+      );
+      const blockStart = [
+        toolFenceStart,
+        atActionsStart,
+        actionsStart,
+        implicitStart,
+      ]
+        .filter((index) => index !== -1)
+        .reduce((min, index) => Math.min(min, index), Number.POSITIVE_INFINITY);
+
+      if (blockStart === Number.POSITIVE_INFINITY) {
+        break;
+      }
+
+      const parsedBlock =
+        toolFenceStart !== -1 && toolFenceStart === blockStart
+          ? this.parseToolFenceBlock(message, blockStart, false)
+          : atActionsStart !== -1 && atActionsStart === blockStart
+            ? this.parseAtActionsBlock(message, blockStart, false)
+            : actionsStart !== -1 && actionsStart === blockStart
+              ? this.parseActionsBlock(message, blockStart, false)
+              : this.parseImplicitActionsBlock(message, blockStart, false);
+
+      if (!parsedBlock.closed) {
+        break;
+      }
+
+      if (parsedBlock.blocks.length > 0) {
+        lastCompletedToolEnd = Math.max(
+          lastCompletedToolEnd,
+          parsedBlock.endIndex,
+        );
+        allowInlineFirstAtTool = false;
+      }
+
+      currentIndex = parsedBlock.endIndex;
+    }
+
+    return lastCompletedToolEnd;
+  }
+
+  private findLastCompletedXmlToolEnd(message: string): number {
+    let lastCompletedToolEnd = -1;
+    const toolStartRegex = new RegExp(
+      UnifiedToolCallParser.XML_TOOL_START_REGEX,
+    );
+    let match: RegExpExecArray | null;
+
+    while ((match = toolStartRegex.exec(message)) !== null) {
+      const toolShortName = match[1];
+      const startIndex = match.index;
+      const startTagEndIndex = startIndex + match[0].length;
+      const remainingText = message.slice(startTagEndIndex);
+      const closingRegex = new RegExp(
+        `(?:^|[\\r\\n])[ \\t]*<\\/${toolShortName}>(?:[ \\t]*(?:[\\r\\n]|$))`,
+      );
+      const endMatch = remainingText.match(closingRegex);
+
+      if (!endMatch || endMatch.index === undefined) {
+        break;
+      }
+
+      const endIndex = startTagEndIndex + endMatch.index + endMatch[0].length;
+      lastCompletedToolEnd = Math.max(lastCompletedToolEnd, endIndex);
+      toolStartRegex.lastIndex = endIndex;
+    }
+
+    return lastCompletedToolEnd;
+  }
+
   private parseMessage(
+    message: string,
+    isFinalized: boolean,
+  ): {
+    finalized: AssistantMessageContent[];
+    pending: AssistantMessageContent[];
+    safeIndex: number;
+  } {
+    const toolFenceStart = this.findToolFenceBlockStart(message, 0);
+    const atActionsStart = this.findAtActionsBlockStartInternal(
+      message,
+      0,
+      !this.hasFinalizedTool && this.toolCounter === 0,
+    );
+    const actionsStart = this.findActionsBlockStart(message, 0);
+    const implicitStart = this.findImplicitActionsBlockStart(message, 0);
+    const wrappedStart = this.findWrappedToolCallStart(message, 0);
+    const firstBlockStart = [
+      toolFenceStart,
+      atActionsStart,
+      actionsStart,
+      implicitStart,
+      wrappedStart,
+    ]
+      .filter((index) => index !== -1)
+      .reduce((min, index) => Math.min(min, index), Number.POSITIVE_INFINITY);
+
+    if (firstBlockStart !== Number.POSITIVE_INFINITY) {
+      return this.parseMessageWithActions(message, isFinalized);
+    }
+
+    const atActions = this.parseAtActionsAtMessageStart(message, isFinalized);
+    if (atActions) {
+      return atActions;
+    }
+
+    const implicitActions = this.parseImplicitActionsAtMessageStart(
+      message,
+      isFinalized,
+    );
+    if (implicitActions) {
+      return implicitActions;
+    }
+
+    return this.parseStandardMessage(message, isFinalized);
+  }
+
+  private parseAtActionsAtMessageStart(
+    message: string,
+    isFinalized: boolean,
+  ): {
+    finalized: AssistantMessageContent[];
+    pending: AssistantMessageContent[];
+    safeIndex: number;
+  } | null {
+    const leadingWhitespaceMatch = message.match(/^\s*/);
+    const leadingWhitespaceLength = leadingWhitespaceMatch?.[0].length ?? 0;
+    const trimmedStart = message.slice(leadingWhitespaceLength);
+
+    if (!trimmedStart) {
+      return null;
+    }
+
+    const firstLine = trimmedStart.split(/\r?\n/, 1)[0] ?? "";
+    const parsedAction = this.parseAtToolCommand(firstLine);
+    const parsedMcpAction = this.parseAtMcpToolCommand(firstLine);
+    if (!parsedAction && !parsedMcpAction) {
+      return null;
+    }
+
+    const blocks = this.parseActionsBody(trimmedStart, isFinalized);
+    if (blocks.length === 0) {
+      return null;
+    }
+
+    if (isFinalized && blocks.length > 0) {
+      this.hasFinalizedTool = true;
+    }
+
+    return {
+      finalized: isFinalized ? blocks : [],
+      pending: isFinalized ? [] : blocks,
+      safeIndex: isFinalized ? message.length : 0,
+    };
+  }
+
+  private parseImplicitActionsAtMessageStart(
+    message: string,
+    isFinalized: boolean,
+  ): {
+    finalized: AssistantMessageContent[];
+    pending: AssistantMessageContent[];
+    safeIndex: number;
+  } | null {
+    const leadingWhitespaceMatch = message.match(/^\s*/);
+    const leadingWhitespaceLength = leadingWhitespaceMatch?.[0].length ?? 0;
+    const trimmedStart = message.slice(leadingWhitespaceLength);
+
+    if (!trimmedStart) {
+      return null;
+    }
+
+    const firstLine = trimmedStart.split(/\r?\n/, 1)[0]?.trim() ?? "";
+    if (!firstLine || !this.parseActionsCommand(firstLine)) {
+      return null;
+    }
+
+    const endMatch = this.matchImplicitActionsEnd(trimmedStart);
+    const endIndex =
+      endMatch && endMatch.index !== undefined
+        ? endMatch.index + endMatch[0].indexOf("END")
+        : -1;
+    const consumedLength =
+      endMatch && endMatch.index !== undefined
+        ? endMatch.index + endMatch[0].length
+        : -1;
+    const body =
+      endIndex === -1 ? trimmedStart : trimmedStart.slice(0, endIndex);
+    const blocks = this.parseActionsBody(body, isFinalized || endIndex !== -1);
+    if (blocks.length === 0) {
+      return null;
+    }
+
+    if ((isFinalized || endIndex !== -1) && blocks.length > 0) {
+      this.hasFinalizedTool = true;
+    }
+
+    return {
+      finalized: isFinalized || endIndex !== -1 ? blocks : [],
+      pending: isFinalized || endIndex !== -1 ? [] : blocks,
+      safeIndex: isFinalized
+        ? message.length
+        : endIndex === -1
+          ? 0
+          : leadingWhitespaceLength + consumedLength,
+    };
+  }
+
+  private matchImplicitActionsEnd(message: string): RegExpExecArray | null {
+    return /(?:^|[\r\n])[ \t]*END(?:[^\r\n]*)?(?=$|[\r\n])/.exec(message);
+  }
+
+  private findImplicitActionsEnd(message: string): number {
+    const match = this.matchImplicitActionsEnd(message);
+    if (!match || match.index === undefined) {
+      return -1;
+    }
+
+    const endOffset = match[0].indexOf("END");
+    return endOffset === -1 ? -1 : match.index + endOffset;
+  }
+
+  private findImplicitActionsBlockStart(
+    message: string,
+    fromIndex: number,
+  ): number {
+    const regex =
+      /(?:^|[\r\n])([ \t]*)(READ|WRITE|EDIT|LIST|MKDIR|GREP|FIND|SHELL|WEB|FETCH|ASK|TODO|AGENT)(?=$|\s|[^\s])/g;
+    regex.lastIndex = fromIndex;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(message)) !== null) {
+      if (match.index === undefined) {
+        break;
+      }
+
+      const leadingWhitespace = match[1] ?? "";
+      const commandIndex = match.index + match[0].length - match[2].length;
+      const lineStart = commandIndex;
+      const lineEnd = message.indexOf("\n", lineStart);
+      const rawLine =
+        lineEnd === -1
+          ? message.slice(lineStart)
+          : message.slice(lineStart, lineEnd);
+
+      if (this.parseActionsCommand(rawLine)) {
+        return commandIndex;
+      }
+
+      regex.lastIndex = commandIndex + leadingWhitespace.length + 1;
+    }
+
+    return -1;
+  }
+
+  private findToolFenceBlockStart(message: string, fromIndex: number): number {
+    const regex = /(?:^|[\r\n]|[.!?])[ \t]*```tool[^\r\n]*(?:\r?\n|$)/gi;
+    regex.lastIndex = fromIndex;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(message)) !== null) {
+      const fenceIndex = match[0].toLowerCase().indexOf("```tool");
+      const candidateIndex =
+        fenceIndex === -1 ? match.index : match.index + fenceIndex;
+
+      if (this.matchToolFenceOpener(message, candidateIndex)) {
+        return candidateIndex;
+      }
+
+      regex.lastIndex = candidateIndex + "```tool".length;
+    }
+
+    return -1;
+  }
+
+  private parseMessageWithActions(
+    message: string,
+    isFinalized: boolean,
+  ): {
+    finalized: AssistantMessageContent[];
+    pending: AssistantMessageContent[];
+    safeIndex: number;
+  } {
+    const contentBlocks: AssistantMessageContent[] = [];
+    let currentIndex = 0;
+    let lastSafeIndex = 0;
+    let finalizedBlockCount = 0;
+    let allowInlineFirstAtTool = !this.hasFinalizedTool && this.toolCounter === 0;
+
+    while (currentIndex < message.length) {
+      const toolFenceStart = this.findToolFenceBlockStart(
+        message,
+        currentIndex,
+      );
+      const atActionsStart = this.findAtActionsBlockStartInternal(
+        message,
+        currentIndex,
+        allowInlineFirstAtTool,
+      );
+      const actionsStart = this.findActionsBlockStart(message, currentIndex);
+      const implicitStart = this.findImplicitActionsBlockStart(
+        message,
+        currentIndex,
+      );
+      const wrappedStart = this.findWrappedToolCallStart(message, currentIndex);
+      const blockStart = [
+        toolFenceStart,
+        atActionsStart,
+        actionsStart,
+        implicitStart,
+        wrappedStart,
+      ]
+        .filter((index) => index !== -1)
+        .reduce((min, index) => Math.min(min, index), Number.POSITIVE_INFINITY);
+
+      if (blockStart === Number.POSITIVE_INFINITY) {
+        const remainder = this.parsePlainTextMessage(
+          message.slice(currentIndex),
+          isFinalized,
+        );
+        contentBlocks.push(...remainder.finalized, ...remainder.pending);
+        lastSafeIndex = currentIndex + remainder.safeIndex;
+        if (remainder.finalized.length > 0) {
+          finalizedBlockCount = contentBlocks.length;
+        }
+        break;
+      }
+
+      if (blockStart > currentIndex) {
+        const beforeActions = this.parsePlainTextMessage(
+          message.slice(currentIndex, blockStart),
+          true,
+        );
+        contentBlocks.push(
+          ...beforeActions.finalized,
+          ...beforeActions.pending,
+        );
+        if (
+          beforeActions.finalized.length > 0 ||
+          beforeActions.pending.length > 0
+        ) {
+          lastSafeIndex = blockStart;
+          finalizedBlockCount = contentBlocks.length;
+        }
+      }
+
+      const parsedActions =
+        toolFenceStart !== -1 && toolFenceStart === blockStart
+          ? this.parseToolFenceBlock(message, blockStart, isFinalized)
+          : atActionsStart !== -1 && atActionsStart === blockStart
+            ? this.parseAtActionsBlock(message, blockStart, isFinalized)
+            : wrappedStart !== -1 && wrappedStart === blockStart
+              ? this.parseWrappedToolCallBlock(message, blockStart, isFinalized)
+              : actionsStart !== -1 && actionsStart === blockStart
+                ? this.parseActionsBlock(message, blockStart, isFinalized)
+                : this.parseImplicitActionsBlock(
+                    message,
+                    blockStart,
+                    isFinalized,
+                  );
+      contentBlocks.push(...parsedActions.blocks);
+      if (parsedActions.blocks.length > 0) {
+        allowInlineFirstAtTool = false;
+      }
+
+      if (parsedActions.closed) {
+        lastSafeIndex = parsedActions.endIndex;
+        finalizedBlockCount = contentBlocks.length;
+        currentIndex = parsedActions.endIndex;
+        this.hasFinalizedTool =
+          parsedActions.blocks.length > 0 || this.hasFinalizedTool;
+        if (
+          parsedActions.blocks.length > 0 &&
+          toolFenceStart !== -1 &&
+          toolFenceStart === blockStart
+        ) {
+          this.hasCompletedToolFenceBatch = true;
+        }
+        // For the fenced unified protocol, stop after the first completed tool block
+        // so the agent loop can terminate the stream before later fenced blocks are parsed.
+        if (
+          !isFinalized &&
+          toolFenceStart !== -1 &&
+          toolFenceStart === blockStart
+        ) {
+          break;
+        }
+        if (
+          !isFinalized &&
+          atActionsStart !== -1 &&
+          atActionsStart === blockStart
+        ) {
+          break;
+        }
+      } else {
+        break;
+      }
+    }
+
+    return {
+      finalized: contentBlocks.slice(0, finalizedBlockCount),
+      pending: contentBlocks.slice(finalizedBlockCount),
+      safeIndex: lastSafeIndex,
+    };
+  }
+
+  private parseToolFenceBlock(
+    message: string,
+    startIndex: number,
+    isFinalized: boolean,
+  ): {
+    blocks: AssistantMessageContent[];
+    closed: boolean;
+    endIndex: number;
+  } {
+    const openerInfo = this.matchToolFenceOpener(message, startIndex);
+    if (!openerInfo) {
+      return { blocks: [], closed: false, endIndex: startIndex };
+    }
+
+    const bodyStart = startIndex + openerInfo.consumedLength;
+    const closingInfo = this.findToolFenceClose(message.slice(bodyStart));
+    const remainingBody = message.slice(bodyStart);
+    const bodyWithInlineAction = (body: string) =>
+      openerInfo.inlineAction
+        ? body
+          ? `${openerInfo.inlineAction}\n${body}`
+          : openerInfo.inlineAction
+        : body;
+
+    if (!closingInfo && !isFinalized) {
+      const blocks = this.parseActionsBody(
+        bodyWithInlineAction(remainingBody),
+        false,
+      );
+      return { blocks, closed: false, endIndex: startIndex };
+    }
+
+    const bodyEnd = closingInfo
+      ? bodyStart + closingInfo.bodyEnd
+      : message.length;
+    const body = bodyWithInlineAction(message.slice(bodyStart, bodyEnd));
+    const blocks = this.parseActionsBody(body, true);
+
+    if (blocks.length > 0) {
+      this.hasFinalizedTool = true;
+    }
+
+    return {
+      blocks,
+      closed: true,
+      endIndex: closingInfo
+        ? bodyStart + closingInfo.consumedLength
+        : message.length,
+    };
+  }
+
+  private matchToolFenceOpener(
+    message: string,
+    startIndex: number,
+  ): { consumedLength: number; inlineAction: string } | null {
+    const openerMatch = /^```tool([^\r\n]*)(?:\r?\n|$)/i.exec(
+      message.slice(startIndex),
+    );
+    if (!openerMatch) {
+      return null;
+    }
+
+    const suffix = openerMatch[1] ?? "";
+    const inlineAction = suffix.trimStart();
+    if (inlineAction && !this.parseActionsCommand(inlineAction)) {
+      return null;
+    }
+
+    return {
+      consumedLength: openerMatch[0].length,
+      inlineAction,
+    };
+  }
+
+  private findToolFenceClose(
+    body: string,
+  ): { bodyEnd: number; consumedLength: number } | null {
+    let activeCloser: string | null = null;
+    const lineRegex = /([^\r\n]*)(\r?\n|$)/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = lineRegex.exec(body)) !== null) {
+      const line = match[1] ?? "";
+      const trimmed = line.trim().toLowerCase();
+
+      if (activeCloser) {
+        if (trimmed === activeCloser) {
+          activeCloser = null;
+        }
+      } else {
+        const fencePrefixMatch = /^([ \t]*```)(.*)$/.exec(line);
+        const fenceRemainder = fencePrefixMatch?.[2] ?? "";
+        const closesToolFence =
+          !!fencePrefixMatch &&
+          (fenceRemainder.trim().length === 0 ||
+            /^[^A-Za-z0-9_]/.test(fenceRemainder));
+
+        if (closesToolFence) {
+          return {
+            bodyEnd: match.index,
+            consumedLength:
+              match.index +
+              (fenceRemainder.trim().length === 0
+                ? match[0].length
+                : fencePrefixMatch[1].length),
+          };
+        }
+
+        const parsedAction = this.parseActionsCommand(line);
+        if (parsedAction) {
+          activeCloser = this.getContentToolCloser(parsedAction.command);
+        }
+      }
+
+      if (match[0].length === 0) {
+        break;
+      }
+    }
+
+    return null;
+  }
+
+  private parseImplicitActionsBlock(
+    message: string,
+    startIndex: number,
+    isFinalized: boolean,
+  ): {
+    blocks: AssistantMessageContent[];
+    closed: boolean;
+    endIndex: number;
+  } {
+    const body = message.slice(startIndex);
+    const endMatch = this.matchImplicitActionsEnd(body);
+    const endIndex =
+      endMatch && endMatch.index !== undefined
+        ? endMatch.index + endMatch[0].indexOf("END")
+        : -1;
+    const consumedLength =
+      endMatch && endMatch.index !== undefined
+        ? endMatch.index + endMatch[0].length
+        : -1;
+    const toolBody = endIndex === -1 ? body : body.slice(0, endIndex);
+    const closed = isFinalized || endIndex !== -1;
+    const blocks = this.parseActionsBody(toolBody, closed);
+
+    if (closed && blocks.length > 0) {
+      this.hasFinalizedTool = true;
+    }
+
+    return {
+      blocks,
+      closed,
+      endIndex: closed
+        ? startIndex + (endIndex === -1 ? body.length : consumedLength)
+        : startIndex,
+    };
+  }
+
+  private findWrappedToolCallStart(message: string, fromIndex: number): number {
+    const regex = new RegExp(
+      UnifiedToolCallParser.WRAPPED_TOOL_CALL_START_REGEX,
+    );
+    regex.lastIndex = fromIndex;
+    const match = regex.exec(message);
+    return match?.index ?? -1;
+  }
+
+  private parseWrappedToolCallBlock(
+    message: string,
+    startIndex: number,
+    isFinalized: boolean,
+  ): {
+    blocks: AssistantMessageContent[];
+    closed: boolean;
+    endIndex: number;
+  } {
+    const openingMatch = message
+      .slice(startIndex)
+      .match(/^<(?:[\w-]+:)?tool_call>/);
+
+    if (!openingMatch) {
+      return {
+        blocks: [],
+        closed: false,
+        endIndex: startIndex,
+      };
+    }
+
+    const openingLength = openingMatch[0].length;
+    const body = message.slice(startIndex + openingLength);
+    const closingRegex = /<\/(?:[\w-]+:)?tool_call>/;
+    const closingMatch = closingRegex.exec(body);
+
+    const closed = isFinalized || !!closingMatch;
+    const content =
+      closingMatch && closingMatch.index !== undefined
+        ? body.slice(0, closingMatch.index)
+        : body;
+    const endIndex =
+      closingMatch && closingMatch.index !== undefined
+        ? startIndex +
+          openingLength +
+          closingMatch.index +
+          closingMatch[0].length
+        : closed
+          ? message.length
+          : startIndex;
+
+    const toolCallId = `unified_${this.currentTurnId}_tool_call_${this.toolCounter}`;
+    const toolUse = this.createWrappedToolUse(content, !closed, toolCallId);
+
+    if (!toolUse) {
+      return {
+        blocks: [],
+        closed,
+        endIndex,
+      };
+    }
+
+    if (closed) {
+      this.toolCounter++;
+      this.hasFinalizedTool = true;
+    }
+
+    return {
+      blocks: [toolUse],
+      closed,
+      endIndex,
+    };
+  }
+
+  private createWrappedToolUse(
+    content: string,
+    partial: boolean,
+    id: string,
+  ): ToolUse | null {
+    const functionMatch = content.match(
+      /<function(?:=([^\s>]+)|\s+name=(['"])(.*?)\2)[^>]*>/i,
+    );
+    const toolShortName = (
+      functionMatch?.[1] ??
+      functionMatch?.[3] ??
+      ""
+    ).trim();
+
+    if (!toolShortName) {
+      return null;
+    }
+
+    const toolUse = this.createToolUse(toolShortName, "", partial, id);
+    toolUse.params = {};
+    toolUse.nativeArgs = {};
+
+    const rawArgs: Record<string, string | string[]> = {};
+    const paramRegex =
+      /<parameter(?:=([^\s>]+)|\s+name=(['"])(.*?)\2)[^>]*>([\s\S]*?)<\/parameter>/gi;
+    let match: RegExpExecArray | null;
+
+    while ((match = paramRegex.exec(content)) !== null) {
+      const rawName = (match[1] ?? match[3] ?? "").trim();
+      if (!rawName) {
+        continue;
+      }
+
+      const value = match[4].trim();
+      const existing = rawArgs[rawName];
+      if (existing === undefined) {
+        rawArgs[rawName] = value;
+      } else if (Array.isArray(existing)) {
+        existing.push(value);
+      } else {
+        rawArgs[rawName] = [existing, value];
+      }
+    }
+
+    this.applyWrappedToolArgs(toolUse, rawArgs);
+    return toolUse;
+  }
+
+  private applyWrappedToolArgs(
+    toolUse: any,
+    rawArgs: Record<string, string | string[]>,
+  ): void {
+    const assign = (name: string, value: any, nativeValue: any = value) => {
+      toolUse.params[name] = value;
+      toolUse.nativeArgs[name] = nativeValue;
+    };
+    const parseBoolean = (value: any): boolean =>
+      typeof value === "boolean"
+        ? value
+        : String(value).trim().toLowerCase() === "true";
+    const parseNumber = (value: any): number | undefined => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+
+    const canonicalName = toolUse.name;
+    const normalizedArgs: Record<string, any> = { ...rawArgs };
+
+    if (canonicalName === "grep" && normalizedArgs.query === undefined) {
+      normalizedArgs.query = normalizedArgs.pattern ?? normalizedArgs.regex;
+    }
+
+    if (canonicalName === "glob" && normalizedArgs.pattern === undefined) {
+      normalizedArgs.pattern = normalizedArgs.query;
+    }
+
+    for (const [rawName, rawValue] of Object.entries(normalizedArgs)) {
+      const name = rawName.replace(/-/g, "_");
+
+      switch (name) {
+        case "recursive":
+        case "include_all":
+        case "literal":
+        case "whole_word":
+        case "case_sensitive":
+        case "case_insensitive": {
+          const boolValue = parseBoolean(rawValue);
+          assign(name, String(boolValue), boolValue);
+          break;
+        }
+        case "context_lines": {
+          const numberValue = parseNumber(rawValue);
+          if (numberValue !== undefined) {
+            assign(name, String(numberValue), numberValue);
+          }
+          break;
+        }
+        case "arguments": {
+          if (canonicalName === "use_mcp_tool") {
+            try {
+              assign(
+                name,
+                typeof rawValue === "string"
+                  ? rawValue
+                  : JSON.stringify(rawValue),
+                JSON.parse(String(rawValue)),
+              );
+            } catch {
+              assign(name, rawValue);
+            }
+          } else {
+            assign(name, rawValue);
+          }
+          break;
+        }
+        case "pattern":
+          if (canonicalName !== "grep") {
+            assign(name, rawValue);
+          }
+          break;
+        default:
+          assign(name, rawValue);
+          break;
+      }
+    }
+
+    applyParamsDefaulting(toolUse);
+
+    if (
+      (canonicalName === "grep" ||
+        canonicalName === "glob" ||
+        canonicalName === "list") &&
+      toolUse.nativeArgs.path === undefined
+    ) {
+      toolUse.nativeArgs.path = toolUse.params.path;
+    }
+  }
+
+  private parsePlainTextMessage(
+    message: string,
+    isFinalized: boolean,
+  ): {
+    finalized: AssistantMessageContent[];
+    pending: AssistantMessageContent[];
+    safeIndex: number;
+  } {
+    const cleanText = this.cleanTextContent(message, isFinalized);
+    if (!cleanText) {
+      return {
+        finalized: [],
+        pending: [],
+        safeIndex: isFinalized ? message.length : 0,
+      };
+    }
+
+    const block: AssistantMessageContent = {
+      type: "text",
+      content: cleanText,
+      partial: !isFinalized,
+    };
+
+    return {
+      finalized: isFinalized ? [block] : [],
+      pending: isFinalized ? [] : [block],
+      safeIndex: isFinalized ? message.length : 0,
+    };
+  }
+
+  private parseStandardMessage(
     message: string,
     isFinalized: boolean,
   ): {
@@ -433,125 +1402,26 @@ export class UnifiedToolCallParser {
     const isInsideThinking = (pos: number) =>
       thinkingRanges.some((r) => pos >= r.start && pos < r.end);
 
-    // 2. State machine for single-letter and XML tool blocks.
-    const toolStartRegex = new RegExp(UnifiedToolCallParser.TOOL_START_REGEX);
+    // 2. State machine for XML tool blocks. Wrapperless READ/WRITE/ACTIONS are
+    // handled separately; legacy single-letter tools are intentionally unsupported.
+    const toolStartRegex = new RegExp(
+      UnifiedToolCallParser.XML_TOOL_START_REGEX,
+    );
     let match: RegExpExecArray | null;
 
     while ((match = toolStartRegex.exec(message)) !== null) {
       // Check if inside thinking block
       if (isInsideThinking(match.index)) continue;
 
-      let toolShortName = match[1] || match[4];
-      let argsStr = (match[2] || "").trim();
-
-      const isXml = !!match[4];
-
-      if (toolShortName.startsWith("tool_")) {
-        toolShortName = toolShortName.slice(5);
-      }
-
-      let hasInlineCloser = !!match[3];
-
+      const toolShortName = match[1];
+      let argsStr = "";
+      const isXml = true;
       let startIndex = match.index;
       let startTagEndIndex = startIndex + match[0].length;
-      let isOneLiner = hasInlineCloser;
-
-      // KILOCODE FIX: Compact Args Detector
-      // It's compact if it STARTS with '(' or if it's empty and the NEXT char is '('
-      const remaining = message.slice(startTagEndIndex);
-      const isCompact =
-        argsStr.startsWith("(") ||
-        (!argsStr.trim() && remaining.trimStart().startsWith("("));
-
-      // If compact syntax, we need to manually find the arguments block (...)
-      if (isCompact) {
-        // If it was empty argsStr, we need to skip whitespace to find the (
-        if (!argsStr.trim()) {
-          const wsMatch = remaining.match(/^\s+/);
-          if (wsMatch) startTagEndIndex += wsMatch[0].length;
-        }
-
-        const parenSearch = message.slice(startTagEndIndex);
-        if (parenSearch.startsWith("(")) {
-          // Find balanced closing paren (quote and escape aware)
-          let depth = 0;
-          let quote: string | null = null;
-          let escape = false;
-          let foundEnd = false;
-          for (let i = 0; i < parenSearch.length; i++) {
-            const char = parenSearch[i];
-            if (escape) {
-              escape = false;
-              continue;
-            }
-            if (char === "\\") {
-              escape = true;
-              continue;
-            }
-            if (quote) {
-              if (char === quote) quote = null;
-              continue;
-            }
-            if (char === '"' || char === "'" || char === "`") {
-              quote = char;
-              continue;
-            }
-
-            if (char === "(") depth++;
-            else if (char === ")") {
-              depth--;
-              if (depth === 0) {
-                argsStr = parenSearch.slice(1, i);
-                startTagEndIndex += i + 1;
-                foundEnd = true;
-                break;
-              }
-            }
-          }
-          if (!foundEnd) {
-            // KILOCODE FIX: If partial stream, wait for closing paren!
-            if (!isFinalized) {
-              break; // Treat as incomplete tool, buffer it.
-            }
-          }
-        }
-
-        isOneLiner = true;
-      }
 
       // Verify it's a known tool or a registered MCP tool
       const isMcpTool = this.isRegisteredMcpTool(toolShortName);
       if (!knownToolShortNames.has(toolShortName) && !isMcpTool) continue;
-
-      // IMPORTANT: write/edit/todo tools NEVER use one-liner syntax — they always need a content block.
-      // Treating them as one-liners would cut off their content entirely.
-      // wrap tool also MUST use a content block as it wraps message content.
-      const isContentTool =
-        UnifiedToolCallParser.CONTENT_TOOL_SHORT_NAMES.has(toolShortName);
-
-      // KILOCODE FIX: Allow content tools to be one-liners if they explicitly contain
-      // their closing token in argsStr.
-      if (isContentTool && !isOneLiner) {
-        const closer =
-          toolShortName === "E" || toolShortName === "edit"
-            ? "edit"
-            : toolShortName === "W" || toolShortName === "write"
-              ? "write"
-              : toolShortName === "T" || toolShortName === "todo"
-                ? "todo"
-                : toolShortName;
-        const explicitCloserRegex = new RegExp(
-          `(?:\\/?${closer}|\\/?${toolShortName})$`,
-        );
-        const trimmedArgs = argsStr.trim();
-        const closerMatch = trimmedArgs.match(explicitCloserRegex);
-        if (closerMatch) {
-          isOneLiner = true;
-          argsStr = trimmedArgs.slice(0, -closerMatch[0].length).trim();
-        }
-      }
-
-      argsStr = argsStr.trim();
 
       // 2a. Flush previous text
       if (startIndex > currentIndex) {
@@ -576,145 +1446,28 @@ export class UnifiedToolCallParser {
       let isClosed = false;
       let endIndex = -1;
 
-      if (isOneLiner) {
-        content = "";
+      const remainingText = message.slice(startTagEndIndex);
+      const closingRegex = new RegExp(
+        `(?:^|[\\r\\n])[ \t]*<\\/${toolShortName}>(?:[ \\t]*(?:[\\r\\n]|$))`,
+      );
+      const endMatch = remainingText.match(closingRegex);
+
+      if (endMatch && endMatch.index !== undefined) {
+        content = remainingText.slice(0, endMatch.index);
+        if (content.startsWith("\n")) content = content.slice(1);
         isClosed = true;
-        endIndex = startTagEndIndex;
+        endIndex = startTagEndIndex + endMatch.index + endMatch[0].length;
+        toolStartRegex.lastIndex = endIndex;
       } else {
-        const remainingText = message.slice(startTagEndIndex);
-        // KILOCODE MOD: Syntax-Aware Closer detection
-        let closingRegex: RegExp;
-        if (UnifiedToolCallParser.STRICT_TOOL_SHORT_NAMES.has(toolShortName)) {
-          // KILOCODE FIX: Content tools MUST only close on a tag at the start of a line.
-          // This prevents "insane regex" or code content containing the tool name from
-          // prematurely closing the block.
-          // KILOCODE FIX: Support escaping. If the AI writes \/edit (with a backslash)
-          // it will NOT close the block. This allows writing code about the parser.
-          // KILOCODE FIX: Relax trailing requirement to allow streaming to continue without waiting for newline after closing tag
-          // KILOCODE FIX: Accept /toolname with optional backticks OR just /toolname alone (AI often forgets backticks)
-          const closer =
-            toolShortName === "E" || toolShortName === "edit"
-              ? "edit"
-              : toolShortName === "W" || toolShortName === "write"
-                ? "write"
-                : toolShortName === "T" || toolShortName === "todo"
-                  ? "todo"
-                  : toolShortName;
-          closingRegex = new RegExp(
-            `(?:^|[\\r\\n])[ \t]*(?<!\\\\)\\/(?:${closer}|${toolShortName})(?:[ \t]*(?:[\\r\\n]|$))`,
-          );
+        content = remainingText;
+        if (content.startsWith("\n")) content = content.slice(1);
+
+        if (isFinalized) {
+          isClosed = true;
+          endIndex = message.length;
         } else {
-          // For non-content tools, we use the XML closer or the single-letter closer.
-          if (isXml) {
-            closingRegex = new RegExp(
-              `(?:^|[\\r\\n])[ \t]*<\\/${toolShortName}>(?:[ \\t]*(?:[\\r\\n]|$))`,
-            );
-          } else if (toolShortName.length === 1 && /[A-Z]/.test(toolShortName)) {
-            closingRegex = new RegExp(
-              `(?:^|[\\r\\n])[ \t]*(?<!\\\\)\\/[${toolShortName}${toolShortName.toLowerCase()}](?=$|[ \\t]|[\\r\\n])`,
-            );
-          } else {
-            closingRegex = /$^/;
-          }
-        }
-
-        const endMatch = remainingText.match(closingRegex);
-        const nextSingleLetterToolMatch = remainingText.match(
-          UnifiedToolCallParser.NEXT_SINGLE_LETTER_TOOL_REGEX,
-        );
-        const nextToolMatch =
-          [nextSingleLetterToolMatch]
-            .filter(
-              (candidate): candidate is RegExpMatchArray =>
-                !!candidate && candidate.index !== undefined,
-            )
-            .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))[0] ?? null;
-
-        let actualEndMatch = endMatch;
-        let isImplicitClose = false;
-        let consumeClosingMatch = true;
-        const isStrictTool =
-          UnifiedToolCallParser.STRICT_TOOL_SHORT_NAMES.has(toolShortName);
-
-        // KILOCODE FIX: Only tools that do NOT consume arbitrary content (like read, ls)
-        // allow implicit closing via a next-tool lookahead.
-        // Content-consuming tools (write, edit) are "Safe Havens" and MUST either
-        // find their explicit closer or wait for the message to be finalized.
-        if (nextToolMatch && !isStrictTool) {
-          if (
-            !endMatch ||
-            (endMatch.index !== undefined &&
-              nextToolMatch.index !== undefined &&
-              nextToolMatch.index < endMatch.index)
-          ) {
-            actualEndMatch = nextToolMatch;
-            isImplicitClose = true;
-            consumeClosingMatch = false;
-          }
-        }
-
-        if (actualEndMatch && actualEndMatch.index !== undefined) {
-          // KILOCODE FIX: Buffering safety check.
-          // For implicit close, `actualEndMatch` is the start of the next tool, so we have 100% confidence.
-          // Only for explicit close do we need to check for partial matches or EOF ambiguity.
-          const isAtEnd =
-            actualEndMatch.index + actualEndMatch[0].length ===
-            remainingText.length;
-          // If it's an implicit close (next tool detected), we don't wait.
-          // If it's an explicit close, we wait for a newline or EOF to ensure we have the full tag.
-          // KILOCODE FIX: Always recognize closing tag as complete if we see it, regardless of trailing content
-          const shouldWait = false;
-
-          if (!isFinalized && isAtEnd && shouldWait) {
-            content = remainingText.slice(0, actualEndMatch.index);
-            if (content.startsWith("\n")) content = content.slice(1);
-            isClosed = false;
-            endIndex = startTagEndIndex + actualEndMatch.index;
-          } else {
-            content = remainingText.slice(0, actualEndMatch.index);
-            if (content.startsWith("\n")) content = content.slice(1);
-            isClosed = true;
-
-            // For explicit close, skip the closer.
-            // For implicit close, stop before the next tool so the next iteration picks it up.
-            if (isImplicitClose && !consumeClosingMatch) {
-              endIndex = startTagEndIndex + actualEndMatch.index;
-              // KILOCODE FIX: For implicit close, we must reset the regex lastIndex
-              // to the start of the NEXT tool so the next iteration of the while loop
-              // picks it up immediately.
-              toolStartRegex.lastIndex = endIndex;
-            } else {
-              endIndex =
-                startTagEndIndex +
-                actualEndMatch.index +
-                actualEndMatch[0].length;
-              toolStartRegex.lastIndex = endIndex;
-            }
-          }
-        } else {
-          content = remainingText;
-          if (content.startsWith("\n")) content = content.slice(1);
-
-          if (isFinalized) {
-            // KILOCODE FIX: If the message is finalized, we MUST close the tool block
-            // even if the closing tag is missing. This prevents "Never Terminate" hangs.
-            isClosed = true;
-            endIndex = message.length;
-          } else {
-            // KILOCODE FIX: Streaming safety - do not strip partial tags as it causes flickering/missing lines.
-            // Never auto-close an unterminated tool block at stream end.
-            // It must remain incomplete so execution can be blocked safely.
-            if (
-              toolShortName.length === 1 &&
-              /[A-Z]/.test(toolShortName) &&
-              /(?:^|[\r\n])[ \t]*\/$/.test(content)
-            ) {
-              // Ignore a dangling "/" while the closing "/R" is still streaming in.
-              content = content.replace(/(?:^|\r?\n)[ \t]*\/$/, "");
-            }
-            isClosed = false;
-            endIndex = message.length;
-          }
+          isClosed = false;
+          endIndex = message.length;
         }
       }
 
@@ -729,49 +1482,14 @@ export class UnifiedToolCallParser {
       }
       const shouldBePartial = !isClosed;
 
-      const singleLetterMcpToolUse = this.parseSingleLetterMcpInvocation(
-        toolShortName,
-        argsStr,
-        content,
-        toolCallId,
-        shouldBePartial,
-      );
-      if (singleLetterMcpToolUse) {
-        contentBlocks.push(singleLetterMcpToolUse);
-        currentIndex = endIndex;
-        if (isClosed) {
-          lastSafeIndex = currentIndex;
-          finalizedBlockCount = contentBlocks.length;
-          this.hasFinalizedTool = true;
-        }
-        if (!isClosed) break;
-        continue;
-      }
-
       // MCP tools get a special McpToolUse block type
       if (isMcpTool) {
-        const { serverName, toolName } = this.parseMcpToolName(toolShortName);
-        let mcpArguments: Record<string, unknown> = {};
-        const trimmedContent = content.trim();
-        if (trimmedContent) {
-          try {
-            mcpArguments = JSON.parse(trimmedContent);
-          } catch {
-            // If JSON parsing fails, pass content as a raw "input" argument
-            mcpArguments = { input: trimmedContent };
-          }
-        }
-
-        const mcpToolUse: McpToolUse = {
-          type: "mcp_tool_use" as const,
-          id: toolCallId,
-          name: toolShortName,
-          serverName,
-          toolName,
-          arguments: mcpArguments,
-          partial: shouldBePartial,
-        };
-        // KILOCODE: Critical for atomic execution
+        const mcpToolUse = this.createMcpToolUse(
+          toolShortName,
+          content,
+          shouldBePartial,
+          toolCallId,
+        );
         (mcpToolUse as any).isComplete = isClosed;
 
         contentBlocks.push(mcpToolUse);
@@ -793,8 +1511,13 @@ export class UnifiedToolCallParser {
       );
 
       // 2d. Attach Content or Parse XML Args
-      if (toolShortName === "use_mcp_tool" || toolShortName === "access_mcp_resource") {
-        const serverMatch = content.match(/<server_name>([\s\S]*?)<\/server_name>/);
+      if (
+        toolShortName === "use_mcp_tool" ||
+        toolShortName === "access_mcp_resource"
+      ) {
+        const serverMatch = content.match(
+          /<server_name>([\s\S]*?)<\/server_name>/,
+        );
         const nameMatch = content.match(/<name>([\s\S]*?)<\/name>/);
         const toolMatch = content.match(/<tool_name>([\s\S]*?)<\/tool_name>/);
         const argsMatch = content.match(/<arguments>([\s\S]*?)<\/arguments>/);
@@ -889,7 +1612,7 @@ export class UnifiedToolCallParser {
         }
 
         if (hasMatches) {
-          if (toolShortName === "write" || toolShortName === "write_to_file") {
+          if (toolShortName === "write" || toolShortName === "write") {
             if (regexArgs.length > 1) {
               const lastIdx = regexArgs.length - 1;
               regexArgs[lastIdx] = regexArgs[lastIdx].replace(
@@ -941,16 +1664,19 @@ export class UnifiedToolCallParser {
           (toolShortName === "F" ||
             toolShortName === "glob" ||
             toolShortName === "find" ||
+            toolShortName === "L" ||
+            toolShortName === "ls" ||
+            toolShortName === "list" ||
             toolShortName === "G" ||
             toolShortName === "grep" ||
             toolShortName === "search") &&
           content.trim()
         ) {
-          // KILOCODE FIX: Intercept ALL block-based glob/find/grep calls.
+          // KILOCODE FIX: Intercept ALL block-based list/glob/find/grep calls.
           // If an inline arg (argsStr) is provided, it is ALWAYS the path.
           // If no inline arg is provided, the path defaults to ".".
-          // The block body lines are ALWAYS the queries/patterns.
-          const path = argsStr
+          // For list, the block body can provide the path and optional recursive flag.
+          const inlinePath = argsStr
             ? argsStr.trim().replace(/^["'`]|["'`]$/g, "")
             : ".";
           const bodyLines = content
@@ -960,6 +1686,31 @@ export class UnifiedToolCallParser {
             .filter(Boolean);
 
           if (
+            toolShortName === "L" ||
+            toolShortName === "ls" ||
+            toolShortName === "list"
+          ) {
+            const recursiveLine = bodyLines.find(
+              (line) =>
+                /^(?:--recursive(?:\s+|=))?true$/i.test(line) ||
+                /^(?:--recursive(?:\s+|=))?false$/i.test(line) ||
+                /^--recursive$/i.test(line),
+            );
+            const pathLine = bodyLines.find((line) => line !== recursiveLine);
+            const path = argsStr
+              ? inlinePath
+              : pathLine
+                ? pathLine.replace(/^["'`]|["'`]$/g, "")
+                : ".";
+
+            toolUse.params.path = path;
+            toolUse.nativeArgs.path = path;
+
+            if (recursiveLine && !/false$/i.test(recursiveLine)) {
+              toolUse.params.recursive = "true";
+              toolUse.nativeArgs.recursive = true;
+            }
+          } else if (
             toolShortName === "G" ||
             toolShortName === "grep" ||
             toolShortName === "search"
@@ -971,11 +1722,13 @@ export class UnifiedToolCallParser {
                 lastBodyLine === "--include-all" ||
                 lastBodyLine === "--include_all");
 
-            const queries = hasIncludeAllFlag ? bodyLines.slice(0, -1) : bodyLines;
+            const queries = hasIncludeAllFlag
+              ? bodyLines.slice(0, -1)
+              : bodyLines;
             toolUse.params.query = this.splitPipe(queries);
             toolUse.nativeArgs.query = toolUse.params.query;
-            toolUse.params.path = path;
-            toolUse.nativeArgs.path = path;
+            toolUse.params.path = inlinePath;
+            toolUse.nativeArgs.path = inlinePath;
             if (hasIncludeAllFlag) {
               toolUse.params.include_all = true;
               toolUse.nativeArgs.include_all = true;
@@ -983,18 +1736,21 @@ export class UnifiedToolCallParser {
           } else {
             toolUse.params.pattern = this.splitPipe(bodyLines);
             toolUse.nativeArgs.pattern = toolUse.params.pattern;
-            toolUse.params.path = path;
-            toolUse.nativeArgs.path = path;
+            toolUse.params.path = inlinePath;
+            toolUse.nativeArgs.path = inlinePath;
           }
         } else if (!argsStr && content.trim()) {
           // Compact syntax without parens for non-content tools
           // Treat the content as the args string and re-populate
-          // For glob/find, preserve newlines so multiline pattern lists work correctly.
+          // For list/glob/find, preserve newlines so multiline bodies keep structure.
           // For read, preserve newlines for multi-file support.
           // For everything else, collapse to a single line.
           const preserveNewlines =
             toolShortName === "R" ||
             toolShortName === "read" ||
+            toolShortName === "L" ||
+            toolShortName === "ls" ||
+            toolShortName === "list" ||
             toolShortName === "F" ||
             toolShortName === "glob" ||
             toolShortName === "find";
@@ -1017,16 +1773,16 @@ export class UnifiedToolCallParser {
         }
       }
 
-      // KILOCODE MOD: Split multi-file or multi-anchor read_file calls
+      // KILOCODE MOD: Split multi-file or multi-anchor read calls
       // Note: Since this logic expands 1 tool into N, we must be careful with finalizedBlockCount.
       // If the original tool was closed, ALL generated tools are closed (and finalized).
       let generatedTools: any[] = [];
       if (
-        toolUse.name === "read_file" &&
+        toolUse.name === "read" &&
         toolUse.nativeArgs?.additional_anchors &&
         toolUse.nativeArgs.additional_anchors.length > 0
       ) {
-        // console.log(`[UnifiedToolCallParser] 🔍 read_file with additional_anchors: ${toolUse.nativeArgs.additional_anchors.length}, files: ${JSON.stringify(toolUse.nativeArgs.files)}`)
+        // console.log(`[UnifiedToolCallParser] 🔍 read with additional_anchors: ${toolUse.nativeArgs.additional_anchors.length}, files: ${JSON.stringify(toolUse.nativeArgs.files)}`)
         generatedTools.push(toolUse);
         toolUse.nativeArgs.additional_anchors.forEach(
           (anchor: number, index: number) => {
@@ -1049,11 +1805,11 @@ export class UnifiedToolCallParser {
           },
         );
       } else if (
-        toolUse.name === "read_file" &&
+        toolUse.name === "read" &&
         toolUse.nativeArgs?.files &&
         toolUse.nativeArgs.files.length > 1
       ) {
-        // console.log(`[UnifiedToolCallParser] 🔍 read_file with multiple files: ${toolUse.nativeArgs.files.length}, files: ${JSON.stringify(toolUse.nativeArgs.files)}`)
+        // console.log(`[UnifiedToolCallParser] 🔍 read with multiple files: ${toolUse.nativeArgs.files.length}, files: ${JSON.stringify(toolUse.nativeArgs.files)}`)
         toolUse.nativeArgs.files.forEach((file: any, index: number) => {
           const newToolUse = {
             ...toolUse,
@@ -1064,8 +1820,8 @@ export class UnifiedToolCallParser {
               lineRange:
                 file.lineRanges && file.lineRanges.length > 0
                   ? file.lineRanges
-                    .map((r: any) => `${r.start}-${r.end}`)
-                    .join(", ")
+                      .map((r: any) => `${r.start}-${r.end}`)
+                      .join(", ")
                   : undefined,
               head: file.head !== undefined ? file.head.toString() : undefined,
               tail: file.tail !== undefined ? file.tail.toString() : undefined,
@@ -1075,7 +1831,7 @@ export class UnifiedToolCallParser {
           generatedTools.push(newToolUse);
         });
       } else {
-        // console.log(`[UnifiedToolCallParser] 🔍 read_file single file: ${toolUse.name}, files: ${JSON.stringify(toolUse.nativeArgs?.files)}, path: ${toolUse.params?.path}`)
+        // console.log(`[UnifiedToolCallParser] 🔍 read single file: ${toolUse.name}, files: ${JSON.stringify(toolUse.nativeArgs?.files)}, path: ${toolUse.params?.path}`)
         generatedTools.push(toolUse);
       }
 
@@ -1097,7 +1853,7 @@ export class UnifiedToolCallParser {
     // 3. Flush remaining text after last tool
     if (currentIndex < message.length) {
       const remainingText = message.slice(currentIndex);
-      const cleanText = this.cleanTextContent(remainingText);
+      const cleanText = this.cleanTextContent(remainingText, isFinalized);
       // KILOCODE FIX: Prevent context poisoning.
       // Do not emit trailing text if a tool has already been finalized in this message.
       // This is the "God Mode" kill switch for trailing text.
@@ -1116,6 +1872,2431 @@ export class UnifiedToolCallParser {
       pending: contentBlocks.slice(finalizedBlockCount),
       safeIndex: lastSafeIndex,
     };
+  }
+
+  private findActionsBlockStart(message: string, fromIndex: number): number {
+    const regex = new RegExp(UnifiedToolCallParser.ACTIONS_BLOCK_START_REGEX);
+    regex.lastIndex = fromIndex;
+    const match = regex.exec(message);
+    if (!match) return -1;
+    const actionIndex = match[0].indexOf("ACTION");
+    return actionIndex === -1 ? match.index : match.index + actionIndex;
+  }
+
+  private parseActionsBlock(
+    message: string,
+    startIndex: number,
+    isFinalized: boolean,
+  ): {
+    blocks: AssistantMessageContent[];
+    closed: boolean;
+    endIndex: number;
+  } {
+    const blockStartMatch = /^(ACTIONS?)([^\r\n]*)(?:\r?\n|$)/.exec(
+      message.slice(startIndex),
+    );
+    if (!blockStartMatch) {
+      return { blocks: [], closed: false, endIndex: startIndex };
+    }
+
+    let inlineAction = (blockStartMatch[2] || "").trim();
+    inlineAction = this.normalizeInlineActionsRemainder(inlineAction);
+    const bodyStart = startIndex + blockStartMatch[0].length;
+    let sameLineEndConsumedLength = 0;
+    const sameLineEndMatch = blockStartMatch[2]?.match(
+      /^(.*?)(?:[ \t]+END[ \t]*)$/i,
+    );
+    if (sameLineEndMatch) {
+      inlineAction = this.normalizeInlineActionsRemainder(
+        sameLineEndMatch[1] || "",
+      );
+      sameLineEndConsumedLength = blockStartMatch[0].length;
+    }
+
+    const endMatch =
+      sameLineEndConsumedLength > 0
+        ? null
+        : /(?:^|[\r\n])[ \t]*END[ \t]*(?:\r?\n|$)/m.exec(
+            message.slice(bodyStart),
+          );
+
+    if (!endMatch && sameLineEndConsumedLength === 0 && !isFinalized) {
+      const body = inlineAction
+        ? `${inlineAction}\n${message.slice(bodyStart)}`
+        : message.slice(bodyStart);
+      const blocks = this.parseActionsBody(body, false);
+      return { blocks, closed: false, endIndex: startIndex };
+    }
+
+    const bodyEnd =
+      sameLineEndConsumedLength > 0
+        ? bodyStart
+        : endMatch
+          ? bodyStart + (endMatch.index ?? 0)
+          : message.length;
+    const rawBody = message.slice(bodyStart, bodyEnd);
+    const body = inlineAction ? `${inlineAction}\n${rawBody}` : rawBody;
+    const blocks = this.parseActionsBody(body, true);
+    const endIndex = endMatch
+      ? bodyStart + (endMatch.index ?? 0) + endMatch[0].length
+      : sameLineEndConsumedLength > 0
+        ? startIndex + sameLineEndConsumedLength
+        : message.length;
+
+    return { blocks, closed: true, endIndex };
+  }
+
+  private findAtActionsBlockStart(message: string, fromIndex: number): number {
+    return this.findAtActionsBlockStartInternal(message, fromIndex, false);
+  }
+
+  private findAtActionsBlockStartInternal(
+    message: string,
+    fromIndex: number,
+    allowInlineFirstTool: boolean,
+  ): number {
+    const regex = /@([a-z_][a-z0-9_-]*)(?::|(?=\s|$))/gim;
+    regex.lastIndex = fromIndex;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(message)) !== null) {
+      if (match.index === undefined) {
+        break;
+      }
+
+      const atIndex = match.index + match[0].lastIndexOf("@");
+      if (
+        !this.isValidAtActionsBoundary(
+          message,
+          atIndex,
+          allowInlineFirstTool,
+        )
+      ) {
+        regex.lastIndex = atIndex + 1;
+        continue;
+      }
+
+      const lineEnd = message.indexOf("\n", atIndex);
+      const rawLine =
+        lineEnd === -1
+          ? message.slice(atIndex)
+          : message.slice(atIndex, lineEnd);
+
+      if (
+        this.parseAtToolCommand(rawLine) ||
+        this.parseAtMcpToolCommand(rawLine)
+      ) {
+        return atIndex;
+      }
+
+      regex.lastIndex = atIndex + 1;
+    }
+
+    return -1;
+  }
+
+  private isValidAtActionsBoundary(
+    message: string,
+    atIndex: number,
+    allowInlineFirstTool: boolean,
+  ): boolean {
+    if (atIndex <= 0) {
+      return true;
+    }
+
+    const previousChar = message[atIndex - 1];
+    if (previousChar === "\n" || previousChar === "\r") {
+      return true;
+    }
+
+    return allowInlineFirstTool;
+  }
+
+  private parseAtActionsBlock(
+    message: string,
+    startIndex: number,
+    isFinalized: boolean,
+  ): {
+    blocks: AssistantMessageContent[];
+    closed: boolean;
+    endIndex: number;
+  } {
+    const body = message.slice(startIndex);
+    const lines: Array<{
+      line: string;
+      start: number;
+      end: number;
+    }> = [];
+    const lineRegex = /([^\r\n]*)(\r?\n|$)/g;
+    let lineMatch: RegExpExecArray | null;
+
+    while ((lineMatch = lineRegex.exec(body)) !== null) {
+      lines.push({
+        line: lineMatch[1] ?? "",
+        start: lineMatch.index,
+        end: lineMatch.index + lineMatch[0].length,
+      });
+
+      if (lineMatch[0].length === 0) {
+        break;
+      }
+    }
+
+    if (lines.length === 0 || !this.isAtToolHeaderLine(lines[0].line)) {
+      return { blocks: [], closed: false, endIndex: startIndex };
+    }
+
+    let activeBlockTool = false;
+    let activeContentCloser: string | null = null;
+    let batchEndOffset = 0;
+    let invalidStartOffset: number | null = null;
+
+    for (let index = 0; index < lines.length; index++) {
+      const entry = lines[index];
+      const parsedAction = this.parseAtToolCommand(entry.line);
+      const parsedMcpAction = this.parseAtMcpToolCommand(entry.line);
+
+      if (parsedAction || parsedMcpAction) {
+        batchEndOffset = entry.end;
+        activeContentCloser =
+          parsedAction !== null
+            ? this.getContentToolCloser(parsedAction.command)
+            : null;
+        activeBlockTool =
+          parsedMcpAction !== null || activeContentCloser !== null;
+        continue;
+      }
+
+      if (activeBlockTool) {
+        if (
+          activeContentCloser &&
+          this.isContentToolCloserLine(entry.line, activeContentCloser)
+        ) {
+          batchEndOffset = entry.end;
+          activeBlockTool = false;
+          activeContentCloser = null;
+          continue;
+        }
+
+        batchEndOffset = entry.end;
+        continue;
+      }
+
+      if (entry.line.trim().length === 0) {
+        batchEndOffset = entry.end;
+        continue;
+      }
+
+      invalidStartOffset = entry.start;
+      break;
+    }
+
+    const closed =
+      invalidStartOffset !== null || !activeBlockTool || isFinalized;
+
+    if (!closed) {
+      const blocks = this.parseActionsBody(body, false);
+      return { blocks, closed: false, endIndex: startIndex };
+    }
+
+    const endOffset =
+      invalidStartOffset !== null
+        ? invalidStartOffset
+        : activeBlockTool && isFinalized
+          ? body.length
+          : batchEndOffset;
+    const blocks = this.parseActionsBody(body.slice(0, endOffset), true);
+
+    return {
+      blocks,
+      closed: true,
+      endIndex: startIndex + endOffset,
+    };
+  }
+
+  private parseActionsBody(
+    body: string,
+    isClosed: boolean,
+  ): AssistantMessageContent[] {
+    const blocks: AssistantMessageContent[] = [];
+    const lines = this.normalizeActionsBodyLines(body.split(/\r?\n/));
+    let nextToolIndex = this.toolCounter;
+
+    const createIndexedToolUse = (
+      shortName: string,
+      argsStr: string,
+      partial: boolean = false,
+    ) => {
+      const toolUse = this.createActionsToolUse(
+        shortName,
+        argsStr,
+        partial,
+        nextToolIndex,
+      );
+      nextToolIndex++;
+      return toolUse;
+    };
+
+    const createIndexedMcpToolUse = (
+      toolName: string,
+      rawArguments: string,
+      partial: boolean = false,
+    ) => {
+      const toolUse = this.createActionsMcpToolUse(
+        toolName,
+        rawArguments,
+        partial,
+        nextToolIndex,
+      );
+      nextToolIndex++;
+      return toolUse;
+    };
+
+    const createIndexedAtToolUse = (
+      command: string,
+      args: string[],
+      partial: boolean = false,
+    ) => {
+      const toolUse = this.createAtToolUse(
+        command,
+        args,
+        partial,
+        nextToolIndex,
+      );
+      nextToolIndex++;
+      return toolUse;
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const rawLine = lines[i];
+      const line = rawLine.trim();
+      if (!line) {
+        continue;
+      }
+
+      const parsedAtMcpAction = this.parseAtMcpToolCommand(line);
+      if (parsedAtMcpAction) {
+        const { body, loopIndex, sawCloser } = this.collectAtBlockToolBody(
+          lines,
+          i,
+          isClosed,
+        );
+        i = loopIndex;
+        const rawArguments = this.combineAtMcpArguments(
+          parsedAtMcpAction.rest,
+          body,
+        );
+        blocks.push(
+          createIndexedMcpToolUse(
+            parsedAtMcpAction.originalCommand,
+            rawArguments,
+            !isClosed || !sawCloser,
+          ),
+        );
+        continue;
+      }
+
+      const parsedAction = this.parseActionsCommand(line);
+      if (!parsedAction) {
+        if (this.isRegisteredMcpTool(line)) {
+          const { rawArguments, nextIndex, complete } =
+            this.collectActionsMcpArguments(lines, i + 1, isClosed);
+          const mcpTool = createIndexedMcpToolUse(
+            line,
+            rawArguments,
+            !isClosed || !complete,
+          );
+          blocks.push(mcpTool);
+          i = nextIndex - 1;
+        }
+        continue;
+      }
+
+      const { command, originalCommand, rest } = parsedAction;
+      const atArgs =
+        parsedAction.syntax === "at" ? (parsedAction.args ?? []) : [];
+
+      if (command === "read") {
+        blocks.push(
+          parsedAction.syntax === "at"
+            ? createIndexedAtToolUse(command, atArgs, false)
+            : createIndexedToolUse(originalCommand, rest, !isClosed),
+        );
+        continue;
+      }
+
+      if (command === "grep") {
+        blocks.push(
+          parsedAction.syntax === "at"
+            ? createIndexedAtToolUse(command, atArgs, false)
+            : createIndexedToolUse(
+                originalCommand,
+                this.convertNaturalSearchArgs(rest),
+                !isClosed,
+              ),
+        );
+        continue;
+      }
+
+      if (command === "find") {
+        blocks.push(
+          parsedAction.syntax === "at"
+            ? createIndexedAtToolUse(command, atArgs, false)
+            : createIndexedToolUse(
+                originalCommand,
+                this.convertNaturalFindArgs(rest),
+                !isClosed,
+              ),
+        );
+        continue;
+      }
+
+      if (command === "list") {
+        blocks.push(
+          parsedAction.syntax === "at"
+            ? createIndexedAtToolUse(command, atArgs, false)
+            : createIndexedToolUse(
+                originalCommand,
+                this.convertNaturalListArgs(rest),
+                !isClosed,
+              ),
+        );
+        continue;
+      }
+
+      if (command === "mkdir") {
+        blocks.push(
+          parsedAction.syntax === "at"
+            ? createIndexedAtToolUse(command, atArgs, false)
+            : createIndexedToolUse(originalCommand, rest, !isClosed),
+        );
+        continue;
+      }
+
+      if (command === "bash") {
+        if (parsedAction.syntax === "at") {
+          blocks.push(createIndexedAtToolUse(command, atArgs, false));
+        } else {
+          blocks.push(
+            this.createActionsBashToolUse(
+              rest,
+              originalCommand,
+              !isClosed,
+              nextToolIndex,
+            ),
+          );
+          nextToolIndex++;
+        }
+        continue;
+      }
+
+      if (command === "web") {
+        blocks.push(
+          parsedAction.syntax === "at"
+            ? createIndexedAtToolUse(command, atArgs, false)
+            : createIndexedToolUse(originalCommand, rest, !isClosed),
+        );
+        continue;
+      }
+
+      if (command === "fetch") {
+        blocks.push(
+          parsedAction.syntax === "at"
+            ? createIndexedAtToolUse(command, atArgs, false)
+            : createIndexedToolUse(originalCommand, rest, !isClosed),
+        );
+        continue;
+      }
+
+      if (command === "ask") {
+        blocks.push(
+          parsedAction.syntax === "at"
+            ? createIndexedAtToolUse(command, atArgs, false)
+            : createIndexedToolUse(originalCommand, rest, !isClosed),
+        );
+        continue;
+      }
+
+      if (command === "edit") {
+        const legacyInlineArgs =
+          parsedAction.syntax === "at"
+            ? atArgs
+            : this.parseAtToolArguments(rest).args;
+        const hasInlineEditArgs = legacyInlineArgs.length > 1;
+        const closer = this.getContentToolCloser(command) ?? undefined;
+        const { body, loopIndex, sawCloser, explicitCloser } =
+          parsedAction.syntax === "at"
+            ? this.collectAtBlockToolBody(lines, i, isClosed, closer)
+            : this.collectContentToolBody(lines, i, "eof", isClosed);
+        i = loopIndex;
+        if (parsedAction.syntax === "at" && isClosed && !body.trim() && !hasInlineEditArgs) {
+          continue;
+        }
+        const editIsPartial = hasInlineEditArgs ? false : !isClosed || !sawCloser;
+        const editTool =
+          parsedAction.syntax === "at"
+            ? createIndexedAtToolUse(command, atArgs, editIsPartial)
+            : createIndexedToolUse(
+                originalCommand,
+                rest,
+                editIsPartial,
+              );
+        if (isEditHistoryPlaceholder(body)) {
+          editTool.params.edit = body;
+          editTool.nativeArgs.edit = body;
+        } else {
+          this.appendContentToTool(editTool, body);
+        }
+        if (explicitCloser) {
+          editTool.params.contentCloser = explicitCloser;
+          editTool.nativeArgs.contentCloser = explicitCloser;
+        }
+        blocks.push(editTool);
+        continue;
+      }
+
+      if (command === "write") {
+        const legacyInlineArgs =
+          parsedAction.syntax === "at"
+            ? atArgs
+            : this.parseAtToolArguments(rest).args;
+        const hasInlineWriteArgs = this.hasInlineWritePayload(legacyInlineArgs);
+        const closer = this.getContentToolCloser(command) ?? undefined;
+        const { body, loopIndex, sawCloser, explicitCloser } =
+          parsedAction.syntax === "at"
+            ? this.collectAtBlockToolBody(lines, i, isClosed, closer)
+            : this.collectContentToolBody(lines, i, "eof", isClosed);
+        i = loopIndex;
+        if (parsedAction.syntax === "at" && isClosed && !body.trim() && !hasInlineWriteArgs) {
+          continue;
+        }
+        const writeIsPartial = hasInlineWriteArgs ? false : !isClosed || !sawCloser;
+        const writeTool =
+          parsedAction.syntax === "at"
+            ? createIndexedAtToolUse(command, atArgs, writeIsPartial)
+            : createIndexedToolUse(
+                originalCommand,
+                rest,
+                writeIsPartial,
+              );
+        const multilineCompactWrite =
+          parsedAction.syntax === "at" && /^[\s"'`]/.test(rest)
+            ? this.parseMultilineQuotedWriteArg(
+                rest,
+                body,
+                { allowPartial: writeIsPartial },
+              )
+            : null;
+        if (isWriteHistoryPlaceholder(body)) {
+          writeTool.params.content = body;
+          writeTool.nativeArgs.content = body;
+        } else if (multilineCompactWrite) {
+          writeTool.params.path = multilineCompactWrite.path;
+          writeTool.params.target_file = multilineCompactWrite.path;
+          writeTool.nativeArgs.path = multilineCompactWrite.path;
+          writeTool.nativeArgs.target_file = multilineCompactWrite.path;
+          writeTool.params.content = multilineCompactWrite.content;
+          writeTool.nativeArgs.content = multilineCompactWrite.content;
+        } else if (parsedAction.syntax === "at" && !hasInlineWriteArgs) {
+          this.appendContentToTool(writeTool, body);
+        } else {
+          this.appendContentToTool(writeTool, body);
+        }
+        if (explicitCloser) {
+          writeTool.params.contentCloser = explicitCloser;
+          writeTool.nativeArgs.contentCloser = explicitCloser;
+        }
+        blocks.push(writeTool);
+        continue;
+      }
+
+      if (command === "todo") {
+        const closer = this.getContentToolCloser(command) ?? undefined;
+        const { body, loopIndex, sawCloser, explicitCloser } =
+          parsedAction.syntax === "at"
+            ? this.collectAtBlockToolBody(lines, i, isClosed, closer)
+            : this.collectContentToolBody(lines, i, "eof", isClosed);
+        i = loopIndex;
+        if (parsedAction.syntax === "at" && isClosed && !body.trim()) {
+          continue;
+        }
+        const todoTool =
+          parsedAction.syntax === "at"
+            ? createIndexedAtToolUse(command, atArgs, !isClosed || !sawCloser)
+            : createIndexedToolUse(
+                originalCommand,
+                "",
+                !isClosed || !sawCloser,
+              );
+        this.appendContentToTool(todoTool, body);
+        if (explicitCloser) {
+          todoTool.params.contentCloser = explicitCloser;
+          todoTool.nativeArgs.contentCloser = explicitCloser;
+        }
+        blocks.push(todoTool);
+        continue;
+      }
+
+      if (command === "agent") {
+        blocks.push(
+          parsedAction.syntax === "at"
+            ? createIndexedAtToolUse(command, atArgs, false)
+            : createIndexedToolUse(originalCommand, rest, !isClosed),
+        );
+        continue;
+      }
+
+      if (command === "desktop" || command === "computer_action") {
+        blocks.push(
+          parsedAction.syntax === "at"
+            ? createIndexedAtToolUse(command, atArgs, false)
+            : createIndexedToolUse(originalCommand, rest, !isClosed),
+        );
+        continue;
+      }
+    }
+
+    if (isClosed) {
+      this.toolCounter = nextToolIndex;
+    }
+
+    return blocks;
+  }
+
+  private parseActionsCommand(line: string): {
+    command: string;
+    originalCommand: string;
+    rest: string;
+    args?: string[];
+    syntax: "legacy" | "at";
+  } | null {
+    const atCommand = this.parseAtToolCommand(line);
+    if (atCommand) {
+      return atCommand;
+    }
+
+    const normalized = line.trim();
+    const actionCommandAliases: Record<string, string> = {
+      command: "bash",
+      cmd: "bash",
+      shell: "bash",
+      ls: "list",
+      dirlist: "list",
+      list_files: "list",
+      list_dir: "list",
+      search: "grep",
+    };
+
+    for (const candidate of UnifiedToolCallParser.ACTIONS_COMMAND_CANDIDATES) {
+      if (!normalized.toLowerCase().startsWith(candidate)) {
+        continue;
+      }
+
+      const nextChar = normalized.charAt(candidate.length);
+      if (nextChar && /[\p{L}\p{N}_]/u.test(nextChar)) {
+        const remainder = normalized.slice(candidate.length);
+        const emittedPrefix = normalized.slice(0, candidate.length);
+        const isUppercaseShortcut =
+          emittedPrefix.length > 0 &&
+          emittedPrefix === emittedPrefix.toUpperCase();
+        const looksLikeAttachedArgs =
+          /[\/|.:=_-]/.test(remainder) || /\bin\b/i.test(remainder);
+
+        if (!isUppercaseShortcut && !looksLikeAttachedArgs) {
+          continue;
+        }
+      }
+
+      const command = actionCommandAliases[candidate] ?? candidate;
+      if (
+        !UnifiedToolCallParser.ACTIONS_COMMANDS.includes(
+          command as (typeof UnifiedToolCallParser.ACTIONS_COMMANDS)[number],
+        )
+      ) {
+        continue;
+      }
+
+      const remainder = normalized.slice(candidate.length);
+      const rest = remainder.trim();
+      return {
+        command,
+        originalCommand: candidate,
+        rest,
+        syntax: "legacy",
+      };
+    }
+
+    return null;
+  }
+
+  private parseAtToolCommand(line: string): {
+    command: string;
+    originalCommand: string;
+    rest: string;
+    args?: string[];
+    syntax: "at";
+  } | null {
+    const trimmed = line.trim();
+    const match =
+      /^@([a-z_][a-z0-9_-]*)(?::([\s\S]*)|(?:\s+([\s\S]*))?)$/i.exec(trimmed);
+    if (!match) {
+      return null;
+    }
+
+    const rawCommand = match[1].toLowerCase();
+    const rest = match[2] ?? match[3] ?? "";
+    const actionCommandAliases: Record<string, string> = {
+      command: "bash",
+      cmd: "bash",
+      shell: "bash",
+      ls: "list",
+      dirlist: "list",
+      list_files: "list",
+      list_dir: "list",
+      search: "grep",
+    };
+    const command = actionCommandAliases[rawCommand] ?? rawCommand;
+
+    if (
+      !UnifiedToolCallParser.ACTIONS_COMMANDS.includes(
+        command as (typeof UnifiedToolCallParser.ACTIONS_COMMANDS)[number],
+      )
+    ) {
+      return null;
+    }
+
+    const parsedArgs = this.parseAtToolArguments(rest);
+    if (!parsedArgs.complete) {
+      const allowsMultilineQuotedArg =
+        command === "write" && /^[\s"'`]/.test(rest);
+      if (!allowsMultilineQuotedArg) {
+        return null;
+      }
+    }
+
+    const allowsEmptyArgs =
+      command === "list" ||
+      command === "todo" ||
+      (command === "write" && !parsedArgs.complete && /^[\s"'`]/.test(rest));
+    if (!allowsEmptyArgs && parsedArgs.args.length === 0) {
+      return null;
+    }
+
+    return {
+      command,
+      originalCommand: command,
+      rest,
+      args: parsedArgs.args,
+      syntax: "at",
+    };
+  }
+
+  private parseAtMcpToolCommand(line: string): {
+    originalCommand: string;
+    rest: string;
+    syntax: "at-mcp";
+  } | null {
+    const trimmed = line.trim();
+    const match =
+      /^@([a-z_][a-z0-9_-]*)(?::([\s\S]*)|(?:\s+([\s\S]*))?)$/i.exec(trimmed);
+    if (!match) {
+      return null;
+    }
+
+    const rawCommand = match[1];
+    if (!this.isRegisteredMcpTool(rawCommand)) {
+      return null;
+    }
+
+    return {
+      originalCommand: rawCommand,
+      rest: match[2] ?? match[3] ?? "",
+      syntax: "at-mcp",
+    };
+  }
+
+  private parseAtToolArguments(input: string): {
+    args: string[];
+    complete: boolean;
+  } {
+    const args: string[] = [];
+    let index = 0;
+
+    while (index < input.length) {
+      while (index < input.length && /[\s,]/.test(input[index])) {
+        index++;
+      }
+
+      if (index >= input.length) {
+        break;
+      }
+
+      const quote = input[index];
+      if (quote === '"' || quote === "'" || quote === "`") {
+        index++;
+        let value = "";
+        let closed = false;
+
+        while (index < input.length) {
+          const char = input[index];
+          if (char === "\\") {
+            const decodedEscape = this.decodeEscapedTextSequence(input, index);
+            value += decodedEscape.value;
+            index += decodedEscape.consumed;
+            continue;
+          }
+          if (char === quote) {
+            closed = true;
+            index++;
+            break;
+          }
+          value += char;
+          index++;
+        }
+
+        if (!closed) {
+          return { args, complete: false };
+        }
+
+        args.push(value);
+        continue;
+      }
+
+      let value = "";
+      while (index < input.length && !/[\s,]/.test(input[index])) {
+        value += input[index];
+        index++;
+      }
+
+      if (value) {
+        args.push(value);
+      }
+    }
+
+    return { args, complete: true };
+  }
+
+  private decodeEscapedTextSequence(
+    input: string,
+    index: number,
+  ): { value: string; consumed: number } {
+    const nextChar = input[index + 1];
+    if (nextChar === undefined) {
+      return { value: "\\", consumed: 1 };
+    }
+
+    if (input.startsWith("\\->", index)) {
+      return { value: "->", consumed: 3 };
+    }
+
+    switch (nextChar) {
+      case "n":
+        return { value: "\n", consumed: 2 };
+      case "r":
+        return { value: "\r", consumed: 2 };
+      case "t":
+        return { value: "\t", consumed: 2 };
+      case "\\":
+      case '"':
+      case "'":
+      case "`":
+      case "→":
+        return { value: nextChar, consumed: 2 };
+      default:
+        return { value: `\\${nextChar}`, consumed: 2 };
+    }
+  }
+
+  private findFirstUnescapedEditSeparator(
+    input: string,
+  ): { index: number; length: number } | null {
+    for (let index = 0; index < input.length; index++) {
+      const char = input[index];
+      if (char === "\\" ) {
+        const decoded = this.decodeEscapedTextSequence(input, index);
+        index += decoded.consumed - 1;
+        continue;
+      }
+
+      if (char === "→") {
+        return { index, length: 1 };
+      }
+
+      if (char === "-" && input[index + 1] === ">") {
+        return { index, length: 2 };
+      }
+    }
+
+    return null;
+  }
+
+  private decodeEscapedEditContent(value: string): string {
+    let decoded = "";
+
+    for (let index = 0; index < value.length; ) {
+      if (value[index] !== "\\") {
+        decoded += value[index];
+        index++;
+        continue;
+      }
+
+      const escape = this.decodeEscapedTextSequence(value, index);
+      decoded += escape.value;
+      index += escape.consumed;
+    }
+
+    return decoded;
+  }
+
+  private parseCompactEditString(
+    value: string,
+  ): {
+    oldText: string;
+    newText: string;
+    start_line?: number;
+    end_line?: number;
+  } | null {
+    const normalized = value.replace(/\r\n/g, "\n").replace(/\n$/, "");
+    if (!normalized) {
+      return null;
+    }
+
+    let payload = normalized;
+    let startLine: number | undefined;
+    let endLine: number | undefined;
+
+    const pipeIndex = normalized.indexOf("|");
+    if (pipeIndex !== -1) {
+      let rangeCandidate = normalized.slice(0, pipeIndex).trim();
+      rangeCandidate = rangeCandidate.replace(/^\d+\s*→\s*/, "");
+      const rangeMatch = rangeCandidate.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+      if (rangeMatch) {
+        startLine = parseInt(rangeMatch[1], 10);
+        endLine = parseInt(rangeMatch[2] || rangeMatch[1], 10);
+        payload = normalized.slice(pipeIndex + 1);
+        payload = stripRedundantLineRangePipePrefix(
+          payload,
+          startLine,
+          endLine,
+        );
+      }
+    }
+
+    const separator = this.findFirstUnescapedEditSeparator(payload);
+    if (!separator) {
+      return null;
+    }
+
+    const oldText = this.decodeEscapedEditContent(
+      payload.slice(0, separator.index),
+    );
+    const newText = this.decodeEscapedEditContent(
+      payload.slice(separator.index + separator.length),
+    );
+
+    return {
+      oldText,
+      newText,
+      start_line: startLine,
+      end_line: endLine,
+    };
+  }
+
+  private buildCanonicalEditBody(
+    edits: Array<{
+      oldText: string;
+      newText: string;
+      start_line?: number;
+      end_line?: number;
+    }>,
+  ): string {
+    return edits
+      .map((edit) => {
+        const hasRange =
+          typeof edit.start_line === "number" && typeof edit.end_line === "number";
+        const rangeHeader = hasRange
+          ? `otxt[${edit.start_line}${edit.end_line !== edit.start_line ? `-${edit.end_line}` : ""}]:`
+          : "otxt:";
+        return [rangeHeader, edit.oldText, "ntxt:", edit.newText].join("\n");
+      })
+      .join("\n");
+  }
+
+  private applyInlineEditArgs(toolUse: any, args: string[]): boolean {
+    const editArgs = args.slice(1);
+    if (editArgs.length === 0) {
+      return false;
+    }
+
+    const parsedEdits = editArgs
+      .map((arg) => this.parseCompactEditString(arg))
+      .filter(
+        (
+          edit,
+        ): edit is {
+          oldText: string;
+          newText: string;
+          start_line?: number;
+          end_line?: number;
+        } => edit !== null,
+      );
+
+    if (parsedEdits.length === 0) {
+      return false;
+    }
+
+    const canonicalBody = this.buildCanonicalEditBody(parsedEdits);
+    toolUse.params.edit = canonicalBody;
+    toolUse.nativeArgs.edit = canonicalBody;
+    toolUse.params.edits = parsedEdits;
+    toolUse.nativeArgs.edits = parsedEdits;
+    return true;
+  }
+
+  private parseQuotedEditBodyLines(
+    body: string,
+    options?: {
+      allowTrailingPartialLine?: boolean;
+    },
+  ): Array<{
+    oldText: string;
+    newText: string;
+    start_line?: number;
+    end_line?: number;
+  }> | null {
+    const lines = body
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length === 0) {
+      return null;
+    }
+
+    const parsedEdits: Array<{
+      oldText: string;
+      newText: string;
+      start_line?: number;
+      end_line?: number;
+    }> = [];
+
+    for (let index = 0; index < lines.length; index++) {
+      const line = lines[index];
+      const firstChar = line[0];
+      if (!(firstChar === '"' || firstChar === "'" || firstChar === "`")) {
+        return null;
+      }
+
+      const lastChar = line[line.length - 1];
+      const isClosed =
+        lastChar === firstChar && !this.isEscaped(line, line.length - 1);
+      if (!isClosed) {
+        const isTrailingLine = index === lines.length - 1;
+        if (options?.allowTrailingPartialLine && isTrailingLine) {
+          return parsedEdits;
+        }
+        return null;
+      }
+
+      const inner = line.slice(1, -1);
+      const parsedEdit = this.parseCompactEditString(inner);
+      if (!parsedEdit) {
+        return null;
+      }
+      parsedEdits.push(parsedEdit);
+    }
+
+    return parsedEdits;
+  }
+
+  private findFirstUnescapedWriteSeparator(
+    input: string,
+  ): { index: number; length: number } | null {
+    for (let index = 0; index < input.length; index++) {
+      const char = input[index];
+      if (char === "\\") {
+        const decoded = this.decodeEscapedTextSequence(input, index);
+        index += decoded.consumed - 1;
+        continue;
+      }
+
+      if (char === "|") {
+        return { index, length: 1 };
+      }
+    }
+
+    for (let index = 0; index < input.length; index++) {
+      const char = input[index];
+      if (char === "\\") {
+        const decoded = this.decodeEscapedTextSequence(input, index);
+        index += decoded.consumed - 1;
+        continue;
+      }
+
+      if (char !== ":") {
+        continue;
+      }
+
+      const looksLikeWindowsDrive =
+        index === 1 &&
+        /[A-Za-z]/.test(input[0] || "") &&
+        /[\\/]/.test(input[2] || "");
+      const looksLikeUrlScheme = input.slice(index, index + 3) === "://";
+      if (looksLikeWindowsDrive || looksLikeUrlScheme) {
+        continue;
+      }
+
+      return { index, length: 1 };
+    }
+
+    return null;
+  }
+
+  private findLikelyEscapedWriteSeparator(
+    input: string,
+  ): { index: number; length: number } | null {
+    for (let index = 0; index < input.length - 1; index++) {
+      if (input[index] !== "\\") {
+        continue;
+      }
+
+      const separatorChar = input[index + 1];
+      if (separatorChar !== "|" && separatorChar !== ":") {
+        continue;
+      }
+
+      if (separatorChar === ":") {
+        const looksLikeWindowsDrive =
+          index === 1 &&
+          /[A-Za-z]/.test(input[0] || "") &&
+          /[\\/]/.test(input[2] || "");
+        const looksLikeUrlScheme = input.slice(index + 1, index + 4) === "://";
+        if (looksLikeWindowsDrive || looksLikeUrlScheme) {
+          continue;
+        }
+      }
+
+      const pathCandidate = input.slice(0, index).trim();
+      const contentCandidate = input.slice(index + 2);
+      if (!pathCandidate || !contentCandidate) {
+        continue;
+      }
+
+      if (/[\r\n]/.test(pathCandidate)) {
+        continue;
+      }
+
+      const looksPathLike =
+        /[\\/]/.test(pathCandidate) ||
+        /\.[A-Za-z0-9_-]{1,16}$/.test(pathCandidate) ||
+        /^[A-Za-z0-9 _.-]+$/.test(pathCandidate);
+      const looksContentLike =
+        /[\r\n<>{};]/.test(contentCandidate) ||
+        /\s/.test(contentCandidate) ||
+        contentCandidate.length > 32;
+
+      if (looksPathLike && looksContentLike) {
+        return { index, length: 2 };
+      }
+    }
+
+    return null;
+  }
+
+  private decodeEscapedWriteContent(value: string): string {
+    let decoded = "";
+
+    for (let index = 0; index < value.length; ) {
+      if (value[index] !== "\\") {
+        decoded += value[index];
+        index++;
+        continue;
+      }
+
+      const escape = this.decodeEscapedTextSequence(value, index);
+      decoded += escape.value;
+      index += escape.consumed;
+    }
+
+    return decoded;
+  }
+
+  private parseCompactWriteArg(
+    value: string,
+  ): { path: string; content: string } | null {
+    const separator =
+      this.findFirstUnescapedWriteSeparator(value) ??
+      this.findLikelyEscapedWriteSeparator(value);
+    if (!separator) {
+      return null;
+    }
+
+    const path = this.decodeEscapedWriteContent(
+      value.slice(0, separator.index).trim(),
+    );
+    if (!path) {
+      return null;
+    }
+
+    const content = this.decodeEscapedWriteContent(
+      value.slice(separator.index + separator.length),
+    );
+
+    return { path, content };
+  }
+
+  private hasInlineWritePayload(args: string[]): boolean {
+    if (args.length === 0) {
+      return false;
+    }
+
+    if (this.parseCompactWriteArg(args[0]) !== null) {
+      return true;
+    }
+
+    return args.length > 1;
+  }
+
+  private parseMultilineQuotedWriteArg(
+    headerRest: string,
+    body: string,
+    options?: {
+      allowPartial?: boolean;
+    },
+  ): { path: string; content: string } | null {
+    const combined = [headerRest, body].filter(Boolean).join("\n").trim();
+    if (combined.length < 2) {
+      return null;
+    }
+
+    const firstChar = combined[0];
+    if (!(firstChar === '"' || firstChar === "'" || firstChar === "`")) {
+      return null;
+    }
+
+    for (let index = 1; index < combined.length; index++) {
+      if (combined[index] !== firstChar) {
+        continue;
+      }
+
+      if (this.isEscaped(combined, index)) {
+        continue;
+      }
+
+      return this.parseCompactWriteArg(combined.slice(1, index));
+    }
+
+    if (!options?.allowPartial) {
+      return null;
+    }
+
+    return this.parseCompactWriteArg(combined.slice(1));
+  }
+
+  private applyInlineWriteArgs(toolUse: any, args: string[]): boolean {
+    if (args.length === 0) {
+      return false;
+    }
+
+    const compact = this.parseCompactWriteArg(args[0]);
+    if (compact) {
+      toolUse.params.path = compact.path;
+      toolUse.params.target_file = compact.path;
+      toolUse.nativeArgs.path = compact.path;
+      toolUse.nativeArgs.target_file = compact.path;
+      toolUse.params.content = compact.content;
+      toolUse.nativeArgs.content = compact.content;
+      return true;
+    }
+
+    if (args.length === 1) {
+      return false;
+    }
+
+    const content = args.slice(1).join("\n");
+    toolUse.params.content = content;
+    toolUse.nativeArgs.content = content;
+    return true;
+  }
+
+  private combineAtMcpArguments(inlineRest: string, body: string): string {
+    const trimmedInlineRest = inlineRest.trim();
+    const trimmedBody = body.trim();
+
+    if (trimmedInlineRest && trimmedBody) {
+      return `${trimmedInlineRest}\n${trimmedBody}`;
+    }
+
+    return trimmedInlineRest || trimmedBody;
+  }
+
+  private collectActionsMcpArguments(
+    lines: string[],
+    startIndex: number,
+    isClosed: boolean,
+  ): { rawArguments: string; nextIndex: number; complete: boolean } {
+    let index = startIndex;
+    while (index < lines.length && !lines[index].trim()) {
+      index++;
+    }
+
+    if (index >= lines.length) {
+      return {
+        rawArguments: "",
+        nextIndex: lines.length,
+        complete: isClosed,
+      };
+    }
+
+    const firstLine = lines[index].trim();
+    if (this.isActionsToolHeaderLine(firstLine)) {
+      return {
+        rawArguments: "",
+        nextIndex: index,
+        complete: true,
+      };
+    }
+
+    const balancedJson = this.collectBalancedJsonLines(lines, index);
+    if (balancedJson) {
+      return {
+        rawArguments: balancedJson.content,
+        nextIndex: balancedJson.nextIndex,
+        complete: true,
+      };
+    }
+
+    const remaining = lines.slice(index).join("\n").trim();
+    if (!isClosed) {
+      return {
+        rawArguments: remaining,
+        nextIndex: lines.length,
+        complete: false,
+      };
+    }
+
+    return {
+      rawArguments: lines[index].trim(),
+      nextIndex: index + 1,
+      complete: true,
+    };
+  }
+
+  private isActionsToolHeaderLine(line: string): boolean {
+    return (
+      Boolean(this.parseActionsCommand(line)) || this.isRegisteredMcpTool(line)
+    );
+  }
+
+  private collectBalancedJsonLines(
+    lines: string[],
+    startIndex: number,
+  ): { content: string; nextIndex: number } | null {
+    let depth = 0;
+    let quote: string | null = null;
+    let escape = false;
+    let started = false;
+
+    for (let lineIndex = startIndex; lineIndex < lines.length; lineIndex++) {
+      const sourceLine = lines[lineIndex];
+      const line =
+        lineIndex === startIndex
+          ? sourceLine.slice(sourceLine.search(/\S|$/))
+          : sourceLine;
+
+      for (let charIndex = 0; charIndex < line.length; charIndex++) {
+        const char = line[charIndex];
+
+        if (escape) {
+          escape = false;
+          continue;
+        }
+
+        if (quote) {
+          if (char === "\\") {
+            escape = true;
+          } else if (char === quote) {
+            quote = null;
+          }
+          continue;
+        }
+
+        if (char === '"' || char === "'") {
+          quote = char;
+          continue;
+        }
+
+        if (!started) {
+          if (/\s/.test(char)) {
+            continue;
+          }
+          if (char !== "{" && char !== "[") {
+            return null;
+          }
+          started = true;
+          depth = 1;
+          continue;
+        }
+
+        if (char === "{" || char === "[") {
+          depth++;
+          continue;
+        }
+
+        if (char === "}" || char === "]") {
+          depth--;
+          if (depth === 0) {
+            const trailing = line.slice(charIndex + 1).trim();
+            if (trailing) {
+              return null;
+            }
+            return {
+              content: lines
+                .slice(startIndex, lineIndex + 1)
+                .join("\n")
+                .trim(),
+              nextIndex: lineIndex + 1,
+            };
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private collectContentToolBody(
+    lines: string[],
+    headerIndex: number,
+    closer: string,
+    isClosed: boolean,
+  ): {
+    body: string;
+    loopIndex: number;
+    sawCloser: boolean;
+    explicitCloser?: string;
+  } {
+    const bodyStartIndex = headerIndex + 1;
+    let bodyEndIndex = bodyStartIndex;
+
+    while (
+      bodyEndIndex < lines.length &&
+      !this.isContentToolCloserLine(lines[bodyEndIndex], closer)
+    ) {
+      bodyEndIndex++;
+    }
+
+    const sawExplicitCloser =
+      bodyEndIndex < lines.length &&
+      this.isContentToolCloserLine(lines[bodyEndIndex], closer);
+    const sawCloser =
+      sawExplicitCloser || (isClosed && bodyEndIndex >= lines.length);
+    const explicitCloser = sawExplicitCloser
+      ? lines[bodyEndIndex].trim()
+      : undefined;
+
+    return {
+      body: lines
+        .slice(bodyStartIndex, bodyEndIndex)
+        .map((line) => this.unescapeContentToolCloserLine(line, closer))
+        .join("\n"),
+      loopIndex: sawCloser
+        ? bodyEndIndex
+        : Math.max(headerIndex, bodyEndIndex - 1),
+      sawCloser,
+      explicitCloser,
+    };
+  }
+
+  private collectAtBlockToolBody(
+    lines: string[],
+    headerIndex: number,
+    isClosed: boolean,
+    closer?: string,
+  ): {
+    body: string;
+    loopIndex: number;
+    sawCloser: boolean;
+    explicitCloser?: string;
+  } {
+    const bodyStartIndex = headerIndex + 1;
+    let bodyEndIndex = bodyStartIndex;
+
+    while (
+      bodyEndIndex < lines.length &&
+      !(closer && this.isContentToolCloserLine(lines[bodyEndIndex], closer)) &&
+      !this.isAtToolHeaderLine(lines[bodyEndIndex])
+    ) {
+      bodyEndIndex++;
+    }
+
+    const sawExplicitCloser =
+      !!closer &&
+      bodyEndIndex < lines.length &&
+      this.isContentToolCloserLine(lines[bodyEndIndex], closer);
+    const sawBoundary = bodyEndIndex < lines.length;
+    const sawCloser =
+      sawExplicitCloser ||
+      sawBoundary ||
+      (isClosed && bodyEndIndex >= lines.length);
+    const explicitCloser = sawExplicitCloser
+      ? lines[bodyEndIndex].trim()
+      : undefined;
+
+    return {
+      body: lines
+        .slice(bodyStartIndex, bodyEndIndex)
+        .map((line) =>
+          closer ? this.unescapeAtContentToolLine(line, closer) : line,
+        )
+        .join("\n"),
+      loopIndex: sawExplicitCloser
+        ? bodyEndIndex
+        : sawBoundary
+          ? bodyEndIndex - 1
+          : lines.length - 1,
+      sawCloser,
+      explicitCloser,
+    };
+  }
+
+  private isAtToolHeaderLine(line: string): boolean {
+    return (
+      line.startsWith("@") &&
+      (this.parseAtToolCommand(line) !== null ||
+        this.parseAtMcpToolCommand(line) !== null)
+    );
+  }
+
+  private getContentToolCloser(command: string): string | null {
+    switch (command) {
+      case "write":
+        return "eof";
+      case "edit":
+        return "eof";
+      case "todo":
+        return "eof";
+      default:
+        return null;
+    }
+  }
+
+  private getContentToolCloserAliases(closer: string): string[] {
+    switch (closer.toLowerCase()) {
+      case "eof":
+        return ["eof", "etxt"];
+      default:
+        return [closer.toLowerCase()];
+    }
+  }
+
+  private unescapeAtContentToolLine(line: string, closer: string): string {
+    return this.unescapeEscapedTextProtocolLine(
+      this.unescapeContentToolCloserLine(line, closer),
+    );
+  }
+
+  private unescapeEscapedTextProtocolLine(line: string): string {
+    const eofUnescapedLine = this.unescapeContentToolCloserLine(line, "eof");
+    if (eofUnescapedLine !== line) {
+      return eofUnescapedLine;
+    }
+
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("/@")) {
+      return line;
+    }
+
+    const slashIndex = line.indexOf("/");
+    if (slashIndex === -1) {
+      return line;
+    }
+
+    const unescapedLine =
+      line.slice(0, slashIndex) + line.slice(slashIndex + 1);
+    const trimmedUnescapedLine = unescapedLine.trim();
+
+    if (
+      this.parseAtToolCommand(trimmedUnescapedLine) !== null ||
+      this.parseAtMcpToolCommand(trimmedUnescapedLine) !== null
+    ) {
+      return unescapedLine;
+    }
+
+    return line;
+  }
+
+  private unescapeContentToolCloserLine(line: string, closer: string): string {
+    const trimmed = line.trim();
+    const closerAliases = this.getContentToolCloserAliases(closer);
+    if (
+      closerAliases.some(
+        (alias) => trimmed.toLowerCase() === `/${alias.toLowerCase()}`,
+      )
+    ) {
+      const slashIndex = line.indexOf("/");
+      return line.slice(0, slashIndex) + line.slice(slashIndex + 1);
+    }
+    return line;
+  }
+
+  private isContentToolCloserLine(line: string, closer: string): boolean {
+    const normalizedLine = line.trim().toLowerCase();
+    return this.getContentToolCloserAliases(closer).includes(normalizedLine);
+  }
+
+  private normalizeActionsBodyLines(lines: string[]): string[] {
+    if (lines.length === 0) {
+      return lines;
+    }
+
+    const normalized = [...lines];
+    const lastIndex = normalized.length - 1;
+    normalized[lastIndex] = normalized[lastIndex]
+      .replace(/[ \t]*END$/i, "")
+      .trimEnd();
+
+    return normalized;
+  }
+
+  private normalizeInlineActionsRemainder(value: string): string {
+    let normalized = value.trim();
+    if (!normalized) {
+      return normalized;
+    }
+
+    // Tolerate models repeating the opener inline, e.g.:
+    // ACTION ACTIONread src/App.jsx END
+    while (/^ACTIONS?/i.test(normalized)) {
+      normalized = normalized.replace(/^ACTIONS?/i, "").trim();
+    }
+
+    // Tolerate models placing END on the same line as the opener/action payload.
+    normalized = normalized.replace(/[ \t]+END$/i, "").trim();
+
+    return normalized;
+  }
+
+  private createActionsToolUse(
+    shortName: string,
+    argsStr: string,
+    partial: boolean = false,
+    toolIndex?: number,
+  ): any {
+    const resolvedToolIndex = toolIndex ?? this.toolCounter;
+    const toolCallId = `unified_${this.currentTurnId}_${shortName}_${resolvedToolIndex}`;
+    if (toolIndex === undefined && !partial) {
+      this.toolCounter++;
+    }
+    return this.createToolUse(shortName, argsStr, partial, toolCallId);
+  }
+
+  private createAtToolUse(
+    command: string,
+    args: string[],
+    partial: boolean = false,
+    toolIndex?: number,
+  ): any {
+    const resolvedToolIndex = toolIndex ?? this.toolCounter;
+    const toolCallId = `unified_${this.currentTurnId}_${command}_${resolvedToolIndex}`;
+    if (toolIndex === undefined && !partial) {
+      this.toolCounter++;
+    }
+
+    const toolUse: any = {
+      type: "tool_use",
+      name: this.mapShortNameToToolName(command),
+      id: toolCallId,
+      originalName: command,
+      params: {},
+      nativeArgs: {},
+      partial,
+      isComplete: !partial,
+    };
+
+    const firstArg = args[0] ?? "";
+    const secondArg = args[1] ?? "";
+    const setPath = (path: string, options?: { targetFile?: boolean }) => {
+      toolUse.params.path = path;
+      toolUse.nativeArgs.path = path;
+      if (options?.targetFile) {
+        toolUse.params.target_file = path;
+        toolUse.nativeArgs.target_file = path;
+      }
+    };
+
+    switch (command) {
+      case "read": {
+        let pathArg = firstArg;
+        let linesArg = secondArg;
+        let headArg: string | undefined;
+        let tailArg: string | undefined;
+        const parseReadSpecs = (
+          value?: string,
+        ): {
+          lineRanges: Array<{ start: number; end: number }>;
+          head?: string;
+          tail?: string;
+          matched: boolean;
+        } => {
+          if (!value?.trim()) {
+            return { lineRanges: [], matched: false };
+          }
+
+          const tokens = value
+            .split(/[\s,]+/)
+            .map((token) => token.trim())
+            .filter(Boolean);
+          if (tokens.length === 0) {
+            return { lineRanges: [], matched: false };
+          }
+
+          const lineRanges: Array<{ start: number; end: number }> = [];
+          let parsedHead: string | undefined;
+          let parsedTail: string | undefined;
+
+          for (const token of tokens) {
+            const rangeMatch = token.match(/^(\d+)-(\d+)$/);
+            if (rangeMatch) {
+              lineRanges.push({
+                start: parseInt(rangeMatch[1], 10),
+                end: parseInt(rangeMatch[2], 10),
+              });
+              continue;
+            }
+
+            const headMatch = token.match(/^H(\d+)$/i);
+            if (headMatch) {
+              parsedHead = headMatch[1];
+              continue;
+            }
+
+            const tailMatch = token.match(/^T(\d+)$/i);
+            if (tailMatch) {
+              parsedTail = tailMatch[1];
+              continue;
+            }
+
+            return { lineRanges: [], matched: false };
+          }
+
+          return {
+            lineRanges,
+            head: parsedHead,
+            tail: parsedTail,
+            matched: true,
+          };
+        };
+        let parsedSpecs = parseReadSpecs(secondArg);
+
+        const bracketMatch = !secondArg
+          ? firstArg.match(/^(.*)\[([^[\]]+)\]$/)
+          : null;
+        if (bracketMatch) {
+          const candidatePath = bracketMatch[1].trim();
+          const bracketSpecs = parseReadSpecs(bracketMatch[2]);
+          if (candidatePath && bracketSpecs.matched) {
+            pathArg = candidatePath;
+            linesArg = "";
+            parsedSpecs = bracketSpecs;
+            headArg = bracketSpecs.head;
+            tailArg = bracketSpecs.tail;
+          }
+        } else {
+          const scopedReadArg = !secondArg
+            ? this.parseScopedInlineArg(firstArg)
+            : null;
+          if (scopedReadArg) {
+            const candidatePath = scopedReadArg.scope;
+            const candidateSpecs = scopedReadArg.payload;
+            const colonSpecs = parseReadSpecs(
+              candidateSpecs.replace(/\bL(?=\d+-\d+\b)/gi, ""),
+            );
+            if (candidatePath && colonSpecs.matched) {
+              pathArg = candidatePath;
+              linesArg = "";
+              parsedSpecs = colonSpecs;
+              headArg = colonSpecs.head;
+              tailArg = colonSpecs.tail;
+            }
+          } else if (!secondArg) {
+            const inlineSpacedSpecMatch = firstArg.match(/^(\S+)\s+([\s\S]+)$/);
+            if (inlineSpacedSpecMatch) {
+              const spacedSpecs = parseReadSpecs(inlineSpacedSpecMatch[2]);
+              if (spacedSpecs.matched) {
+                pathArg = inlineSpacedSpecMatch[1];
+                linesArg = "";
+                parsedSpecs = spacedSpecs;
+                headArg = spacedSpecs.head;
+                tailArg = spacedSpecs.tail;
+              }
+            }
+          }
+        }
+
+        const fileEntry: {
+          path: string;
+          lineRanges: Array<{ start: number; end: number }>;
+          head?: number;
+          tail?: number;
+        } = {
+          path: pathArg,
+          lineRanges: [],
+        };
+
+        if (parsedSpecs.matched && parsedSpecs.lineRanges.length > 0) {
+          fileEntry.lineRanges.push(...parsedSpecs.lineRanges);
+          toolUse.params.lineRange = parsedSpecs.lineRanges
+            .map((range) => `${range.start}-${range.end}`)
+            .join(", ");
+        } else if (linesArg) {
+          const lineMatch = linesArg.match(/^(\d+)-(\d+)$/);
+          if (lineMatch) {
+            fileEntry.lineRanges.push({
+              start: parseInt(lineMatch[1], 10),
+              end: parseInt(lineMatch[2], 10),
+            });
+            toolUse.params.lineRange = linesArg;
+          }
+        }
+
+        if (parsedSpecs.matched && parsedSpecs.head) {
+          fileEntry.head = parseInt(parsedSpecs.head, 10);
+          toolUse.params.head = parsedSpecs.head;
+        } else if (headArg) {
+          fileEntry.head = parseInt(headArg, 10);
+          toolUse.params.head = headArg;
+        }
+
+        if (parsedSpecs.matched && parsedSpecs.tail) {
+          fileEntry.tail = parseInt(parsedSpecs.tail, 10);
+          toolUse.params.tail = parsedSpecs.tail;
+        } else if (tailArg) {
+          fileEntry.tail = parseInt(tailArg, 10);
+          toolUse.params.tail = tailArg;
+        }
+
+        toolUse.params.path = pathArg;
+        toolUse.nativeArgs.files = [fileEntry];
+        break;
+      }
+      case "grep": {
+        const scopedGrepArg = !secondArg
+          ? this.parseScopedInlineArg(firstArg)
+          : null;
+        const queryArg = scopedGrepArg?.payload ?? firstArg;
+        const { value: pathArg, remaining } = this.consumeNamedOrInAtArgument(
+          args.slice(1),
+          ["path"],
+        );
+        const positionalTarget = remaining[0];
+        const includeMatch = positionalTarget?.match(/^include\s*=\s*(.+)$/i);
+        const parsedScope = scopedGrepArg
+          ? this.parseGrepScopeArg(scopedGrepArg.scope)
+          : {};
+        toolUse.params.query = this.splitPipe(queryArg);
+        toolUse.nativeArgs.query = toolUse.params.query;
+        if (parsedScope.include) {
+          toolUse.params.include = parsedScope.include;
+          toolUse.nativeArgs.include = toolUse.params.include;
+        } else if (includeMatch) {
+          toolUse.params.include = includeMatch[1].trim();
+          toolUse.nativeArgs.include = toolUse.params.include;
+        }
+        toolUse.params.path = parsedScope.path
+          ? parsedScope.path
+          : includeMatch
+            ? "."
+            : pathArg || positionalTarget || ".";
+        toolUse.nativeArgs.path = toolUse.params.path;
+        break;
+      }
+      case "find": {
+        const scopedFindArg = !secondArg
+          ? this.parseScopedInlineArg(firstArg)
+          : null;
+        const { value: pathArg, remaining } = this.consumeNamedOrInAtArgument(
+          args.slice(1),
+          ["path"],
+        );
+        toolUse.params.pattern = this.splitGlobPatterns(
+          scopedFindArg?.payload ?? firstArg,
+        );
+        toolUse.nativeArgs.pattern = toolUse.params.pattern;
+        toolUse.params.path = scopedFindArg?.scope || pathArg || remaining[0] || ".";
+        toolUse.nativeArgs.path = toolUse.params.path;
+        break;
+      }
+      case "list":
+        setPath(firstArg || ".");
+        break;
+      case "bash": {
+        const scopedBashArg = !secondArg
+          ? this.parseScopedInlineArg(firstArg)
+          : null;
+        const { value: cwdArg, remaining } = this.consumeNamedOrInAtArgument(
+          args.slice(1),
+          ["cwd", "path"],
+        );
+        const implicitCwd =
+          !cwdArg &&
+          remaining.length === 1 &&
+          typeof firstArg === "string" &&
+          firstArg.includes(" ")
+            ? remaining[0]
+            : undefined;
+        const commandTokens = scopedBashArg
+          ? [scopedBashArg.payload]
+          : implicitCwd
+            ? [firstArg]
+            : [firstArg, ...remaining];
+        toolUse.params.command = this.normalizeCmdCommand(
+          commandTokens
+            .filter(
+              (token): token is string =>
+                typeof token === "string" && token.length > 0,
+            )
+            .join(" "),
+        );
+        toolUse.nativeArgs.command = toolUse.params.command;
+        if (cwdArg || implicitCwd || scopedBashArg?.scope) {
+          toolUse.params.cwd = cwdArg || implicitCwd || scopedBashArg?.scope;
+          toolUse.nativeArgs.cwd = toolUse.params.cwd;
+        }
+        break;
+      }
+      case "web":
+      case "ask":
+        toolUse.params.query = firstArg;
+        toolUse.nativeArgs.query = firstArg;
+        break;
+      case "fetch":
+        toolUse.params.url = firstArg;
+        toolUse.nativeArgs.url = firstArg;
+        break;
+      case "agent":
+        toolUse.params.prompt = firstArg;
+        toolUse.nativeArgs.prompt = firstArg;
+        toolUse.params.instructions = firstArg;
+        toolUse.nativeArgs.instructions = firstArg;
+        break;
+      case "edit":
+        setPath(firstArg);
+        this.applyInlineEditArgs(toolUse, args);
+        break;
+      case "write":
+        this.applyInlineWriteArgs(toolUse, args);
+        if (!toolUse.params.path && !toolUse.params.target_file) {
+          setPath(firstArg, { targetFile: true });
+        }
+        break;
+      case "mkdir":
+        setPath(firstArg);
+        break;
+      case "todo":
+        toolUse.isArgBased = false;
+        if (firstArg) {
+          toolUse.params.todos = firstArg;
+          toolUse.nativeArgs.todos = firstArg;
+        }
+        break;
+      case "desktop":
+      case "computer_action":
+        this.applyDesktopAtArgs(toolUse, args);
+        break;
+      default:
+        this.populateToolArgs(command, args.join(" "), toolUse);
+        break;
+    }
+
+    applyParamsDefaulting(toolUse);
+
+    if (
+      (toolUse.name === "grep" ||
+        toolUse.name === "glob" ||
+        toolUse.name === "list") &&
+      toolUse.nativeArgs.path === undefined
+    ) {
+      toolUse.nativeArgs.path = toolUse.params.path;
+    }
+
+    return toolUse;
+  }
+
+  private consumeNamedAtArgument(
+    args: string[],
+    keys: string[],
+  ): { value?: string; remaining: string[] } {
+    const normalizedKeys = keys.map((key) => key.toLowerCase());
+    const remaining: string[] = [];
+    let value: string | undefined;
+
+    for (let index = 0; index < args.length; index++) {
+      const arg = args[index];
+      const normalizedArg = arg.toLowerCase();
+
+      if (value === undefined) {
+        const exactKeyMatch = normalizedKeys.find(
+          (key) => normalizedArg === `${key}:`,
+        );
+        if (exactKeyMatch) {
+          const nextArg = args[index + 1];
+          if (nextArg !== undefined) {
+            value = this.stripMatchingOuterQuotes(nextArg);
+            index++;
+            continue;
+          }
+        }
+
+        const inlineKeyMatch = normalizedKeys.find((key) =>
+          normalizedArg.startsWith(`${key}:`),
+        );
+        if (inlineKeyMatch) {
+          value = this.stripMatchingOuterQuotes(
+            arg.slice(inlineKeyMatch.length + 1),
+          );
+          continue;
+        }
+      }
+
+      remaining.push(arg);
+    }
+
+    return { value, remaining };
+  }
+
+  private consumeNamedOrInAtArgument(
+    args: string[],
+    keys: string[],
+  ): { value?: string; remaining: string[] } {
+    const named = this.consumeNamedAtArgument(args, keys);
+    if (named.value !== undefined) {
+      return named;
+    }
+
+    const remaining: string[] = [];
+    let value: string | undefined;
+
+    for (let index = 0; index < args.length; index++) {
+      const arg = args[index];
+      if (value === undefined && arg.toLowerCase() === "in") {
+        const nextArg = args[index + 1];
+        if (nextArg !== undefined) {
+          value = this.stripMatchingOuterQuotes(nextArg);
+          index++;
+          continue;
+        }
+      }
+
+      remaining.push(arg);
+    }
+
+    return { value, remaining };
+  }
+
+  private applyDesktopAtArgs(toolUse: any, args: string[]): void {
+    const rawFirstArg = (args[0] ?? "").trim();
+    const parseActionAndInlineValue = (
+      input: string,
+    ): { action: string; inlineValue?: string } => {
+      const separatorIndex = input.indexOf(":");
+      if (separatorIndex === -1) {
+        return { action: input };
+      }
+
+      const candidateAction = input.slice(0, separatorIndex).trim();
+      const candidateValue = input.slice(separatorIndex + 1).trim();
+      const knownActions = new Set([
+        "key",
+        "type",
+        "mouse_move",
+        "left_click",
+        "left_click_drag",
+        "right_click",
+        "middle_click",
+        "double_click",
+        "scroll",
+        "get_screenshot",
+        "get_cursor_position",
+      ]);
+
+      if (!knownActions.has(candidateAction)) {
+        return { action: input };
+      }
+
+      return { action: candidateAction, inlineValue: candidateValue };
+    };
+
+    const { action, inlineValue } = parseActionAndInlineValue(rawFirstArg);
+    if (!action) {
+      return;
+    }
+
+    const params = toolUse.params;
+    const native = toolUse.nativeArgs;
+    params.action = action;
+    native.action = action;
+
+    const setCoordinate = (value?: string) => {
+      if (!value) {
+        return;
+      }
+      params.coordinate = value;
+      native.coordinate = value;
+    };
+
+    const setText = (value?: string) => {
+      if (!value) {
+        return;
+      }
+      params.text = value;
+      native.text = value;
+    };
+
+    const isCoordinateLike = (value?: string): boolean =>
+      !!value && /^\d+,\d+@\d+x\d+$/i.test(value.trim());
+    const isPlainCoordinateLike = (value?: string): boolean =>
+      !!value && /^\d+\s*,\s*\d+$/i.test(value.trim());
+    const isAnyCoordinateLike = (value?: string): boolean =>
+      isCoordinateLike(value) || isPlainCoordinateLike(value);
+    const parsePackedScrollValue = (
+      value?: string,
+    ): { coordinate?: string; text?: string } => {
+      if (!value) {
+        return {};
+      }
+
+      const trimmed = value.trim();
+      const coordinatePrefixMatch = trimmed.match(
+        /^(\d+\s*,\s*\d+(?:\s*@\s*\d+\s*[x,]\s*\d+)?)\s*:(.+)$/i,
+      );
+      if (coordinatePrefixMatch) {
+        return {
+          coordinate: coordinatePrefixMatch[1].trim(),
+          text: coordinatePrefixMatch[2].trim(),
+        };
+      }
+
+      if (isAnyCoordinateLike(trimmed)) {
+        return { coordinate: trimmed };
+      }
+
+      return { text: trimmed };
+    };
+
+    const { value: coordinateArg, remaining: withoutCoordinate } =
+      this.consumeNamedAtArgument(args.slice(1), ["coordinate"]);
+    const { value: textArg, remaining: positionalArgs } =
+      this.consumeNamedAtArgument(withoutCoordinate, ["text"]);
+    const positionalValues = inlineValue
+      ? [inlineValue, ...positionalArgs]
+      : positionalArgs;
+
+    switch (action) {
+      case "mouse_move":
+      case "left_click":
+      case "left_click_drag":
+      case "right_click":
+      case "middle_click":
+      case "double_click":
+        setCoordinate(coordinateArg || positionalValues[0]);
+        setText(textArg);
+        break;
+      case "key":
+      case "type":
+        setText(textArg || positionalValues[0]);
+        setCoordinate(coordinateArg);
+        break;
+      case "scroll":
+        {
+          const packedScroll = parsePackedScrollValue(inlineValue);
+          setCoordinate(coordinateArg || packedScroll.coordinate);
+          if (textArg || packedScroll.text) {
+            setText(textArg || packedScroll.text);
+            break;
+          }
+          if (positionalValues.length >= 2) {
+            if (!params.coordinate && isAnyCoordinateLike(positionalValues[0])) {
+              setCoordinate(positionalValues[0]);
+              setText(positionalValues.slice(1).join(":"));
+            } else {
+              setText(positionalValues.join(":"));
+            }
+            break;
+          }
+          if (positionalValues.length === 1) {
+            if (!params.coordinate && isAnyCoordinateLike(positionalValues[0])) {
+              setCoordinate(positionalValues[0]);
+            } else {
+              setText(positionalValues[0]);
+            }
+          }
+        }
+        break;
+      default:
+        setCoordinate(coordinateArg);
+        setText(textArg || positionalValues[0]);
+        break;
+    }
+  }
+
+  private createActionsMcpToolUse(
+    toolName: string,
+    rawArguments: string,
+    partial: boolean = false,
+    toolIndex?: number,
+  ): McpToolUse {
+    const resolvedToolIndex = toolIndex ?? this.toolCounter;
+    const toolCallId = `unified_${this.currentTurnId}_${toolName}_${resolvedToolIndex}`;
+    if (toolIndex === undefined && !partial) {
+      this.toolCounter++;
+    }
+    return this.createMcpToolUse(toolName, rawArguments, partial, toolCallId);
+  }
+
+  private createActionsBashToolUse(
+    argsStr: string,
+    originalCommand: string,
+    partial: boolean = false,
+    toolIndex?: number,
+  ): any {
+    const cwdMatch = argsStr.match(/^(.*?)\s*:\s*([\s\S]+)$/);
+    if (cwdMatch && cwdMatch[1].trim() && cwdMatch[2].trim()) {
+      const cwd = cwdMatch[1].trim();
+      const command = cwdMatch[2].trim();
+      return this.createActionsToolUse(
+        originalCommand,
+        `--command ${JSON.stringify(command)} --cwd ${JSON.stringify(cwd)}`,
+        partial,
+        toolIndex,
+      );
+    }
+
+    const naturalCwdMatch = argsStr.match(/^([\s\S]*?)\s+in\s+(\S[\s\S]*)$/);
+    if (
+      naturalCwdMatch &&
+      naturalCwdMatch[1].trim() &&
+      naturalCwdMatch[2].trim()
+    ) {
+      const command = naturalCwdMatch[1].trim();
+      const cwd = naturalCwdMatch[2].trim();
+      return this.createActionsToolUse(
+        originalCommand,
+        `--command ${JSON.stringify(command)} --cwd ${JSON.stringify(cwd)}`,
+        partial,
+        toolIndex,
+      );
+    }
+
+    return this.createActionsToolUse(
+      originalCommand,
+      argsStr,
+      partial,
+      toolIndex,
+    );
+  }
+
+  private convertNaturalSearchArgs(argsStr: string): string {
+    const match = argsStr.match(/^([\s\S]*?)\s+in\s+(\S[\s\S]*)$/);
+    let rawQuery = match ? match[1].trim() : argsStr.trim();
+    let path = match ? match[2].trim() : "";
+    let include: string | undefined;
+
+    if (!path) {
+      const gluedInMatch = rawQuery.match(
+        /^([\s\S]*?)\s+in([A-Za-z0-9_./~\\-][\s\S]*)$/,
+      );
+      if (gluedInMatch) {
+        rawQuery = gluedInMatch[1].trim();
+        path = gluedInMatch[2].trim();
+      }
+    }
+
+    if (!path) {
+      const scopedGrepArg = this.parseScopedInlineArg(rawQuery, {
+        allowWhitespaceScope: false,
+      });
+      if (scopedGrepArg) {
+        const parsedScope = this.parseGrepScopeArg(scopedGrepArg.scope);
+        rawQuery = scopedGrepArg.payload;
+        path = parsedScope.path || ".";
+        include = parsedScope.include;
+      }
+    }
+
+    if (!path) {
+      const splitMatch = rawQuery.match(
+        /^(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|`((?:[^`\\]|\\.)*)`|(\S+))(?:\s+([\s\S]*))?$/,
+      );
+      if (splitMatch) {
+        const firstToken = (
+          splitMatch[1] ??
+          splitMatch[2] ??
+          splitMatch[3] ??
+          splitMatch[4] ??
+          ""
+        ).trim();
+        const rest = (splitMatch[5] ?? "").trim();
+        if (rest && this.looksLikePathArg(rest)) {
+          rawQuery = firstToken;
+          path = rest;
+        }
+      }
+    }
+
+    const normalizedQuery = this.stripMatchingOuterQuotes(rawQuery);
+    const queries = normalizedQuery
+      .split("|")
+      .map((query) => query.trim())
+      .filter(Boolean);
+
+    if (include) {
+      return `--query ${JSON.stringify(queries.join("|"))} --include ${JSON.stringify(include)} --path ${JSON.stringify(path || ".")}`;
+    }
+
+    if (!path) {
+      return queries.join("|");
+    }
+
+    return `${path}\n${queries.join("\n")}`;
+  }
+
+  private convertNaturalFindArgs(argsStr: string): string {
+    const match = argsStr.match(/^([\s\S]*?)\s+in\s+(\S[\s\S]*)$/);
+    let rawPattern = match ? match[1].trim() : argsStr.trim();
+    let path = match ? match[2].trim() : "";
+    const wasQuotedInitially =
+      (rawPattern.startsWith('"') && rawPattern.endsWith('"')) ||
+      (rawPattern.startsWith("'") && rawPattern.endsWith("'")) ||
+      (rawPattern.startsWith("`") && rawPattern.endsWith("`"));
+
+    if (!path) {
+      const gluedInMatch = rawPattern.match(
+        /^([\s\S]*?)\s+in([A-Za-z0-9_./~\\-][\s\S]*)$/,
+      );
+      if (gluedInMatch) {
+        rawPattern = gluedInMatch[1].trim();
+        path = gluedInMatch[2].trim();
+      }
+    }
+
+    if (!path) {
+      const scopedFindArg = this.parseScopedInlineArg(rawPattern, {
+        allowWhitespaceScope: false,
+      });
+      if (scopedFindArg) {
+        rawPattern = scopedFindArg.payload;
+        path = scopedFindArg.scope;
+      }
+    }
+
+    if (!path && !wasQuotedInitially) {
+      const splitMatch = rawPattern.match(
+        /^(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|`((?:[^`\\]|\\.)*)`|(\S+))(?:\s+([\s\S]*))?$/,
+      );
+      if (splitMatch) {
+        const firstToken = (
+          splitMatch[1] ??
+          splitMatch[2] ??
+          splitMatch[3] ??
+          splitMatch[4] ??
+          ""
+        ).trim();
+        const rest = (splitMatch[5] ?? "").trim();
+        const looksLikeGlobPattern =
+          /[*?\[\]{}]/.test(rest) ||
+          (rest.startsWith(".") && !rest.includes(" "));
+
+        if (
+          firstToken &&
+          rest &&
+          this.looksLikePathArg(firstToken) &&
+          looksLikeGlobPattern
+        ) {
+          path = firstToken;
+          rawPattern = rest;
+        }
+      }
+
+      if (path) {
+        const normalizedPattern = this.stripMatchingOuterQuotes(rawPattern);
+        const patterns = splitGlobPatternList(normalizedPattern, {
+          allowLegacyPipe: true,
+        });
+
+        return `${path}\n${patterns.join("\n")}`;
+      }
+
+      const parts = rawPattern
+        .split(/\s+/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+      if (parts.length >= 3) {
+        const candidatePath = parts[parts.length - 1];
+        const lastPatternToken = parts[parts.length - 2];
+        if (
+          this.looksLikePathArg(candidatePath) &&
+          /in$/i.test(lastPatternToken) &&
+          lastPatternToken.length > 2
+        ) {
+          path = candidatePath;
+          parts[parts.length - 2] = lastPatternToken.slice(0, -2);
+          rawPattern = parts.slice(0, -1).filter(Boolean).join(" ");
+        }
+      }
+    }
+
+    const normalizedPattern = this.stripMatchingOuterQuotes(rawPattern);
+    const topLevelPatterns = splitGlobPatternList(normalizedPattern, {
+      allowLegacyPipe: true,
+    });
+    const patterns = topLevelPatterns.length > 1
+      ? topLevelPatterns
+      : !wasQuotedInitially && /\s+/.test(normalizedPattern)
+        ? normalizedPattern
+            .split(/\s+/)
+            .map((pattern) => pattern.trim())
+            .filter(Boolean)
+        : [normalizedPattern].filter(Boolean);
+
+    if (!path) {
+      return patterns.join("\n");
+    }
+
+    return `${path}\n${patterns.join("\n")}`;
+  }
+
+  private convertNaturalListArgs(argsStr: string): string {
+    let rawPath = argsStr.trim();
+    let recursive = false;
+
+    if (!rawPath) {
+      return ".";
+    }
+
+    const recursiveFlagMatch = rawPath.match(
+      /^(.*?)(?:\s+)?--recursive(?:[=\s]+(true|false))?$/i,
+    );
+    if (recursiveFlagMatch) {
+      rawPath = recursiveFlagMatch[1].trim();
+      recursive =
+        !recursiveFlagMatch[2] ||
+        recursiveFlagMatch[2].toLowerCase() === "true";
+    } else {
+      const trailingBooleanMatch = rawPath.match(/^(.*?)\s+(true|false)$/i);
+      if (trailingBooleanMatch) {
+        rawPath = trailingBooleanMatch[1].trim();
+        recursive = trailingBooleanMatch[2].toLowerCase() === "true";
+      }
+    }
+
+    const normalizedPath = this.stripMatchingOuterQuotes(rawPath || ".");
+
+    if (!recursive) {
+      return normalizedPath || ".";
+    }
+
+    return `${normalizedPath || "."}\ntrue`;
   }
 
   /**
@@ -1145,67 +4326,16 @@ export class UnifiedToolCallParser {
 
   private isContentConsumingTool(toolName: string): boolean {
     return [
-      "write_to_file",
+      "write",
       "edit",
       "new_rule",
       "edit_file",
-      "update_todo_list",
       "todo",
-      "execute_command",
+      "todo",
+      "bash",
       "wrap",
-      "run_sub_agent",
+      "agent",
     ].includes(toolName);
-  }
-
-  private parseSingleLetterMcpInvocation(
-    shortName: string,
-    argsStr: string,
-    content: string,
-    id: string,
-    partial: boolean,
-  ): McpToolUse | null {
-    if (shortName !== "M") {
-      return null;
-    }
-
-    const trimmedArgs = argsStr.trim();
-    if (!trimmedArgs) {
-      return null;
-    }
-
-    const [candidateToolName, ...rest] = trimmedArgs.split(/\s+/);
-    if (!this.isRegisteredMcpTool(candidateToolName)) {
-      return null;
-    }
-
-    const { serverName, toolName } = this.parseMcpToolName(candidateToolName);
-    const inlinePayload = rest.join(" ").trim();
-    const rawPayload = [inlinePayload, content.trim()]
-      .filter(Boolean)
-      .join("\n")
-      .trim();
-
-    let argumentsPayload: Record<string, unknown> = {};
-    if (rawPayload) {
-      try {
-        argumentsPayload = JSON.parse(rawPayload);
-      } catch {
-        argumentsPayload = { input: rawPayload };
-      }
-    }
-
-    const mcpToolUse: McpToolUse = {
-      type: "mcp_tool_use",
-      id,
-      name: candidateToolName,
-      serverName,
-      toolName,
-      arguments: argumentsPayload,
-      partial,
-    };
-    (mcpToolUse as any).isComplete = !partial;
-
-    return mcpToolUse;
   }
 
   private createToolUse(
@@ -1231,49 +4361,93 @@ export class UnifiedToolCallParser {
     return toolUse;
   }
 
+  private createMcpToolUse(
+    shortName: string,
+    rawArguments: string,
+    partial: boolean,
+    id: string,
+  ): McpToolUse {
+    const { serverName, toolName } = this.parseMcpToolName(shortName);
+
+    const toolUse: McpToolUse = {
+      type: "mcp_tool_use",
+      id,
+      name: shortName,
+      serverName,
+      toolName,
+      arguments: this.parseMcpArguments(rawArguments),
+      partial,
+    };
+
+    (toolUse as any).isComplete = !partial;
+
+    return toolUse;
+  }
+
+  private parseMcpArguments(rawArguments: string): Record<string, unknown> {
+    const trimmedArguments = rawArguments.trim();
+    if (!trimmedArguments) {
+      return {};
+    }
+
+    try {
+      const parsed = JSON.parse(trimmedArguments);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed;
+      }
+      return { input: parsed };
+    } catch {
+      return { input: trimmedArguments };
+    }
+  }
+
   private mapShortNameToToolName(shortName: string): ToolName {
     const mapping: Record<string, ToolName> = {
-      read: "read_file",
-      R: "read_file",
+      read: "read",
+      R: "read",
       edit: "edit",
       E: "edit",
-      write: "write_to_file",
-      W: "write_to_file",
-      ls: "list_dir",
-      L: "list_dir",
+      write: "write",
+      W: "write",
+      list: "list",
+      ls: "list",
+      L: "list",
       glob: "glob",
       F: "glob",
+      grep: "grep",
       search: "grep",
       G: "grep",
-      cmd: "execute_command",
-      B: "execute_command",
-      todo: "update_todo_list",
-      T: "update_todo_list",
+      shell: "bash",
+      cmd: "bash",
+      B: "bash",
+      todo: "todo",
+      T: "todo",
       D: "attempt_completion",
       done: "attempt_completion",
-      web: "web_search",
-      X: "web_search",
-      Y: "codebase_search",
+      web: "web",
+      X: "web",
+      Y: "ask",
       research: "research_web",
-      fetch: "web_fetch",
-      U: "web_fetch",
+      fetch: "fetch",
+      U: "fetch",
       browse: "browser_action",
       browser: "browser_action",
       click: "browser_action",
       type: "browser_action",
       scroll: "browser_action",
+      computer: "computer_action",
+      desktop: "computer_action",
       image: "generate_image",
-      ask: "codebase_search",
+      ask: "ask",
       edit_file: "edit_file",
       new_rule: "new_rule",
       report_bug: "report_bug",
-      agent: "run_sub_agent",
-      Z: "run_sub_agent",
-      run_sub_agent: "run_sub_agent",
-      sub: "run_sub_agent",
+      agent: "agent",
+      Z: "agent",
+      sub: "agent",
       condense: "condense",
       diff: "edit",
-      execute_command: "execute_command",
+      bash: "bash",
       delete: "delete_file",
       delete_file: "delete_file",
       fast_context: "fast_context",
@@ -1289,12 +4463,17 @@ export class UnifiedToolCallParser {
       rename: "move_file",
       wrap: "wrap" as ToolName,
     };
-    return mapping[shortName] || (shortName as ToolName);
+    return (
+      mapping[shortName] ||
+      (resolveToolAlias(shortName) as ToolName) ||
+      (shortName as ToolName)
+    );
   }
 
   private populateToolArgs(shortName: string, argsStr: string, toolUse: any) {
     const params = toolUse.params;
     const native = toolUse.nativeArgs;
+    const normalizedShortName = resolveToolAlias(shortName);
     type ReadRange = { start: number; end: number };
 
     // Helper to parse --flags into a dictionary.
@@ -1489,6 +4668,47 @@ export class UnifiedToolCallParser {
       }
     };
 
+    const stripLongFlagSegment = (input: string, flagName: string): string => {
+      const flagPattern = `--${flagName}`;
+      const flagIndex = input.indexOf(flagPattern);
+      if (flagIndex === -1) return input.trim();
+
+      let i = flagIndex + flagPattern.length;
+      while (i < input.length && /\s/.test(input[i])) i++;
+      if (i >= input.length) {
+        return `${input.slice(0, flagIndex)} ${input.slice(i)}`
+          .replace(/[ \t]{2,}/g, " ")
+          .trim();
+      }
+
+      const quoteChar = input[i];
+      if (quoteChar === '"' || quoteChar === "'" || quoteChar === "`") {
+        i++;
+        let escaped = false;
+        while (i < input.length) {
+          const char = input[i];
+          if (escaped) {
+            escaped = false;
+          } else if (char === "\\") {
+            escaped = true;
+          } else if (char === quoteChar) {
+            i++;
+            break;
+          }
+          i++;
+        }
+      } else {
+        while (i < input.length) {
+          if (input[i] === "-" && input[i + 1] === "-") break;
+          i++;
+        }
+      }
+
+      return `${input.slice(0, flagIndex)} ${input.slice(i)}`
+        .replace(/[ \t]{2,}/g, " ")
+        .trim();
+    };
+
     const flags = parseFlags(argsStr);
     const splitLeadingToken = (
       value: string,
@@ -1505,6 +4725,20 @@ export class UnifiedToolCallParser {
         first: (match[1] ?? match[2] ?? match[3] ?? match[4] ?? "").trim(),
         rest: (match[5] ?? "").trim(),
       };
+    };
+    const parseInlineIncludePattern = (value?: string): string | undefined => {
+      if (!value?.trim()) {
+        return undefined;
+      }
+
+      const normalizedValue = this.stripMatchingOuterQuotes(value);
+      const includeMatch = normalizedValue.match(/^include\s*=\s*(.+)$/i);
+      if (!includeMatch) {
+        return undefined;
+      }
+
+      const includePattern = includeMatch[1].trim();
+      return includePattern || undefined;
     };
 
     const parseReadRangeSpecs = (
@@ -1594,36 +4828,71 @@ export class UnifiedToolCallParser {
         .filter(Boolean);
 
       if (queries.length > 1) {
-        params.query = queries;
+        params.query = queries.map((q) => this.stripMatchingOuterQuotes(q));
         native.query = queries;
       } else {
-        params.query = queries[0] || "";
-        native.query = queries[0] || "";
+        params.query = this.stripMatchingOuterQuotes(queries[0] || "");
+        native.query = params.query;
       }
+      native.query = params.query;
       return;
     }
 
     if (
       shortName === "cmd" ||
-      shortName === "execute_command" ||
+      shortName === "shell" ||
+      shortName === "bash" ||
       shortName === "B"
     ) {
-      const command = flags.run || flags.command || argsStr.trim();
-      const cwd = flags.cwd;
-      params.command = this.normalizeCmdCommand(command);
-      native.command = params.command;
-      if (cwd) {
-        params.cwd = cwd;
-        native.cwd = cwd;
+      const cwd = flags.cwd || flags.path;
+      const stdin = flags.stdin;
+      const executionId = flags.execution_id;
+      let commandInput = argsStr;
+      if (flags.cwd) {
+        commandInput = stripLongFlagSegment(commandInput, "cwd");
+      }
+      if (flags.path) {
+        commandInput = stripLongFlagSegment(commandInput, "path");
+      }
+      if (flags.stdin) {
+        commandInput = stripLongFlagSegment(commandInput, "stdin");
+      }
+      if (flags.execution_id) {
+        commandInput = stripLongFlagSegment(commandInput, "execution_id");
+      }
+      const scopedCommand =
+        !flags.run && !flags.command && !cwd
+          ? this.parseScopedInlineArg(commandInput.trim(), {
+              allowWhitespaceScope: false,
+            })
+          : null;
+      const command =
+        flags.run ||
+        flags.command ||
+        scopedCommand?.payload ||
+        commandInput.trim();
+      if (stdin !== undefined) {
+        params.stdin = stdin;
+        native.stdin = stdin;
+      } else {
+        params.command = this.normalizeCmdCommand(command);
+        native.command = params.command;
+      }
+      if (executionId) {
+        params.execution_id = executionId;
+        native.execution_id = executionId;
       }
       if (cwd) {
         params.cwd = cwd;
         native.cwd = cwd;
+      } else if (scopedCommand?.scope) {
+        params.cwd = scopedCommand.scope;
+        native.cwd = scopedCommand.scope;
       }
       return;
     }
 
-    switch (shortName) {
+    switch (normalizedShortName) {
       case "R":
       case "read": {
         // For markdown format: first token is the path (positional), then flags
@@ -1639,16 +4908,30 @@ export class UnifiedToolCallParser {
         const headStr = flags.head;
         const tailStr = flags.tail;
 
-        // Single-letter syntax refinement: if pathStr contains a space (but not newline) and no linesStr, split it
-        // This handles "R src/app.ts 1-50" but NOT "R\nsrc/app.ts\nsrc/auth.ts" (multi-file)
+        // Positional refinement: if pathStr contains a space (but not newline) and no
+        // explicit --lines flag, split the first token as the path and treat the rest
+        // as line specs. This supports wrapperless READ syntax like:
+        //   READ src/app.ts 1-50
+        // and preserves multiline bodies for multi-file reads.
         if (
-          shortName === "R" &&
+          (shortName === "R" || shortName === "read") &&
           pathStr &&
           !linesStr &&
           !rawPath &&
           !flags.path &&
           !pathStr.includes("\n")
         ) {
+          const scopedReadArg = this.parseScopedInlineArg(pathStr, {
+            allowWhitespaceScope: false,
+          });
+          if (scopedReadArg) {
+            const scopedSpecs = parseReadRangeSpecs(scopedReadArg.payload);
+            if (scopedSpecs.hasOnlySpecs) {
+              pathStr = scopedReadArg.scope;
+              linesStr = scopedReadArg.payload;
+            }
+          }
+
           const { first, rest } = splitLeadingToken(pathStr);
           if (first && rest) {
             pathStr = first;
@@ -1695,9 +4978,7 @@ export class UnifiedToolCallParser {
               .filter(Boolean);
             const trailingLineSpecs =
               logicalLines.length > 1
-                ? logicalLines
-                    .slice(1)
-                    .map((line) => parseReadRangeSpecs(line))
+                ? logicalLines.slice(1).map((line) => parseReadRangeSpecs(line))
                 : [];
 
             if (
@@ -1709,10 +4990,33 @@ export class UnifiedToolCallParser {
                 logicalLines.slice(1).join(" "),
               );
             } else {
-              paths = inner
-                .split(/[\r\n]+|, */)
-                .map((p) => p.trim())
-                .filter(Boolean);
+              const singleColonTargetMatch = this.parseScopedInlineArg(inner, {
+                allowWhitespaceScope: false,
+              });
+              const singleBracketTargetMatch = inner.match(
+                /^(.*)\[([^[\]]+)\]$/,
+              );
+              const parsedBracketSpecs = singleBracketTargetMatch
+                ? parseReadRangeSpecs(singleBracketTargetMatch[2])
+                : undefined;
+              const parsedColonSpecs = singleColonTargetMatch
+                ? parseReadRangeSpecs(singleColonTargetMatch.payload)
+                : undefined;
+
+              if (parsedBracketSpecs?.hasOnlySpecs) {
+                paths = [inner.trim()];
+              } else if (
+                singleColonTargetMatch &&
+                parsedColonSpecs?.hasOnlySpecs
+              ) {
+                paths = [singleColonTargetMatch.scope];
+                continuationSpecs = parsedColonSpecs;
+              } else {
+                paths = inner
+                  .split(/[\r\n]+|, */)
+                  .map((p) => p.trim())
+                  .filter(Boolean);
+              }
             }
           }
 
@@ -1730,21 +5034,32 @@ export class UnifiedToolCallParser {
               | undefined;
             const fileEntry: any = { path: parsedPath, lineRanges: [] };
 
-            // Support path:L1-50, "path 1-50", "path H10", "path T20"
-            const inlineRangeMatch = p.match(/^(.*?):L(\d+)-(\d+)$/i);
+            // Support path:L1-50, path:H10, path:T20, "path 1-50", "path H10", and "path T20"
+            const inlineBracketSpecMatch = p.match(/^(.*)\[([^[\]]+)\]$/);
+            const inlineCompactSpecMatch = p.match(
+              /^(.*?):([LHT])(\d+(?:-\d+)?)$/i,
+            );
             const inlineSpecMatch = p.match(/^(\S+)\s+([\s\S]+)$/);
 
-            if (inlineRangeMatch) {
-              parsedPath = inlineRangeMatch[1].trim();
+            if (inlineBracketSpecMatch) {
+              const parsedBracketSpecs = parseReadRangeSpecs(
+                inlineBracketSpecMatch[2],
+              );
+              if (parsedBracketSpecs.hasOnlySpecs) {
+                parsedPath = inlineBracketSpecMatch[1].trim();
+                fileEntry.path = parsedPath;
+                inlineSpecs = parsedBracketSpecs;
+              }
+            } else if (inlineCompactSpecMatch) {
+              parsedPath = inlineCompactSpecMatch[1].trim();
               fileEntry.path = parsedPath;
-              inlineSpecs = {
-                lineRanges: [
-                  {
-                    start: parseInt(inlineRangeMatch[2]),
-                    end: parseInt(inlineRangeMatch[3]),
-                  },
-                ],
-              };
+              const compactType = inlineCompactSpecMatch[2].toUpperCase();
+              const compactValue = inlineCompactSpecMatch[3];
+              inlineSpecs = parseReadRangeSpecs(
+                compactType === "L"
+                  ? compactValue
+                  : `${compactType}${compactValue}`,
+              );
             } else if (inlineSpecMatch) {
               const parsedInlineSpecs = parseReadRangeSpecs(inlineSpecMatch[2]);
               if (parsedInlineSpecs.hasOnlySpecs) {
@@ -1771,10 +5086,7 @@ export class UnifiedToolCallParser {
               const allRanges = linesStr.split(",").map((r) => r.trim());
               const rangeStr = allRanges[idx] || allRanges[0];
               if (rangeStr) {
-                applyReadSpecsToEntry(
-                  fileEntry,
-                  parseReadRangeSpecs(rangeStr),
-                );
+                applyReadSpecsToEntry(fileEntry, parseReadRangeSpecs(rangeStr));
               }
             }
             if (idx === 0 && continuationSpecs) {
@@ -1804,38 +5116,55 @@ export class UnifiedToolCallParser {
       }
       case "E":
       case "edit": {
-        // For markdown format: first line is the path (positional)
-        const pathMatch = argsStr.trim().split(/\s+/)[0];
+        const inlineArgs = this.parseAtToolArguments(argsStr);
+        const pathMatch = inlineArgs.args[0] || argsStr.trim().split(/\s+/)[0];
         const path = flags.path || pathMatch || "";
         params.path = path;
         native.path = path;
+        if (inlineArgs.complete && inlineArgs.args.length > 1) {
+          this.applyInlineEditArgs(toolUse, inlineArgs.args);
+        }
         break;
       }
       case "W":
-      case "write":
-      case "write_to_file": {
-        // For markdown format: first line is the path (positional), rest is handled by content appending
-        // Extract path from argsStr (first line before any flags or newlines)
-        const pathMatch = argsStr.trim().split(/\s+/)[0];
+      case "write": {
+        const inlineArgs = this.parseAtToolArguments(argsStr);
+        const pathMatch = inlineArgs.args[0] || argsStr.trim().split(/\s+/)[0];
         const path = flags.path || pathMatch || "";
 
-        params.path = path;
-        params.target_file = path;
-        native.path = path;
-        native.target_file = path;
+        if (inlineArgs.complete) {
+          this.applyInlineWriteArgs(toolUse, inlineArgs.args);
+        }
+        if (!params.path && !params.target_file) {
+          params.path = path;
+          params.target_file = path;
+          native.path = path;
+          native.target_file = path;
+        }
         break;
       }
       case "L":
-      case "ls": {
+      case "ls":
+      case "list": {
         const beforeFlags = argsStr.split(/\s+--/)[0].trim();
-        // Check if beforeFlags is actually a flag (starts with --) or empty
-        // If so, use "." as the default path instead of treating the flag as path
+        const lines = beforeFlags
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+        const recursiveLine = lines.find(
+          (line) =>
+            /^(?:--recursive(?:\s+|=))?true$/i.test(line) ||
+            /^(?:--recursive(?:\s+|=))?false$/i.test(line) ||
+            /^--recursive$/i.test(line),
+        );
+        const pathLine = lines.find((line) => line !== recursiveLine);
         const path =
           flags.path ||
-          (beforeFlags && !beforeFlags.startsWith("--") ? beforeFlags : ".");
+          (pathLine && !pathLine.startsWith("--") ? pathLine : ".");
         params.path = path;
         native.path = params.path;
         if (
+          (!!recursiveLine && !/false$/i.test(recursiveLine)) ||
           flags.recursive === "true" ||
           argsStr.includes("--recursive true") ||
           argsStr.includes("--recursive")
@@ -1850,7 +5179,7 @@ export class UnifiedToolCallParser {
       case "glob": {
         const beforeFlags = argsStr.split(/\s+--/)[0].trim();
         if (flags.pattern) {
-          params.pattern = flags.pattern;
+          params.pattern = this.stripMatchingOuterQuotes(flags.pattern);
           params.path = flags.path || ".";
         } else {
           // KILOCODE FIX: If there's a newline, the first line is ALWAYS the path
@@ -1861,9 +5190,20 @@ export class UnifiedToolCallParser {
               .map((l) => l.trim())
               .filter(Boolean);
             params.path = flags.path || lines[0];
-            const patterns = lines.slice(1);
-            params.pattern = this.splitPipe(patterns);
+            const patterns = lines
+              .slice(1)
+              .map((pattern) => this.stripMatchingOuterQuotes(pattern));
+            params.pattern = this.splitGlobPatterns(patterns);
           } else {
+            const scopedFindArg = this.parseScopedInlineArg(beforeFlags, {
+              allowWhitespaceScope: false,
+            });
+            if (scopedFindArg) {
+              params.pattern = this.stripMatchingOuterQuotes(
+                scopedFindArg.payload,
+              );
+              params.path = flags.path || scopedFindArg.scope;
+            } else {
             // KILOCODE FIX: Improved positional argument parsing for Glob/Find.
             const match = beforeFlags.match(
               /^(\"[\s\S]*?\"|\'[\s\S]*?\'|\`[\s\S]*?\`|\S+)(?:\s+([\s\S]*))?$/,
@@ -1881,10 +5221,10 @@ export class UnifiedToolCallParser {
                   !secondToken.includes("/") &&
                   !secondToken.includes("\\")
                 ) {
-                  params.pattern = secondToken;
+                  params.pattern = this.stripMatchingOuterQuotes(secondToken);
                   params.path = flags.path || firstToken;
                 } else {
-                  params.pattern = firstToken;
+                  params.pattern = this.stripMatchingOuterQuotes(firstToken);
                   params.path = flags.path || secondToken;
                 }
               } else {
@@ -1905,13 +5245,14 @@ export class UnifiedToolCallParser {
                     shortName === "F" && toolUse.partial ? "" : "*";
                   params.path = flags.path || firstToken;
                 } else {
-                  params.pattern = firstToken;
+                  params.pattern = this.stripMatchingOuterQuotes(firstToken);
                   params.path = flags.path || ".";
                 }
               }
             } else {
-              params.pattern = beforeFlags;
+              params.pattern = this.stripMatchingOuterQuotes(beforeFlags);
               params.path = flags.path || ".";
+            }
             }
           }
         }
@@ -1921,6 +5262,17 @@ export class UnifiedToolCallParser {
 
         // Normalize: keep array if multiple patterns, string if single
         if (params.pattern !== undefined && params.pattern !== null) {
+          if (Array.isArray(params.pattern)) {
+            params.pattern = this.splitGlobPatterns(
+              params.pattern.map((pattern: string) =>
+                this.stripMatchingOuterQuotes(pattern),
+              ),
+            );
+          } else {
+            params.pattern = this.splitGlobPatterns(
+              this.stripMatchingOuterQuotes(params.pattern),
+            );
+          }
           native.pattern = params.pattern;
         }
         // Clean up quotes from the path
@@ -1978,11 +5330,11 @@ export class UnifiedToolCallParser {
       case "G":
       case "grep":
       case "search": {
-        const {
-          cleanedInput: grepArgs,
-          present: hasIncludeAllShortFlag,
-        } = extractStandaloneShortFlag(argsStr, "i");
+        const { cleanedInput: grepArgs, present: hasIncludeAllShortFlag } =
+          extractStandaloneShortFlag(argsStr, "i");
         const beforeFlags = grepArgs.split(/\s+--/)[0].trim();
+        const includeFromFlag =
+          flags.include || flags.file_pattern || flags["file-pattern"];
         let rawQuery = "";
         if (flags.query) {
           rawQuery = flags.query;
@@ -1999,6 +5351,17 @@ export class UnifiedToolCallParser {
             const queries = lines.slice(1);
             rawQuery = queries.join("|");
           } else if (beforeFlags) {
+            const scopedGrepArg = this.parseScopedInlineArg(beforeFlags, {
+              allowWhitespaceScope: false,
+            });
+            if (scopedGrepArg) {
+              const parsedScope = this.parseGrepScopeArg(scopedGrepArg.scope);
+              rawQuery = scopedGrepArg.payload;
+              params.path = flags.path || parsedScope.path || ".";
+              if (parsedScope.include) {
+                params.include = parsedScope.include;
+              }
+            } else {
             // Single line case: logic for swapping query/path remains same
             // but we only do this if there is NO block content.
             // KILOCODE FIX: Improved positional argument parsing for Grep.
@@ -2008,25 +5371,39 @@ export class UnifiedToolCallParser {
               splitLeadingToken(beforeFlags);
             if (firstToken) {
               if (secondToken) {
-                // KILOCODE FIX: Swap if first token is path and second is query
-                if (
-                  (firstToken.includes("/") ||
-                    firstToken.includes("\\\\") ||
-                    firstToken === "." ||
-                    firstToken === "..") &&
-                  !secondToken.includes("/") &&
-                  !secondToken.includes("\\\\")
-                ) {
-                  rawQuery = secondToken;
-                  params.path = flags.path || firstToken;
-                } else {
+                const includePattern =
+                  parseInlineIncludePattern(secondToken) || includeFromFlag;
+                if (includePattern) {
                   rawQuery = firstToken;
-                  params.path = flags.path || secondToken;
+                  params.path = flags.path || ".";
+                  params.include = includePattern;
+                } else {
+                  // KILOCODE FIX: Swap if first token is path and second is query
+                  if (
+                    (firstToken.includes("/") ||
+                      firstToken.includes("\\\\") ||
+                      firstToken === "." ||
+                      firstToken === "..") &&
+                    !secondToken.includes("/") &&
+                    !secondToken.includes("\\\\")
+                  ) {
+                    rawQuery = secondToken;
+                    params.path = flags.path || firstToken;
+                  } else {
+                    rawQuery = firstToken;
+                    params.path = flags.path || secondToken;
+                  }
                 }
               } else {
                 // Single token: is it a path or a query?
                 // If it contains path separators or is a known directory, treat as path.
-                if (
+                const includePattern =
+                  parseInlineIncludePattern(firstToken) || includeFromFlag;
+                if (includePattern) {
+                  rawQuery = "";
+                  params.path = flags.path || ".";
+                  params.include = includePattern;
+                } else if (
                   firstToken.includes("/") ||
                   firstToken.includes("\\\\") ||
                   firstToken === "." ||
@@ -2043,14 +5420,25 @@ export class UnifiedToolCallParser {
               rawQuery = beforeFlags;
               params.path = flags.path || ".";
             }
+            }
           }
         }
 
         // Allow multi-line query appending
         toolUse.isArgBased = false;
-        params.query = this.splitPipe(rawQuery);
+        params.query = this.splitPipe(this.stripMatchingOuterQuotes(rawQuery));
         native.query = params.query;
+        if (params.path) {
+          params.path = this.stripMatchingOuterQuotes(params.path);
+        }
         native.path = params.path;
+        if (!params.include && includeFromFlag) {
+          params.include = this.stripMatchingOuterQuotes(includeFromFlag);
+        }
+        if (params.include) {
+          params.include = this.stripMatchingOuterQuotes(params.include);
+          native.include = params.include;
+        }
 
         // Single-letter G is documented as regex search, so force regex mode.
         // Leave long-form grep/search unchanged to avoid altering other schemas.
@@ -2098,11 +5486,15 @@ export class UnifiedToolCallParser {
         break;
       case "X":
       case "web":
-        params.query = flags.query || argsStr.trim();
+        params.query = this.stripMatchingOuterQuotes(
+          flags.query || argsStr.trim(),
+        );
         native.query = params.query;
         break;
       case "research": {
-        params.query = flags.topic || flags.query || argsStr.trim();
+        params.query = this.stripMatchingOuterQuotes(
+          flags.topic || flags.query || argsStr.trim(),
+        );
         native.query = params.query;
         if (flags.depth) {
           params.depth = flags.depth;
@@ -2112,10 +5504,8 @@ export class UnifiedToolCallParser {
       }
       case "U":
       case "fetch": {
-        const {
-          cleanedInput: fetchArgs,
-          present: hasIncludeLinksShortFlag,
-        } = extractStandaloneShortFlag(argsStr, "L");
+        const { cleanedInput: fetchArgs, present: hasIncludeLinksShortFlag } =
+          extractStandaloneShortFlag(argsStr, "L");
         params.url = flags.url || fetchArgs.trim();
         native.url = params.url;
         if (
@@ -2172,9 +5562,10 @@ export class UnifiedToolCallParser {
       case "Z":
       case "agent":
       case "sub":
-      case "run_sub_agent":
-        params.instructions = flags.instructions || argsStr.trim();
-        native.instructions = params.instructions;
+        params.prompt = flags.prompt || argsStr.trim();
+        native.prompt = params.prompt;
+        params.instructions = params.prompt;
+        native.instructions = params.prompt;
         if (flags.mode) {
           params.mode = flags.mode;
           native.mode = flags.mode;
@@ -2229,6 +5620,18 @@ export class UnifiedToolCallParser {
         if (flags.path) {
           params.path = flags.path;
           native.path = flags.path;
+        }
+        break;
+      case "computer_action":
+        params.action = flags.action || argsStr.trim();
+        native.action = params.action;
+        if (flags.coordinate) {
+          params.coordinate = flags.coordinate;
+          native.coordinate = flags.coordinate;
+        }
+        if (flags.text) {
+          params.text = flags.text;
+          native.text = flags.text;
         }
         break;
       case "wrap": {
@@ -2414,7 +5817,7 @@ export class UnifiedToolCallParser {
     if (
       shortName === "edit" ||
       shortName === "write" ||
-      shortName === "write_to_file"
+      shortName === "write"
     ) {
       if (args.length > 1) {
         this.appendContentToTool(toolUse, args.slice(1).join("\n"));
@@ -2427,6 +5830,20 @@ export class UnifiedToolCallParser {
 
     if (toolUse.name === "edit" || toolUse.name === "edit_file") {
       let contentToProcess = content;
+
+      if (isEditHistoryPlaceholder(contentToProcess)) {
+        toolUse.params.edit = (toolUse.params.edit || "") + contentToProcess;
+        toolUse.nativeArgs.edit = toolUse.params.edit;
+        return;
+      }
+
+      // A naked shared history placeholder is not a valid edit body.
+      if (
+        contentToProcess.trim().toLowerCase() ===
+        HISTORY_CONTENT_PLACEMENT_PLACEHOLDER.toLowerCase()
+      ) {
+        return;
+      }
 
       // KILOCODE FIX: Strip "Content:" anchor if present at the beginning
       // This anchor is a cognitive checkpoint for the model but should not appear in actual content
@@ -2466,15 +5883,22 @@ export class UnifiedToolCallParser {
         toolUse.params.edit = (toolUse.params.edit || "") + contentToProcess;
         // KILOCODE FIX: Remove escape backslashes from literals like \/edit in edit content
         toolUse.params.edit = toolUse.params.edit.replace(
-          /\\((?:\/)(?:edit|write|edit_file|write_to_file|todo|wrap|E|W|[A-Z]))/g,
+          /\\((?:\/)(?:edit|write|edit_file|write|todo|wrap|E|W|[A-Z]))/g,
           "$1",
         );
-        const edits = this.parseEditBlocks(toolUse.params.edit);
+        toolUse.nativeArgs.edit = toolUse.params.edit;
+        const quotedBodyEdits = this.parseQuotedEditBodyLines(toolUse.params.edit, {
+          allowTrailingPartialLine: !!toolUse.partial,
+        });
+        const edits =
+          quotedBodyEdits !== null
+            ? quotedBodyEdits
+            : this.parseEditBlocks(toolUse.params.edit);
         // Propagate line range hints from the tool call header to individual blocks
         // If the header has multiple ranges, assign them sequentially
         if (toolUse.nativeArgs.ranges && toolUse.nativeArgs.ranges.length > 0) {
           edits.forEach((edit: any, idx: number) => {
-            // Per-block range (Old (10-20):) takes priority
+            // Per-block range (SEARCH (10-20):) takes priority
             if (edit.start_line !== undefined) return;
 
             // Otherwise use range from header if available for this block index
@@ -2502,10 +5926,7 @@ export class UnifiedToolCallParser {
           (toolUse.params.instructions || "") + content;
         toolUse.nativeArgs.instructions = toolUse.params.instructions;
       }
-    } else if (
-      toolUse.name === "write_to_file" ||
-      toolUse.name === "new_rule"
-    ) {
+    } else if (toolUse.name === "write" || toolUse.name === "new_rule") {
       let cleanContent = content;
 
       // KILOCODE MOD: Support multi-line path (path on next line) - extract before Content: marker
@@ -2551,20 +5972,26 @@ export class UnifiedToolCallParser {
         cleanContent = cleanContent.replace(/^\s*Content:\s*\n?/, "");
       }
 
+      if (isWriteHistoryPlaceholder(cleanContent)) {
+        toolUse.params.content = (toolUse.params.content || "") + cleanContent;
+        toolUse.nativeArgs.content = toolUse.params.content;
+        return;
+      }
+
       if (!toolUse.params.content) {
         // Only strip the very first leading newline that follows the tool header
         cleanContent = cleanContent.replace(/^\r?\n/, "");
       }
       // KILOCODE FIX: Remove escape backslashes from literals like \/write or \/W
       const unescapedContent = cleanContent.replace(
-        /\\((?:\/)(?:edit|write|edit_file|write_to_file|todo|wrap|E|W|[A-Z]))/g,
+        /\\((?:\/)(?:edit|write|edit_file|write|todo|wrap|E|W|[A-Z]))/g,
         "$1",
       );
       toolUse.params.content =
         (toolUse.params.content || "") + unescapedContent;
       toolUse.nativeArgs.content = toolUse.params.content;
     } else if (
-      toolUse.name === "update_todo_list" ||
+      toolUse.name === "todo" ||
       toolUse.name === "todo" ||
       toolUse.originalName === "T"
     ) {
@@ -2576,19 +6003,25 @@ export class UnifiedToolCallParser {
         toolUse.params.todos = existing || newContent;
       }
       toolUse.nativeArgs.todos = toolUse.params.todos;
-    } else if (toolUse.name === "execute_command") {
-      // New logic: if argsStr exists, it's the CWD. Content is the command.
-      if (toolUse.params.command && content.trim()) {
-        // argsStr was already put in command by populateToolArgs, move it to cwd
-        toolUse.params.cwd = toolUse.params.command.trim();
-        toolUse.params.command = content.trim();
+    } else if (toolUse.name === "bash") {
+      if (toolUse.params.stdin !== undefined) {
+        toolUse.params.stdin = (toolUse.params.stdin || "") + content;
+        toolUse.nativeArgs.stdin = toolUse.params.stdin;
       } else {
-        toolUse.params.command = (toolUse.params.command || "") + content;
+        // New logic: if argsStr exists, it's the CWD. Content is the command.
+        if (toolUse.params.command && content.trim()) {
+          // argsStr was already put in command by populateToolArgs, move it to cwd
+          toolUse.params.cwd = toolUse.params.command.trim();
+          toolUse.params.command = content.trim();
+        } else {
+          toolUse.params.command = (toolUse.params.command || "") + content;
+        }
+        toolUse.nativeArgs.command = toolUse.params.command;
       }
-      toolUse.nativeArgs.command = toolUse.params.command;
       toolUse.nativeArgs.cwd = toolUse.params.cwd;
+      toolUse.nativeArgs.execution_id = toolUse.params.execution_id;
     } else if (
-      toolUse.name === "web_search" ||
+      toolUse.name === "web" ||
       toolUse.name === "research_web" ||
       toolUse.name === "grep" ||
       toolUse.name === "glob"
@@ -2635,7 +6068,7 @@ export class UnifiedToolCallParser {
       }
       toolUse.params.content = (toolUse.params.content || "") + cleanContent;
       toolUse.nativeArgs.content = toolUse.params.content;
-    } else if (toolUse.name === "run_sub_agent") {
+    } else if (toolUse.name === "agent") {
       toolUse.params.instructions =
         (toolUse.params.instructions || "") + content;
       toolUse.nativeArgs.instructions = toolUse.params.instructions;
@@ -2644,7 +6077,54 @@ export class UnifiedToolCallParser {
 
   private parseEditBlocks(diffContent: string): any[] {
     // NOTE: We do NOT strip diff_N headers anymore; we parse them to extract line context.
-    const sanitized = diffContent.replace(
+    const normalizeLegacyInlineHeader = (
+      content: string,
+      aliases: string[],
+      replacement: "SEARCH" | "REPLACE",
+    ) => {
+      const aliasPattern = aliases.join("|");
+      const headerRegex = new RegExp(
+        `^(\\s*)(?:${aliasPattern})(?:\\s*(?:\\[(\\d+)(?:(?:\\s*-\\s*|,\\s*)(\\d+))?\\]|\\((\\d+)(?:(?:\\s*-\\s*|,\\s*)(\\d+))?\\)|:(\\d+)(?:(?:\\s*-\\s*|,\\s*)(\\d+))?:|(\\d+)(?:(?:\\s*-\\s*|,\\s*)(\\d+))?))?:(.*)$`,
+        "gim",
+      );
+
+      return content.replace(
+        headerRegex,
+        (
+          _match: string,
+          indent: string,
+          bracketStart?: string,
+          bracketEnd?: string,
+          parenStart?: string,
+          parenEnd?: string,
+          colonStart?: string,
+          colonEnd?: string,
+          spacedStart?: string,
+          spacedEnd?: string,
+          inlineContent: string = "",
+        ) => {
+          const start =
+            bracketStart || parenStart || colonStart || spacedStart;
+          const end = bracketEnd || parenEnd || colonEnd || spacedEnd;
+          const header = `${indent}${replacement}${start ? ` ${start}${end ? `-${end}` : ""}` : ""}:`;
+          const normalizedInlineContent = inlineContent.replace(/^[ \t]/, "");
+          return normalizedInlineContent
+            ? `${header}\n${normalizedInlineContent}`
+            : header;
+        },
+      );
+    };
+
+    const normalizedOldNewBlocks = normalizeLegacyInlineHeader(
+      normalizeLegacyInlineHeader(
+        diffContent,
+        ["oldText", "oldtxt", "otxt"],
+        "SEARCH",
+      ),
+      ["newText", "newtxt", "ntxt"],
+      "REPLACE",
+    );
+    const sanitized = normalizedOldNewBlocks.replace(
       /^(\s*)(\d+(?:\s*-\s*\d+)?)\s*$/gm,
       "$1$2:",
     );
@@ -2653,10 +6133,10 @@ export class UnifiedToolCallParser {
     // V4 Regex: Context-Aware Header Matching.
     // Added 'diff_\\d+' to the list of recognized headers.
     // Also updated range matching to support BOTH comma and hyphen separators: (\d+)(?:[-]|,[\t ]*)(\d+)
-    // Support both "Old start-end:" and "Old (start-end):"
-    // KILOCODE MOD: Support high-speed diff syntax: "- 10-12" and "+", plus colon format "10-12:" and "New:"
+    // Support canonical SEARCH/REPLACE headers plus high-speed diff syntax.
+    // KILOCODE MOD: Support high-speed diff syntax: "- 10-12" and "+", plus colon format "10-12:" and "REPLACE:"
     const headerRegex =
-      /^\s*(?:(Old|Original|SEARCH|New|Updated|REPLACE|diff_\d+|\+)(?:(?:[\t ]*(?:\(?[\t ]*(\d+)(?:(?:[-]|,[\t ]*)(\d+))?[\t ]*\)?))|(?=:))?(:|(?=\s*\r?\n|$))|(rm|remove|delete|-)[\t ]+(?:(?:\(?[\t ]*(\d+)(?:(?:[-]|,[\t ]*)(\d+))?[\t ]*\)?))|\b(\d+)(?:[\t ]*-[\t ]*(\d+))?:)/gim;
+      /^\s*(?:(SEARCH|REPLACE|diff_\d+|\+)(?:(?:[\t ]*(?:\(?[\t ]*(\d+)(?:(?:[-]|,[\t ]*)(\d+))?[\t ]*\)?))|(?=:))?(:|(?=\s*\r?\n|$))|(rm|remove|delete|-)[\t ]+(?:(?:\(?[\t ]*(\d+)(?:(?:[-]|,[\t ]*)(\d+))?[\t ]*\)?))|\b(\d+)(?:[\t ]*-[\t ]*(\d+))?:)/gim;
 
     let match;
     const headers: {
@@ -2697,17 +6177,18 @@ export class UnifiedToolCallParser {
 
     for (const block of blocks) {
       const isOld =
-        /Old|Original|SEARCH/i.test(block.type) || block.type === "-" || block.type === "range";
-      const isNew =
-        /New|Updated|REPLACE/i.test(block.type) || block.type === "+";
+        /SEARCH/i.test(block.type) ||
+        block.type === "-" ||
+        block.type === "range";
+      const isNew = /REPLACE/i.test(block.type) || block.type === "+";
       const isDelete = /rm|remove|delete/i.test(block.type);
       const isDiffHeaders = /diff_\d+/i.test(block.type);
 
       const normalizeBlock = (rawContent: string): string => {
         // KILOCODE FIX: Improved artifact stripping.
         // When we split the message by headers, the 'content' of a block
-        // naturally starts with a newline (immediately after "Old:\n")
-        // and ends with one (immediately before "New:\n").
+        // naturally starts with a newline (immediately after "SEARCH:\n")
+        // and ends with one (immediately before "REPLACE:\n").
         // We MUST remove exactly one leading and one trailing newline if they exist,
         // but we must NOT strip intentional blank lines or indentation.
 
@@ -2813,7 +6294,7 @@ export class UnifiedToolCallParser {
     return edits;
   }
 
-  private cleanTextContent(text: string): string {
+  private cleanTextContent(text: string, isFinalized: boolean = true): string {
     let clean = text;
 
     // 1. During streaming, partial prefixes like "tool:" can leak
@@ -2836,7 +6317,74 @@ export class UnifiedToolCallParser {
       "",
     );
 
+    if (!isFinalized) {
+      clean = this.stripTrailingPartialToolFencePrefix(clean);
+      clean = this.stripTrailingPartialActionsPrefix(clean);
+      clean = this.stripTrailingPartialAtToolPrefix(clean);
+      clean = this.stripTrailingPartialWrapperlessCommandPrefix(clean);
+    }
+
+    clean = clean
+      .split(/\r?\n/)
+      .map((line) => this.unescapeEscapedTextProtocolLine(line))
+      .join("\n");
+
     return clean.trim();
+  }
+
+  private stripTrailingPartialActionsPrefix(text: string): string {
+    return text.replace(
+      /(?:^|[\r\n])([ \t]*)(A|AC|ACT|ACTI|ACTIO|ACTION|ACTIONS?)$/i,
+      (_match, leadingWhitespace: string) => leadingWhitespace,
+    );
+  }
+
+  private stripTrailingPartialToolFencePrefix(text: string): string {
+    return text.replace(
+      /(?:^|[\r\n])([ \t]*)(?:`|``|```|```t|```to|```too|```tool)$/i,
+      (_match, leadingWhitespace: string) => leadingWhitespace,
+    );
+  }
+
+  private stripTrailingPartialAtToolPrefix(text: string): string {
+    const match =
+      /(?:^|[\r\n])([ \t]*)@([a-z_][a-z0-9_-]*)?(?:(?::[^\r\n]*)|(?:\s+[^\r\n]*))?$/i.exec(
+        text,
+      );
+    if (!match) {
+      return text;
+    }
+
+    const rawCommand = (match[2] ?? "").toLowerCase();
+    const looksLikeRegisteredMcpPrefix =
+      rawCommand.length > 0 &&
+      Array.from(this.mcpToolNames.keys()).some((toolName) => {
+        const normalizedToolName = toolName.toLowerCase();
+        return (
+          normalizedToolName.startsWith(rawCommand) ||
+          rawCommand.startsWith(normalizedToolName)
+        );
+      });
+    const looksLikeAtToolPrefix =
+      rawCommand.length === 0 ||
+      looksLikeRegisteredMcpPrefix ||
+      UnifiedToolCallParser.ACTIONS_COMMAND_CANDIDATES.some(
+        (candidate) =>
+          candidate.startsWith(rawCommand) || rawCommand.startsWith(candidate),
+      );
+
+    if (!looksLikeAtToolPrefix) {
+      return text;
+    }
+
+    return text.slice(0, match.index) + (match[1] ?? "");
+  }
+
+  private stripTrailingPartialWrapperlessCommandPrefix(text: string): string {
+    return text.replace(
+      /(?:^|[\r\n])([ \t]*)(R|RE|REA|READ|L|LI|LIS|LIST|G|GR|GRE|GREP|F|FI|FIN|FIND|S|SH|SHE|SHEL|SHELL|W|WR|WRI|WRIT|WRITE|E|ED|EDI|EDIT|A|AG|AGE|AGEN|AGENT|T|TO|TOD|TODO|WE|WEB|FE|FET|FETC|FETCH|AS|ASK)$/i,
+      (_match, leadingWhitespace: string) => leadingWhitespace,
+    );
   }
 
   private cleanBlockContent(t: string): string {

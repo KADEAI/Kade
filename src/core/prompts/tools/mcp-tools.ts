@@ -20,8 +20,8 @@ function sanitizeForXml(text: string): string {
 }
 
 /**
- * Generates MCP tool descriptions for unified protocol (markdown blocks)
- * 
+ * Generates MCP tool descriptions for unified protocol.
+ *
  * @param mcpHub The McpHub instance containing connected servers
  * @returns String containing MCP tool descriptions in unified format
  */
@@ -68,11 +68,11 @@ export function getMcpToolsForUnified(mcpHub?: McpHub): string {
 				paramDescription = `\nParameters:\n${paramList.join("\n")}\n`
 			}
 
-            const description = `**${toolName}**
+			const description = `**${toolName}**
 ${tool.description}${paramDescription}
-Usage:
-\`\`\`text
-${toolName}
+Usage in unified DSL:
+\`\`\`
+@${toolName}:
 {"param1": "value1", "param2": "value2"}
 \`\`\``
 			
@@ -100,7 +100,7 @@ The following MCP servers are connected and provide additional tools:
 
 ${mcpToolsSections.join("\n\n")}
 
-**Important**: MCP tools use JSON format for arguments in the content block. The JSON object must match the tool's input schema.`
+**Important**: In unified DSL mode, an MCP tool starts with a top-level \`@tool_name:\` line at column 1, followed by a JSON body. The block continues until the next top-level \`@tool:\` line or end of response. The JSON object must match the tool's input schema.`
 }
 
 /**

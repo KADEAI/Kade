@@ -14,6 +14,10 @@ import delay from "delay";
 import pWaitFor from "p-wait-for";
 import { serializeError } from "serialize-error";
 import { Package } from "../../shared/package";
+import {
+  createSessionTitlePreview,
+  sanitizeSessionTitle,
+} from "../../shared/kilocode/sanitizeSessionTitle";
 import { formatToolInvocation } from "../tools/helpers/toolResultFormatting";
 
 import {
@@ -124,6 +128,13 @@ import { formatResponse } from "../prompts/responses";
 import { SYSTEM_PROMPT } from "../prompts/system";
 import { UNIFIED_TOOLS_PROMPT } from "../prompts/sections/unified-tools";
 import { buildNativeToolsArray } from "./build-tools";
+import { normalizeToolsToOpenAI } from "../prompts/tools/native-tools/converters";
+import { buildCleanConversationHistory } from "./buildCleanConversationHistory";
+import {
+  appendDynamicSystemPromptContext,
+  formatDynamicSystemPromptContext,
+} from "./systemPromptDynamicContext";
+import { translateApiMessagesForUnifiedHistory } from "./unifiedHistoryTranslation";
 
 // core modules
 import { ToolRepetitionDetector } from "../tools/ToolRepetitionDetector";
@@ -135,7 +146,6 @@ import {
   type AssistantMessageContent,
   presentAssistantMessage,
 } from "../assistant-message";
-import { AssistantMessageParser } from "../assistant-message/AssistantMessageParser";
 import { NativeToolCallParser } from "../assistant-message/NativeToolCallParser";
 import { UnifiedToolCallParser } from "../assistant-message/UnifiedToolCallParser";
 import { MarkdownToolCallParser } from "../assistant-message/MarkdownToolCallParser";
@@ -147,6 +157,7 @@ import {
   type ApiMessage,
   readApiMessages,
   saveApiMessages,
+  saveRawApiRequestPayload,
   readTaskMessages,
   saveTaskMessages,
   taskMetadata,
@@ -182,12 +193,18 @@ import {
   isPaymentRequiredError,
 } from "../../shared/kilocode/errorUtils";
 import { getAppUrl } from "@roo-code/types";
-import { mergeApiMessages, addOrMergeUserContent } from "./kilocode";
+import {
+  mergeApiMessages,
+  addOrMergeUserContent,
+  trimLeadingWhitespaceInContent,
+} from "./kilocode";
 import { AutoApprovalHandler, checkAutoApproval } from "../auto-approval";
 import { MessageManager } from "../message-manager";
 import { validateAndFixToolResultIds } from "./validateToolResultIds";
 import { AgentLoop } from "./AgentLoop";
 import { LuxurySpa, LuxurySpaDelegate } from "./LuxurySpa";
+import { findMatchingPartialToolMessage } from "./findPartialToolMessage";
+import { sanitizeApiRequestMessages } from "./sanitizeApiRequestMessages";
 
 const MAX_EXPONENTIAL_BACKOFF_SECONDS = 600; // 10 minutes
 const DEFAULT_USAGE_COLLECTION_TIMEOUT_MS = 5000; // 5 seconds
@@ -307,6 +324,7 @@ export class Task
   interactiveAsk?: ClineMessage;
 
   didFinishAbortingStream = false;
+  didFinishInterrupting = false;
   abandoned = false;
   abortReason?: ClineApiReqCancelReason;
   isInitialized = false;
@@ -332,6 +350,9 @@ export class Task
   fileContextTracker: FileContextTracker;
   urlContentFetcher: UrlContentFetcher;
   terminalProcess?: RooTerminalProcess;
+  private aiTerminalStdinExecutionId?: string;
+  private aiTerminalStdinCommand?: string;
+  private aiTerminalStdinPendingContinueExecutionId?: string;
 
   // Computer User
   browserSession: BrowserSession;
@@ -348,7 +369,7 @@ export class Task
   clineMessages: ClineMessage[] = [];
 
   // Ask
-  private askResponse?: ClineAskResponse;
+  public askResponse?: ClineAskResponse;
   private askResponseText?: string;
   private askResponseImages?: string[];
   public lastMessageTs?: number;
@@ -384,6 +405,7 @@ export class Task
   // Streaming
   isWaitingForFirstChunk = false;
   public isStreaming = false;
+  public isWaitingForUserMessage = false;
   public currentStreamingContentIndex = 0;
   public currentStreamingDidCheckpoint = false;
   public assistantMessageContent: AssistantMessageContent[] = [];
@@ -400,7 +422,6 @@ export class Task
   public didToolFailInCurrentTurn = false;
   public didCompleteReadingStream = false;
   public assistantMessageParser?:
-    | AssistantMessageParser
     | UnifiedToolCallParser
     | MarkdownToolCallParser;
   private providerProfileChangeListener?: (config: {
@@ -510,6 +531,9 @@ export class Task
         mode: this._taskMode || defaultModeSlug,
         initialStatus: this.initialStatus,
         fileEditCounts: this.luxurySpa.fileEditCounts,
+        fileEditBlockCounts: this.luxurySpa.fileEditBlockCounts,
+        latestEditedLineRanges: this.luxurySpa.latestEditedLineRanges,
+        recentEditBlockHistory: this.luxurySpa.recentEditBlockHistory,
         activeFileReads: Object.fromEntries(
           Array.from(this.luxurySpa.activeFileReads.entries()).map(([k, v]) => [
             k,
@@ -538,7 +562,7 @@ export class Task
       enableCheckpoints = false,
       checkpointTimeout = DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
       enableBridge = false,
-      fuzzyMatchThreshold = 1.0,
+      fuzzyMatchThreshold = 0.8,
       consecutiveMistakeLimit = DEFAULT_CONSECUTIVE_MISTAKE_LIMIT,
       task,
       images,
@@ -719,6 +743,34 @@ export class Task
           ),
         );
       }
+      if ((historyItem as any).fileEditBlockCounts) {
+        this.luxurySpa.fileEditBlockCounts = new Map(
+          Object.entries((historyItem as any).fileEditBlockCounts).map(
+            ([key, value]) => [
+              process.platform === "win32" ? key.toLowerCase() : key,
+              value as number,
+            ],
+          ),
+        );
+      }
+      if ((historyItem as any).latestEditedLineRanges) {
+        this.luxurySpa.latestEditedLineRanges = new Map(
+          Object.entries((historyItem as any).latestEditedLineRanges).map(
+            ([key, value]) => [
+              process.platform === "win32" ? key.toLowerCase() : key,
+              value as { start: number; end: number }[],
+            ],
+          ),
+        );
+      }
+      if ((historyItem as any).recentEditBlockHistory) {
+        this.luxurySpa.recentEditBlockHistory = new Map();
+        Object.entries((historyItem as any).recentEditBlockHistory).forEach(
+          ([key, value]) => {
+            this.luxurySpa.restoreRecentEditBlockHistory(key, value as any);
+          },
+        );
+      }
       if ((historyItem as any).activeFileReads) {
         // Support both new format (object with lineRanges) and legacy format (string array)
         const saved = (historyItem as any).activeFileReads;
@@ -760,8 +812,6 @@ export class Task
       const markdownParser = new MarkdownToolCallParser();
       this.populateMcpToolNames(markdownParser, provider);
       this.assistantMessageParser = markdownParser;
-    } else if (toolProtocol === "xml") {
-      this.assistantMessageParser = new AssistantMessageParser();
     } else {
       this.assistantMessageParser = undefined;
     }
@@ -1143,7 +1193,6 @@ export class Task
       const reasoningData = handler.getEncryptedContent?.();
       const thoughtSignature = handler.getThoughtSignature?.();
       const reasoningSummary = handler.getSummary?.();
-      const reasoningDetails = handler.getReasoningDetails?.();
 
       // kade_change start: prevent consecutive same-role messages, this happens when returning from subtask
       const lastMessage = this.apiConversationHistory.at(-1);
@@ -1158,18 +1207,13 @@ export class Task
       // Start from the original assistant message
       const messageWithTs: any = {
         ...message,
+        content: trimLeadingWhitespaceInContent(message.content),
         ...(responseId ? { id: responseId } : {}),
         ts: Date.now(),
       };
 
-      // Store reasoning_details array if present (for models like Gemini 3)
-      if (reasoningDetails) {
-        messageWithTs.reasoning_details = reasoningDetails;
-      }
-
       // Store reasoning: plain text (most providers) or encrypted (OpenAI Native)
-      // Skip if reasoning_details already contains the reasoning (to avoid duplication)
-      if (reasoning && !reasoningDetails) {
+      if (reasoning) {
         const reasoningBlock = {
           type: "reasoning",
           text: reasoning,
@@ -1271,7 +1315,7 @@ export class Task
 
     // Use the first message as the title (no AI generation)
     const firstMessage = this.clineMessages.find((m) => m.text);
-    let title = firstMessage?.text || "New Session";
+    let title = sanitizeSessionTitle(firstMessage?.text || "New Session");
 
     if (title.length > 80) {
       title = title.substring(0, 77) + "...";
@@ -1402,13 +1446,12 @@ export class Task
         let clean = text
           .replace(/```[\s\S]*?```/g, "")
           .replace(/<tool_code>[\s\S]*?<\/tool_code>/g, "")
-          .replace(/[*_`~]/g, "")
+          .replace(/[*_`]/g, "")
           .replace(/\s+/g, " ")
           .trim();
 
         if (clean.length > 5) {
-          this.pendingLiveTitle =
-            clean.substring(0, 40) + (clean.length > 40 ? "..." : "");
+          this.pendingLiveTitle = createSessionTitlePreview(clean);
           this.debouncedLiveTitleUpdate();
         }
       }
@@ -1461,12 +1504,25 @@ export class Task
     // Background tasks generate hundreds of partial updates per second — all wasted if not visible.
     const view = (provider as any)?.view;
     const isVisible = !view || view.visible !== false;
-    if (isVisible) {
+    const postToWebview = async () => {
       await provider?.postMessageToWebview({
         type: "messageUpdated",
         clineMessage: message,
         taskId: this.taskId,
       });
+    };
+
+    if (isVisible) {
+      if (message.partial === true) {
+        void postToWebview().catch((error) => {
+          console.warn(
+            "Failed to post partial message update to webview:",
+            error,
+          );
+        });
+      } else {
+        await postToWebview();
+      }
     }
     this.emit(RooCodeEventName.Message, { action: "updated", message });
 
@@ -1585,25 +1641,37 @@ export class Task
 
     if (partial !== undefined) {
       const lastMessage = this.clineMessages.at(-1);
+      let targetMessage = lastMessage;
 
-      const isUpdatingPreviousPartial =
+      let isUpdatingPreviousPartial =
         lastMessage &&
         lastMessage.partial &&
         lastMessage.type === "ask" &&
         lastMessage.ask === type;
 
+      if (type === "tool") {
+        const partialToolMatch = findMatchingPartialToolMessage(
+          this.clineMessages,
+          "ask",
+          type,
+          text,
+        );
+        targetMessage = partialToolMatch.targetMessage ?? targetMessage;
+        isUpdatingPreviousPartial = partialToolMatch.isUpdatingPreviousPartial;
+      }
+
       if (partial) {
-        if (isUpdatingPreviousPartial) {
+        if (isUpdatingPreviousPartial && targetMessage) {
           // Existing partial message, so update it.
-          lastMessage.text = text;
-          lastMessage.partial = partial;
-          lastMessage.progressStatus = progressStatus;
-          lastMessage.isProtected = isProtected;
+          targetMessage.text = text;
+          targetMessage.partial = partial;
+          targetMessage.progressStatus = progressStatus;
+          targetMessage.isProtected = isProtected;
           // TODO: Be more efficient about saving and posting only new
           // data or one whole message at a time so ignore partial for
           // saves, and only post parts of partial message instead of
           // whole array in new listener.
-          this.updateClineMessage(lastMessage);
+          this.updateClineMessage(targetMessage);
           // console.log("Task#ask: current ask promise was ignored (#1)")
           throw new AskIgnoredError("updating existing partial");
         } else {
@@ -1624,7 +1692,7 @@ export class Task
           throw new AskIgnoredError("new partial");
         }
       } else {
-        if (isUpdatingPreviousPartial) {
+        if (isUpdatingPreviousPartial && targetMessage) {
           // This is the complete version of a previously partial
           // message, so replace the partial with the complete version.
           this.askResponse = undefined;
@@ -1642,74 +1710,82 @@ export class Task
           // lists, it's likely because the key prop is not stable.
           // So in this case we must make sure that the message ts is
           // never altered after first setting it.
-          askTs = lastMessage.ts;
+          askTs = targetMessage.ts;
           console.log(
             `Task#ask: updating previous partial ask -> ${type} @${askTs} `,
           );
           this.lastMessageTs = askTs;
-          lastMessage.text = text;
-          lastMessage.partial = false;
-          lastMessage.progressStatus = progressStatus;
-          lastMessage.isProtected = isProtected;
+          targetMessage.text = text;
+          targetMessage.partial = false;
+          targetMessage.progressStatus = progressStatus;
+          targetMessage.isProtected = isProtected;
           await this.saveClineMessages();
-          this.updateClineMessage(lastMessage);
+          this.updateClineMessage(targetMessage);
         } else {
-          // kade_change: Check if there's an existing say("tool") message for the SAME tool
-          // Match by tool name + path (not ID, since parser IDs get reset between turns)
-          // If found, CONVERT it to ask("tool") instead of creating a new message
+          // If there is already a partial say("tool") for this exact tool-call ID,
+          // convert that existing shell into the final ask("tool") message instead
+          // of creating a duplicate UI block.
           let convertedExistingSay = false;
           if (type === "tool" && text) {
             try {
               const currentTool = JSON.parse(text);
+              const currentToolId = currentTool?.id;
               const currentToolName = currentTool?.tool;
               const currentToolPath = currentTool?.path;
 
-              if (
-                currentToolName &&
-                (currentToolName === "newFileCreated" ||
-                  currentToolName === "appliedDiff" ||
-                  currentToolName === "editedExistingFile")
-              ) {
-                // Search backwards for a say("tool") with matching tool name + path
-                for (let i = this.clineMessages.length - 1; i >= 0; i--) {
-                  const msg = this.clineMessages[i];
-                  if (
-                    msg.type === "say" &&
-                    msg.say === "tool" &&
-                    msg.text &&
-                    msg.partial === true
-                  ) {
-                    try {
-                      const msgTool = JSON.parse(msg.text);
-                      if (
-                        msgTool?.tool === currentToolName &&
-                        msgTool?.path === currentToolPath
-                      ) {
-                        // Found matching say("tool") - convert it to ask("tool")
-                        this.askResponse = undefined;
-                        this.askResponseText = undefined;
-                        this.askResponseImages = undefined;
-                        askTs = msg.ts; // Keep the original timestamp!
-                        console.log(
-                          `Task#ask: converting say("tool") to ask("tool") @${askTs} (${currentToolName} ${currentToolPath})`,
-                        );
-                        this.lastMessageTs = askTs;
-                        msg.type = "ask";
-                        msg.ask = type;
-                        delete (msg as any).say;
-                        msg.text = text;
-                        msg.partial = false;
-                        msg.progressStatus = progressStatus;
-                        msg.isProtected = isProtected;
-                        await this.saveClineMessages();
-                        this.updateClineMessage(msg);
-                        convertedExistingSay = true;
-                        break;
-                      }
-                    } catch {
-                      /* ignore parse errors */
-                    }
+              // Search backwards for a partial say("tool") with the same tool-call ID.
+              for (let i = this.clineMessages.length - 1; i >= 0; i--) {
+                const msg = this.clineMessages[i];
+                if (
+                  msg.type !== "say" ||
+                  msg.say !== "tool" ||
+                  !msg.text ||
+                  msg.partial !== true
+                ) {
+                  continue;
+                }
+
+                try {
+                  const msgTool = JSON.parse(msg.text);
+                  const sameToolId =
+                    !!currentToolId &&
+                    !!msgTool?.id &&
+                    msgTool.id === currentToolId;
+
+                  const legacySameTool =
+                    !currentToolId &&
+                    currentToolName &&
+                    (currentToolName === "newFileCreated" ||
+                      currentToolName === "appliedDiff" ||
+                      currentToolName === "editedExistingFile") &&
+                    msgTool?.tool === currentToolName &&
+                    msgTool?.path === currentToolPath;
+
+                  if (!sameToolId && !legacySameTool) {
+                    continue;
                   }
+
+                  this.askResponse = undefined;
+                  this.askResponseText = undefined;
+                  this.askResponseImages = undefined;
+                  askTs = msg.ts;
+                  console.log(
+                    `Task#ask: converting say("tool") to ask("tool") @${askTs} (${currentToolName || msgTool?.tool || "unknown"})`,
+                  );
+                  this.lastMessageTs = askTs;
+                  msg.type = "ask";
+                  msg.ask = type;
+                  delete (msg as any).say;
+                  msg.text = text;
+                  msg.partial = false;
+                  msg.progressStatus = progressStatus;
+                  msg.isProtected = isProtected;
+                  await this.saveClineMessages();
+                  this.updateClineMessage(msg);
+                  convertedExistingSay = true;
+                  break;
+                } catch {
+                  /* ignore parse errors */
                 }
               }
             } catch {
@@ -1891,7 +1967,7 @@ export class Task
     } else if (isMessageQueued) {
       console.log(`Task#ask: will process message queue -> type: ${type} `);
 
-      const message = this.messageQueueService.dequeueMessage();
+      const message = this.takeQueuedMessage();
 
       if (message) {
         // Check if this is a tool approval ask that needs to be handled.
@@ -1939,6 +2015,7 @@ export class Task
       text: this.askResponseText,
       images: this.askResponseImages,
     };
+    this._processingAskTs = undefined;
     this.askResponse = undefined;
     this.askResponseText = undefined;
     this.askResponseImages = undefined;
@@ -2032,6 +2109,29 @@ export class Task
     }
   }
 
+  public takeQueuedMessage(messageId?: string): QueuedMessage | undefined {
+    if (messageId) {
+      return this.messageQueueService.dequeueMessageById(messageId);
+    }
+
+    return this.messageQueueService.dequeueMessage();
+  }
+
+  public consumeQueuedMessage(messageId?: string): boolean {
+    const queuedMessage = this.takeQueuedMessage(messageId);
+
+    if (!queuedMessage) {
+      return false;
+    }
+
+    this.handleWebviewAskResponse(
+      "messageResponse",
+      queuedMessage.text,
+      queuedMessage.images,
+    );
+    return true;
+  }
+
   public approveAsk({
     text,
     images,
@@ -2078,10 +2178,7 @@ export class Task
 
     // Determine what the tool protocol should be
     const modelInfo = this.api.getModel().info;
-    const protocol = resolveToolProtocol(this.apiConfiguration, modelInfo);
     // Check if we need to switch parser
-    const currentParserIsXml =
-      this.assistantMessageParser instanceof AssistantMessageParser;
     const currentParserIsUnified =
       this.assistantMessageParser instanceof UnifiedToolCallParser;
     const currentParserIsMarkdown =
@@ -2129,17 +2226,8 @@ export class Task
       return;
     }
 
-    // Create XML parser if needed
-    if (targetProtocol === "xml") {
-      if (!currentParserIsXml) {
-        if (this.assistantMessageParser) this.assistantMessageParser.reset();
-        this.assistantMessageParser = new AssistantMessageParser();
-      }
-      return;
-    }
-
-    // Fallback to Native (undefined parser)
-    if (targetProtocol === "native") {
+    // JSON/native tool calling uses provider-native tool events, not a text parser.
+    if (targetProtocol === "json") {
       if (!currentParserIsUndefined && this.assistantMessageParser) {
         this.assistantMessageParser.reset();
         this.assistantMessageParser = undefined;
@@ -2214,25 +2302,121 @@ export class Task
     }
   }
 
-  async handleTerminalOperation(terminalOperation: "continue" | "abort") {
+  async handleTerminalOperation(
+    terminalOperation: "continue" | "abort" | "stdin" | "ai_stdin_mode",
+    executionId?: string,
+    text?: string,
+  ) {
+    const { TerminalRegistry } = await import(
+      "../../integrations/terminal/TerminalRegistry"
+    );
+    const process =
+      (executionId
+        ? TerminalRegistry.getProcessByExecutionId(executionId)
+        : undefined) ?? this.terminalProcess;
+
+    if (terminalOperation === "stdin") {
+      if (!text || !process) {
+        return;
+      }
+
+      try {
+        await process.write(text);
+      } catch (error) {
+        console.error(
+          "[Task#handleTerminalOperation] Failed to write stdin:",
+          error,
+        );
+      }
+      return;
+    }
+
+    if (terminalOperation === "ai_stdin_mode") {
+      const aiStdinPrompt = this.activateAiTerminalStdinMode(
+        process,
+        executionId,
+        text,
+      );
+      if (!aiStdinPrompt) {
+        return;
+      }
+
+      if (
+        this.taskAsk?.ask === "command_output" ||
+        this.isWaitingForUserMessage
+      ) {
+        if (this.askResponse === undefined) {
+          this.handleWebviewAskResponse("messageResponse", aiStdinPrompt);
+        }
+      }
+
+      return;
+    }
+
     if (terminalOperation === "continue") {
-      // First, signal the terminal process itself to move to background
-      this.terminalProcess?.continue();
-      // Then unblock any pending task.ask("command_output") that is waiting for a response.
-      // Without this, the task stays frozen even though the process continues running.
-      // Only unblock if there actually IS a pending ask (askResponse not yet set).
+      const aiStdinPrompt = this.activateAiTerminalStdinMode(
+        process,
+        executionId,
+        text,
+      );
+      const shouldActivateAiStdin =
+        Boolean(aiStdinPrompt) && this.taskAsk?.ask === "command_output";
+
+      // Resolve the terminal wait so the command can continue in the background.
+      process?.continue();
       if (this.askResponse === undefined) {
-        this.handleWebviewAskResponse("yesButtonClicked");
+        if (shouldActivateAiStdin && aiStdinPrompt) {
+          this.handleWebviewAskResponse("messageResponse", aiStdinPrompt);
+        } else {
+          this.handleWebviewAskResponse("yesButtonClicked");
+        }
       }
     } else if (terminalOperation === "abort") {
       // Send the kill signal to the terminal process
-      this.terminalProcess?.abort();
+      process?.abort();
       // Unblock any pending task.ask("command_output") so the task loop
       // can detect the abort and terminate cleanly instead of hanging.
       if (this.askResponse === undefined) {
         this.handleWebviewAskResponse("noButtonClicked");
       }
+
+      // Some long-running process trees (for example npm -> node -> dev server)
+      // can take a while to acknowledge termination, or never report completion
+      // back through the terminal abstraction. If that happens, stop waiting on
+      // the promise so the UI does not spin forever.
+      setTimeout(() => {
+        if (this.terminalProcess === process) {
+          process?.continue();
+        }
+      }, 750);
     }
+  }
+
+  private activateAiTerminalStdinMode(
+    process: { command?: string } | undefined,
+    executionId?: string,
+    text?: string,
+  ): string | undefined {
+    if (!executionId || !process) {
+      return undefined;
+    }
+
+    this.aiTerminalStdinExecutionId = executionId;
+    this.aiTerminalStdinCommand = text?.trim() || process.command;
+
+    const commandLabel =
+      this.aiTerminalStdinCommand || "the running terminal command";
+    const aiStdinPrompt = [
+      `Take over stdin for the running terminal command: ${commandLabel}.`,
+      "Use the bash tool with a stdin parameter to send input to that existing process instead of starting a new command.",
+      "The stdin target is already selected, so you can omit execution_id unless you need to override it.",
+    ].join(" ");
+
+    if (this.taskAsk?.ask === "command_output") {
+      this.aiTerminalStdinPendingContinueExecutionId = executionId;
+    }
+
+    return aiStdinPrompt;
   }
 
   public async condenseContext(): Promise<void> {
@@ -2353,6 +2537,7 @@ export class Task
 
     if (partial !== undefined) {
       const lastMessage = this.clineMessages.at(-1);
+      let targetMessage = lastMessage;
 
       let isUpdatingPreviousPartial =
         lastMessage &&
@@ -2362,18 +2547,39 @@ export class Task
 
       // kade_change: For tool messages, we must also check that the tool ID matches
       // Otherwise, multiple tool operations (e.g., 4 edits) would overwrite each other's messages
-      if (
-        isUpdatingPreviousPartial &&
-        type === "tool" &&
-        text &&
-        lastMessage?.text
-      ) {
+      if (type === "tool" && text && this.clineMessages.length > 0) {
         try {
           const currentToolId = JSON.parse(text)?.id;
-          const lastToolId = JSON.parse(lastMessage.text)?.id;
-          // If both have IDs but they don't match, this is a DIFFERENT tool operation
-          if (currentToolId && lastToolId && currentToolId !== lastToolId) {
-            isUpdatingPreviousPartial = false;
+          if (currentToolId) {
+            const matchingMessage = [...this.clineMessages]
+              .reverse()
+              .find((msg) => {
+                if (
+                  !msg ||
+                  msg.partial !== true ||
+                  msg.type !== "say" ||
+                  msg.say !== type ||
+                  !msg.text
+                ) {
+                  return false;
+                }
+
+                try {
+                  return JSON.parse(msg.text)?.id === currentToolId;
+                } catch {
+                  return false;
+                }
+              });
+
+            if (matchingMessage) {
+              targetMessage = matchingMessage;
+              isUpdatingPreviousPartial = true;
+            } else if (isUpdatingPreviousPartial && lastMessage?.text) {
+              const lastToolId = JSON.parse(lastMessage.text)?.id;
+              if (lastToolId && lastToolId !== currentToolId) {
+                isUpdatingPreviousPartial = false;
+              }
+            }
           }
         } catch {
           /* ignore parse errors */
@@ -2381,19 +2587,44 @@ export class Task
       }
 
       if (partial) {
-        if (isUpdatingPreviousPartial && lastMessage) {
+        if (isUpdatingPreviousPartial && targetMessage) {
+          const existingMetadata = targetMessage.metadata as
+            | Record<string, unknown>
+            | undefined;
+          const hasImageChanges =
+            targetMessage.images?.length !== images?.length ||
+            (targetMessage.images?.some(
+              (image, index) => image !== images?.[index],
+            ) ??
+              false);
+          const hasMetadataChanges =
+            options.metadata !== undefined &&
+            Object.entries(options.metadata).some(
+              ([key, value]) => existingMetadata?.[key] !== value,
+            );
+
+          if (
+            targetMessage.text === text &&
+            !hasImageChanges &&
+            !hasMetadataChanges &&
+            targetMessage.partial === partial &&
+            targetMessage.progressStatus === progressStatus
+          ) {
+            return;
+          }
+
           // Existing partial message, so update it.
-          lastMessage.text = text;
-          lastMessage.images = images;
-          lastMessage.partial = partial;
-          lastMessage.progressStatus = progressStatus;
+          targetMessage.text = text;
+          targetMessage.images = images;
+          targetMessage.partial = partial;
+          targetMessage.progressStatus = progressStatus;
           if (options.metadata) {
-            lastMessage.metadata = Object.assign(
-              lastMessage.metadata ?? {},
+            targetMessage.metadata = Object.assign(
+              targetMessage.metadata ?? {},
               options.metadata,
             );
           }
-          this.updateClineMessage(lastMessage);
+          this.updateClineMessage(targetMessage);
         } else {
           // This is a new partial message, so add it with partial state.
           const sayTs = await this.nextClineMessageTimestamp_kilocode();
@@ -2425,19 +2656,19 @@ export class Task
         // New now have a complete version of a previously partial message.
         // This is the complete version of a previously partial
         // message, so replace the partial with the complete version.
-        if (isUpdatingPreviousPartial && lastMessage) {
+        if (isUpdatingPreviousPartial && targetMessage) {
           if (!options.isNonInteractive) {
-            this.lastMessageTs = lastMessage.ts;
+            this.lastMessageTs = targetMessage.ts;
           }
 
-          lastMessage.text = text;
-          lastMessage.images = images;
-          lastMessage.partial = false;
-          lastMessage.progressStatus = progressStatus;
+          targetMessage.text = text;
+          targetMessage.images = images;
+          targetMessage.partial = false;
+          targetMessage.progressStatus = progressStatus;
           // kade_change start
           if (options.metadata) {
-            lastMessage.metadata = Object.assign(
-              lastMessage.metadata ?? {},
+            targetMessage.metadata = Object.assign(
+              targetMessage.metadata ?? {},
               options.metadata,
             );
           }
@@ -2454,7 +2685,7 @@ export class Task
           }
 
           // More performant than an entire `postStateToWebview`.
-          this.updateClineMessage(lastMessage!);
+          this.updateClineMessage(targetMessage);
         } else {
           // This is a new and complete message, so add it like normal.
           const sayTs = await this.nextClineMessageTimestamp_kilocode();
@@ -2585,7 +2816,7 @@ export class Task
     void this.initiateTaskLoop([
       {
         type: "text",
-        text: `<initial_request>\n${task} \n </initial_request>`,
+        text: `${task}`,
       },
       ...imageBlocks,
     ]).catch((error) => {
@@ -2979,6 +3210,22 @@ export class Task
     }
   }
 
+  private isUserCancellationRequested(): boolean {
+    return (
+      this.abort || this.abandoned || this.abortReason === "user_cancelled"
+    );
+  }
+
+  private throwIfUserCancellationRequested(): void {
+    if (!this.isUserCancellationRequested()) {
+      return;
+    }
+
+    const error = new Error("Request cancelled by user");
+    error.name = "AbortError";
+    throw error;
+  }
+
   /**
    * Force emit a final token usage update, ignoring throttle.
    * Called before task completion or abort to ensure final stats are captured.
@@ -2995,6 +3242,8 @@ export class Task
    * Unlike abortTask, this does NOT set this.abort to true, allowing the task loop to stay alive.
    */
   public interruptTask(): void {
+    this.didFinishInterrupting = false;
+
     try {
       this.cancelCurrentRequest();
     } catch (error) {
@@ -3002,8 +3251,14 @@ export class Task
     }
 
     try {
-      if (this.terminalProcess) {
-        this.terminalProcess.abort();
+      const process = this.terminalProcess;
+      if (process) {
+        process.abort();
+        setTimeout(() => {
+          if (this.terminalProcess === process) {
+            process.continue();
+          }
+        }, 750);
         // We do not set it to undefined here because executeCommandTool still needs to handle the cleanup
       }
       TerminalRegistry.releaseTerminalsForTask(this.taskId);
@@ -3024,11 +3279,26 @@ export class Task
     }
 
     // Unblock any pending user input (like approval prompts or waiting on commands)
-    if (this.askResponse === undefined) {
-      this.handleWebviewAskResponse("messageResponse", "[Response interrupted by user]");
-    }
-  }
+    // Match the terminal abort button semantics when we're blocked on command output.
+    const interruptResponse: ClineAskResponse =
+      this.taskAsk?.ask === "command_output"
+        ? "noButtonClicked"
+        : "messageResponse";
+    const interruptText =
+      interruptResponse === "messageResponse" ? "" : undefined;
 
+    // Force unblock regardless of current askResponse state to handle terminal command_output waits
+    if (this.askResponse === undefined) {
+      this.handleWebviewAskResponse(interruptResponse, interruptText);
+    } else {
+      // If there's already a pending ask (like command_output), force resolve it
+      this.askResponse = interruptResponse;
+      this.askResponseText = interruptText;
+      this.askResponseImages = undefined;
+    }
+
+    this.didFinishInterrupting = true;
+  }
   public async abortTask(isAbandoned = false) {
     // Aborting task
 
@@ -3036,6 +3306,9 @@ export class Task
     if (isAbandoned) {
       this.abandoned = true;
     }
+
+    // Interrupt any running operations (terminals, API requests, pending asks)
+    this.interruptTask();
 
     this.abort = true;
 
@@ -3330,6 +3603,11 @@ export class Task
         this.askResponse = undefined;
         this.askResponseText = undefined;
         this.askResponseImages = undefined;
+        this.isWaitingForUserMessage = true;
+
+        if (!this.taskAsk) {
+          this.consumeQueuedMessage();
+        }
 
         let didTimeoutWaitingForUser = false;
         try {
@@ -3343,6 +3621,7 @@ export class Task
           );
           didTimeoutWaitingForUser = true;
         }
+        this.isWaitingForUserMessage = false;
 
         if (this.abort || didTimeoutWaitingForUser) {
           break;
@@ -3363,9 +3642,9 @@ export class Task
           { type: "text", text: text ?? "" },
           ...formatResponse.imageBlocks(images),
         ];
-
       }
     }
+    this.isWaitingForUserMessage = false;
     // Ensure thinking indicator is cleared when task loop completes
     await this.say("api_req_finished");
   }
@@ -3425,7 +3704,7 @@ export class Task
 
               // kade_change: Track mentions in activeFileReads so they get the "Luxury Spa Treatment" (turn-by-turn refresh)
               const mentionRegex =
-                /\[read_file\s+for\s+'(.*?)'\]\s+Result\s+\(id:\s+\[mention\]\):/g;
+                /\[read\s+for\s+'(.*?)'\]\s+Result\s+\(id:\s+\[mention\]\):/g;
               let mentionMatch;
               while (
                 (mentionMatch = mentionRegex.exec(processedText)) !== null
@@ -3517,6 +3796,7 @@ export class Task
       experiments,
       enableMcpServerCreation,
       browserToolEnabled,
+      computerUseToolEnabled,
       language,
       maxConcurrentFileReads,
       maxReadFileLine,
@@ -3525,7 +3805,8 @@ export class Task
     } = state ?? {};
 
     // Fetch installed skills
-    const installedSkills = await this.providerRef.deref()?.fetchInstalledSkills() ?? [];
+    const installedSkills =
+      (await this.providerRef.deref()?.fetchInstalledSkills()) ?? [];
 
     return await (async () => {
       const provider = this.providerRef.deref();
@@ -3549,6 +3830,10 @@ export class Task
         modelSupportsBrowser &&
         modeSupportsBrowser &&
         (browserToolEnabled ?? true);
+      const canUseComputerTool =
+        modelSupportsBrowser &&
+        modeSupportsBrowser &&
+        (computerUseToolEnabled ?? true);
 
       // Resolve the tool protocol based on profile, model, and provider settings
       const toolProtocol = resolveToolProtocol(
@@ -3560,6 +3845,7 @@ export class Task
         provider.context,
         this.cwd,
         canUseBrowserTool,
+        canUseComputerTool,
         mcpHub,
         this.diffStrategy,
         browserViewportSize ?? "900x600",
@@ -3576,6 +3862,8 @@ export class Task
         {
           maxConcurrentFileReads: maxConcurrentFileReads ?? 5,
           todoListEnabled: apiConfiguration?.todoListEnabled ?? true,
+          browserToolEnabled: browserToolEnabled ?? true,
+          computerUseToolEnabled: computerUseToolEnabled ?? true,
           subAgentToolEnabled:
             (apiConfiguration as any)?.subAgentToolEnabled ??
             (this.apiConfiguration as any)?.subAgentToolEnabled ??
@@ -3602,6 +3890,7 @@ export class Task
             ?.maxToolCalls,
           minimalSystemPrompt: (apiConfiguration ?? this.apiConfiguration)
             ?.minimalSystemPrompt,
+          showVibeStyling: state?.showVibeStyling === true,
         },
         undefined, // todoList
         this.api.getModel().id,
@@ -3612,41 +3901,13 @@ export class Task
         // kade_change end
       );
 
-      // kade_change: Dynamic Context Injection
-      const dynamicReminders = [];
+      const dynamicContext = formatDynamicSystemPromptContext(
+        this.luxurySpa.systemReminders,
+        this.luxurySpa.activeFileReads,
+        this.latestEnvironmentDetails,
+      );
 
-      if (this.luxurySpa.systemReminders.length > 0) {
-        dynamicReminders.push("## Recent Edit Reminders");
-        dynamicReminders.push(...this.luxurySpa.systemReminders);
-      }
-
-      if (this.luxurySpa.activeFileReads.size > 0) {
-        dynamicReminders.push("## Files Currently Read in Context");
-        dynamicReminders.push(
-          ...Array.from(this.luxurySpa.activeFileReads.entries()).map(
-            ([f, ranges]) => {
-              if (ranges && ranges.length > 0) {
-                const rangeStr = ranges
-                  .map((r: any) => `${r.start}-${r.end}`)
-                  .join(", ");
-                return `- ${f} (lines ${rangeStr})`;
-              }
-              return `- ${f}`;
-            },
-          ),
-        );
-      }
-
-      if (dynamicReminders.length > 0) {
-        prompt += "\n" + dynamicReminders.join("\n");
-      }
-
-      // kade_change: Inject latest environment details into system prompt
-      if (this.latestEnvironmentDetails) {
-        prompt += "\n" + this.latestEnvironmentDetails;
-      }
-
-      return prompt;
+      return appendDynamicSystemPromptContext(prompt, dynamicContext);
     })();
   }
 
@@ -3693,12 +3954,10 @@ export class Task
     const useNativeTools = isNativeProtocol(protocol);
 
     // Send condenseTaskContextStarted to show in-progress indicator
-    await this.providerRef
-      .deref()
-      ?.postMessageToWebview({
-        type: "condenseTaskContextStarted",
-        text: this.taskId,
-      });
+    await this.providerRef.deref()?.postMessageToWebview({
+      type: "condenseTaskContextStarted",
+      text: this.taskId,
+    });
 
     // Force aggressive truncation by keeping only 75% of the conversation history
     const truncateResult = await manageContext({
@@ -3765,12 +4024,10 @@ export class Task
     }
 
     // Notify webview that context management is complete (removes in-progress spinner)
-    await this.providerRef
-      .deref()
-      ?.postMessageToWebview({
-        type: "condenseTaskContextResponse",
-        text: this.taskId,
-      });
+    await this.providerRef.deref()?.postMessageToWebview({
+      type: "condenseTaskContextResponse",
+      text: this.taskId,
+    });
   }
 
   public async *attemptApiRequest(retryAttempt: number = 0): ApiStream {
@@ -3839,11 +4096,14 @@ export class Task
     if (rateLimitDelay > 0 && retryAttempt === 0) {
       // Show countdown timer
       for (let i = rateLimitDelay; i > 0; i--) {
+        this.throwIfUserCancellationRequested();
         const delayMessage = `Rate limiting for ${i} seconds...`;
         await this.say("api_req_retry_delayed", delayMessage, undefined, true);
         await delay(1000);
       }
     }
+
+    this.throwIfUserCancellationRequested();
 
     // Update last request time before making the request so that subsequent
     // requests — even from new subtasks — will honour the provider's rate-limit.
@@ -3911,12 +4171,10 @@ export class Task
       // This notification must be sent here (not earlier) because the early check uses stale token count
       // (before user message is added to history), which could incorrectly skip showing the indicator
       if (contextManagementWillRun && autoCondenseContext) {
-        await this.providerRef
-          .deref()
-          ?.postMessageToWebview({
-            type: "condenseTaskContextStarted",
-            text: this.taskId,
-          });
+        await this.providerRef.deref()?.postMessageToWebview({
+          type: "condenseTaskContextStarted",
+          text: this.taskId,
+        });
       }
 
       const truncateResult = await manageContext({
@@ -3989,12 +4247,10 @@ export class Task
       // Notify webview that context management is complete (sets isCondensing = false)
       // This removes the in-progress spinner and allows the completed result to show
       if (contextManagementWillRun && autoCondenseContext) {
-        await this.providerRef
-          .deref()
-          ?.postMessageToWebview({
-            type: "condenseTaskContextResponse",
-            text: this.taskId,
-          });
+        await this.providerRef.deref()?.postMessageToWebview({
+          type: "condenseTaskContextResponse",
+          text: this.taskId,
+        });
       }
     }
 
@@ -4032,8 +4288,16 @@ export class Task
       messagesSinceLastSummary,
       this.api,
     );
-    const cleanConversationHistory = this.buildCleanConversationHistory(
+    const toolProtocol = resolveToolProtocol(
+      this.apiConfiguration,
+      this.api.getModel().info,
+    );
+    const historyForRequest = translateApiMessagesForUnifiedHistory(
       messagesWithoutImages as ApiMessage[],
+      toolProtocol,
+    );
+    const cleanConversationHistory = this.buildCleanConversationHistory(
+      historyForRequest as ApiMessage[],
     );
 
     // kade_change start
@@ -4064,14 +4328,10 @@ export class Task
     }
 
     const modelInfo = this.api.getModel().info;
-    const toolProtocol = resolveToolProtocol(this.apiConfiguration, modelInfo);
 
     let allTools: any[] = [];
     // Only build native tools array when needed (not for text-based protocols)
-    if (
-      toolProtocol !== TOOL_PROTOCOL.UNIFIED &&
-      toolProtocol !== TOOL_PROTOCOL.MARKDOWN
-    ) {
+    if (toolProtocol === TOOL_PROTOCOL.JSON) {
       allTools = await buildNativeToolsArray({
         provider,
         cwd: this.cwd,
@@ -4081,6 +4341,7 @@ export class Task
         apiConfiguration,
         maxReadFileLine: state?.maxReadFileLine ?? -1,
         browserToolEnabled: state?.browserToolEnabled ?? true,
+        computerUseToolEnabled: state?.computerUseToolEnabled ?? true,
         // kade_change start
         state,
         // kade_change end
@@ -4089,17 +4350,29 @@ export class Task
         enableSubAgents: this.enableSubAgents,
       });
     }
+    const nativeApiTools =
+      toolProtocol === TOOL_PROTOCOL.JSON
+        ? normalizeToolsToOpenAI(allTools)
+        : [];
 
     // Determine if we should include native tools based on:
     // 1. Tool protocol is set to NATIVE
     // 2. Model supports native tools
     const shouldIncludeTools =
-      toolProtocol === TOOL_PROTOCOL.MARKDOWN &&
+      toolProtocol === TOOL_PROTOCOL.JSON &&
       (modelInfo.supportsNativeTools ?? false);
 
-    // Parallel tool calls are disabled - feature is on hold
-    // Previously resolved from experiments.isEnabled(..., EXPERIMENT_IDS.MULTIPLE_NATIVE_TOOL_CALLS)
-    const parallelToolCallsEnabled = false;
+    const effectiveToolSettings = apiConfiguration ?? this.apiConfiguration;
+    const configuredMaxToolCalls = Number(
+      effectiveToolSettings?.maxToolCalls ?? 10,
+    );
+    const maxToolCalls = Number.isFinite(configuredMaxToolCalls)
+      ? Math.max(1, Math.floor(configuredMaxToolCalls))
+      : 10;
+    const parallelToolCallsEnabled =
+      shouldIncludeTools &&
+      !effectiveToolSettings?.disableBatchToolUse &&
+      maxToolCalls > 1;
 
     const metadata: ApiHandlerCreateMessageMetadata = {
       mode: mode,
@@ -4109,16 +4382,40 @@ export class Task
       // Include tools when using native protocol and model supports it
       ...(shouldIncludeTools
         ? {
-            tools: allTools,
+            tools: nativeApiTools,
             tool_choice: "auto",
             parallelToolCalls: parallelToolCallsEnabled,
           }
-        : toolProtocol !== TOOL_PROTOCOL.UNIFIED &&
-            toolProtocol !== TOOL_PROTOCOL.MARKDOWN
-          ? { tool_manifest: allTools }
-          : {}), // In XML/Unified/Markdown mode, tool manifest is handled via system prompt
+        : {}), // In JSON mode without provider support, and in Unified/Markdown mode, tool manifest is not sent
       projectId: (await kiloConfig)?.project?.id, // kade_change: pass projectId for backend tracking (ignored by other providers)
     };
+
+    const sanitizedRequestMessages = sanitizeApiRequestMessages(
+      cleanConversationHistory,
+    );
+
+    try {
+      await saveRawApiRequestPayload({
+        globalStoragePath: this.globalStoragePath,
+        payload: {
+          timestamp: new Date().toISOString(),
+          taskId: this.taskId,
+          retryAttempt,
+          provider:
+            apiConfiguration?.apiProvider ??
+            this.apiConfiguration.apiProvider ??
+            "unknown",
+          modelId: this.api.getModel().id,
+          cwd: this.cwd,
+          systemPrompt,
+          metadata,
+          messages:
+            sanitizedRequestMessages as unknown as Anthropic.Messages.MessageParam[],
+        },
+      });
+    } catch (error) {
+      console.warn("Failed to save raw API payload debug log:", error);
+    }
 
     // Create an AbortController to allow cancelling the request mid-stream
     this.currentRequestAbortController = new AbortController();
@@ -4129,7 +4426,7 @@ export class Task
     // The provider accepts reasoning items alongside standard messages; cast to the expected parameter type.
     const stream = this.api.createMessage(
       systemPrompt,
-      cleanConversationHistory as unknown as Anthropic.Messages.MessageParam[],
+      sanitizedRequestMessages as unknown as Anthropic.Messages.MessageParam[],
       metadata,
     );
     const iterator = stream[Symbol.asyncIterator]();
@@ -4289,7 +4586,7 @@ export class Task
         // CRITICAL: Check if task was aborted during the backoff countdown
         // This prevents infinite loops when users cancel during auto-retry
         // Without this check, the recursive call below would continue even after abort
-        if (this.abort) {
+        if (this.isUserCancellationRequested()) {
           throw new Error(
             `[Task#attemptApiRequest] task ${this.taskId}.${this.instanceId} aborted during retry`,
           );
@@ -4347,7 +4644,7 @@ export class Task
   ): Promise<void> {
     try {
       const state = await this.providerRef.deref()?.getState();
-      const baseDelay = state?.requestDelaySeconds || 5;
+      const baseDelay = state?.requestDelaySeconds ?? 1;
 
       let exponentialDelay = Math.min(
         Math.ceil(baseDelay * Math.pow(2, retryAttempt)),
@@ -4392,15 +4689,12 @@ export class Task
         headerText = "Unknown error";
       }
 
-      headerText = headerText ? `${headerText}\n` : "";
+      headerText = headerText ? `${headerText}` : "";
 
       // Show countdown timer with exponential backoff
       for (let i = finalDelay; i > 0; i--) {
-        // Check abort flag during countdown to allow early exit
-        if (this.abort) {
-          throw new Error(
-            `[Task#${this.taskId}] Aborted during retry countdown`,
-          );
+        if (this.isUserCancellationRequested()) {
+          return;
         }
 
         await this.say(
@@ -4410,6 +4704,10 @@ export class Task
           true,
         );
         await delay(1000);
+      }
+
+      if (this.isUserCancellationRequested()) {
+        return;
       }
 
       await this.say("api_req_retry_delayed", headerText, undefined, false);
@@ -4427,9 +4725,7 @@ export class Task
     return checkpointSave(this, force, suppressMessage);
   }
 
-  private buildCleanConversationHistory(
-    messages: ApiMessage[],
-  ): Array<
+  private buildCleanConversationHistory(messages: ApiMessage[]): Array<
     | Anthropic.Messages.MessageParam
     | {
         type: "reasoning";
@@ -4438,152 +4734,10 @@ export class Task
         summary?: Record<string, unknown>[];
       }
   > {
-    type ReasoningItemForRequest = {
-      type: "reasoning";
-      encrypted_content: string;
-      id?: string;
-      summary?: Record<string, unknown>[];
-    };
-
-    const cleanConversationHistory: (
-      | Anthropic.Messages.MessageParam
-      | ReasoningItemForRequest
-    )[] = [];
-
-    for (const msg of messages) {
-      // Standalone reasoning: send encrypted, skip plain text
-      if (msg.type === "reasoning") {
-        if (msg.encrypted_content) {
-          cleanConversationHistory.push({
-            type: "reasoning",
-            summary: msg.summary,
-            encrypted_content: msg.encrypted_content!,
-            ...(msg.id ? { id: msg.id } : {}),
-          });
-        }
-        continue;
-      }
-
-      // Preferred path: assistant message with embedded reasoning as first content block
-      if (msg.role === "assistant") {
-        const rawContent = msg.content;
-
-        const contentArray: Anthropic.Messages.ContentBlockParam[] =
-          Array.isArray(rawContent)
-            ? (rawContent as Anthropic.Messages.ContentBlockParam[])
-            : rawContent !== undefined
-              ? ([
-                  {
-                    type: "text",
-                    text: rawContent,
-                  } satisfies Anthropic.Messages.TextBlockParam,
-                ] as Anthropic.Messages.ContentBlockParam[])
-              : [];
-
-        const [first, ...rest] = contentArray;
-
-        // Check if first content block is reasoning
-        const hasEncryptedReasoning =
-          first &&
-          (first as any).type === "reasoning" &&
-          "encrypted_content" in first;
-        const hasPlainTextReasoning =
-          first && (first as any).type === "reasoning" && "reasoning" in first;
-
-        // Check if this message has reasoning_details (OpenRouter format for Gemini 3, etc.)
-        const msgWithDetails = msg;
-        if (
-          msgWithDetails.reasoning_details &&
-          Array.isArray(msgWithDetails.reasoning_details)
-        ) {
-          // Build the assistant message with reasoning_details
-          let assistantContent: Anthropic.Messages.MessageParam["content"];
-
-          if (contentArray.length === 0) {
-            assistantContent = "";
-          } else if (
-            contentArray.length === 1 &&
-            contentArray[0].type === "text"
-          ) {
-            assistantContent = (
-              contentArray[0] as Anthropic.Messages.TextBlockParam
-            ).text;
-          } else {
-            assistantContent = contentArray;
-          }
-
-          // Create message with reasoning_details property
-          cleanConversationHistory.push({
-            role: "assistant",
-            content: assistantContent,
-            reasoning_details: msgWithDetails.reasoning_details,
-          } as any);
-
-          continue;
-        } else if (hasEncryptedReasoning) {
-          const reasoningBlock = first as unknown as {
-            type: "reasoning";
-            encrypted_content: string;
-            id?: string;
-          };
-
-          // Send as separate reasoning item (OpenAI Native)
-          cleanConversationHistory.push({
-            role: "assistant",
-            content: [
-              {
-                type: "reasoning",
-                encrypted_content: reasoningBlock.encrypted_content,
-                ...(reasoningBlock.id ? { id: reasoningBlock.id } : {}),
-              } satisfies ReasoningItemForRequest,
-              ...rest,
-            ],
-          } as any);
-          continue;
-        } else if (hasPlainTextReasoning) {
-          // Check if the model's preserveReasoning flag is set
-          // If true, include the reasoning block in API requests
-          // If false/undefined, strip it out (stored for history only, not sent back to API)
-          const shouldPreserveForApi =
-            this.api.getModel().info.preserveReasoning === true;
-          let assistantContent: Anthropic.Messages.MessageParam["content"];
-
-          if (shouldPreserveForApi) {
-            // Include reasoning block in the content sent to API
-            assistantContent = contentArray;
-          } else {
-            // Strip reasoning out - stored for history only, not sent back to API
-            if (rest.length === 0) {
-              assistantContent = "";
-            } else if (rest.length === 1 && rest[0].type === "text") {
-              assistantContent = (rest[0] as Anthropic.Messages.TextBlockParam)
-                .text;
-            } else {
-              assistantContent = rest;
-            }
-          }
-
-          cleanConversationHistory.push({
-            role: "assistant",
-            content: assistantContent,
-          } satisfies Anthropic.Messages.MessageParam);
-
-          continue;
-        }
-      }
-
-      // Default path for regular messages (no embedded reasoning)
-      if (msg.role) {
-        cleanConversationHistory.push({
-          role: msg.role,
-          content: msg.content as
-            | Anthropic.Messages.ContentBlockParam[]
-            | string,
-        });
-      }
-    }
-
-    return cleanConversationHistory;
+    return buildCleanConversationHistory(
+      messages,
+      this.api.getModel().info.preserveReasoning === true,
+    );
   }
   public async checkpointRestore(options: CheckpointRestoreOptions) {
     return checkpointRestore(this, options);
@@ -4762,20 +4916,9 @@ export class Task
    */
   public processQueuedMessages(): void {
     try {
-      if (!this.messageQueueService.isEmpty()) {
-        const queued = this.messageQueueService.dequeueMessage();
-        if (queued) {
-          // Clear any existing timeout first
-          this.cancelQueuedMessageTimeout();
-
-          // Track the timeout so it can be cancelled on dispose
-          this.queuedMessageTimeoutRef = setTimeout(() => {
-            this.queuedMessageTimeoutRef = undefined;
-            this.submitUserMessage(queued.text, queued.images).catch((err) =>
-              console.error(`[Task] Failed to submit queued message:`, err),
-            );
-          }, 0);
-        }
+      if (this.isWaitingForUserMessage && !this.taskAsk) {
+        this.cancelQueuedMessageTimeout();
+        this.consumeQueuedMessage();
       }
     } catch (e) {
       console.error(`[Task] Queue processing error:`, e);
@@ -4785,6 +4928,43 @@ export class Task
   // kade_change start: Dynamic Context Helpers
   public addSystemReminder(reminder: string, filePath?: string) {
     this.luxurySpa.addSystemReminder(reminder, filePath);
+  }
+
+  public getAiTerminalStdinTarget(): {
+    executionId?: string;
+    command?: string;
+  } {
+    return {
+      executionId: this.aiTerminalStdinExecutionId,
+      command: this.aiTerminalStdinCommand,
+    };
+  }
+
+  public clearAiTerminalStdinTarget(executionId?: string): void {
+    if (
+      executionId &&
+      this.aiTerminalStdinExecutionId &&
+      this.aiTerminalStdinExecutionId !== executionId
+    ) {
+      return;
+    }
+
+    this.aiTerminalStdinExecutionId = undefined;
+    this.aiTerminalStdinCommand = undefined;
+    this.aiTerminalStdinPendingContinueExecutionId = undefined;
+  }
+
+  public consumeAiTerminalStdinPendingContinue(executionId?: string): boolean {
+    if (
+      !this.aiTerminalStdinPendingContinueExecutionId ||
+      !executionId ||
+      this.aiTerminalStdinPendingContinueExecutionId !== executionId
+    ) {
+      return false;
+    }
+
+    this.aiTerminalStdinPendingContinueExecutionId = undefined;
+    return true;
   }
 
   public async updateFileContext(

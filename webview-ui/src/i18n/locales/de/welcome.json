@@ -1,45 +1,45 @@
 {
-	"greeting": "Hallo, ich bin Kade!",
-	"introduction": "<strong>Kade ist der führende autonome Coding-Agent.</strong> Mach dich bereit, zu architektieren, zu coden, zu debuggen und deine Produktivität wie nie zuvor zu steigern. Um fortzufahren, benötigt Kade einen API-Schlüssel.",
-	"notice": "Um loszulegen, benötigt diese Erweiterung einen API-Anbieter.",
-	"start": "Los geht's!",
-	"routers": {
-		"requesty": {
-			"description": "Dein optimierter LLM-Router",
-			"incentive": "$1 Guthaben gratis"
-		},
-		"openrouter": {
-			"description": "Eine einheitliche Schnittstelle für LLMs"
-		},
-		"roo": {
-			"description": "Die besten kostenlosen Modelle für den Einstieg",
-			"incentive": "Probier Roo kostenlos aus"
-		}
-	},
-	"chooseProvider": "Um seine Magie zu entfalten, benötigt Kade einen API-Schlüssel.",
-	"providerSignup": {
-		"rooCloudProvider": "Roo Code Cloud Provider",
-		"rooCloudDescription": "Der einfachste Weg, Roo zu nutzen. Eine kuratierte Mischung aus kostenlosen und bezahlten Modellen zu niedrigen Kosten",
-		"learnMore": "mehr erfahren",
-		"useAnotherProvider": "Anderen Anbieter verwenden",
-		"useAnotherProviderDescription": "Gib einen API-Schlüssel ein und leg los.",
-		"noApiKeys": "Du möchtest dich nicht mit Schlüsseln herumschlagen? Geh mit dem Roo Code Cloud Provider.",
-		"getStarted": "Loslegen"
-	},
-	"waitingForCloud": {
-		"heading": "Wir bringen dich zu Roo Code Cloud...",
-		"description": "Wir bringen dich in deinen Browser, um dich für Roo Code Cloud zu registrieren. Dann bringen wir dich hierher zurück, um das Einrichten abzuschließen.",
-		"noPrompt": "Wenn du nicht aufgefordert wirst, eine URL zu öffnen, <clickHere>klick hier</clickHere>.",
-		"havingTrouble": "Wenn du die Anmeldung abgeschlossen hast, aber Probleme hast, <clickHere>klick hier</clickHere>.",
-		"pasteUrl": "Füge die Callback-URL aus deinem Browser ein:",
-		"invalidURL": "Das sieht nicht wie eine gültige Callback-URL aus. Bitte kopiere das, was Roo Code Cloud in deinem Browser anzeigt.",
-		"goBack": "Zurück"
-	},
-	"startRouter": "Wir empfehlen die Verwendung eines LLM-Routers:",
-	"startCustom": "Oder du kannst deinen eigenen API-Schlüssel verwenden:",
-	"telemetry": {
-		"helpImprove": "Hilf, Kade zu verbessern",
-		"helpImproveMessage": "Kade sammelt Fehler- und Nutzungsdaten, um uns bei der Fehlerbehebung und Verbesserung der Erweiterung zu helfen. Diese Telemetrie sammelt keinen Code, keine Prompts oder persönliche Informationen. Du kannst dies in den <settingsLink>Einstellungen</settingsLink> deaktivieren."
-	},
-	"importSettings": "Einstellungen importieren"
+  "greeting": "Hallo, ich bin Kade!",
+  "introduction": "<strong>Kade ist der führende autonome Coding-Agent.</strong> Mach dich bereit, zu architektieren, zu coden, zu debuggen und deine Produktivität wie nie zuvor zu steigern. Um fortzufahren, benötigt Kade einen API-Schlüssel.",
+  "notice": "Um loszulegen, benötigt diese Erweiterung einen API-Anbieter.",
+  "start": "Los geht's!",
+  "routers": {
+    "requesty": {
+      "description": "Dein optimierter LLM-Router",
+      "incentive": "$1 Guthaben gratis"
+    },
+    "openrouter": {
+      "description": "Eine einheitliche Schnittstelle für LLMs"
+    },
+    "roo": {
+      "description": "Die besten kostenlosen Modelle für den Einstieg",
+      "incentive": "Probier Roo kostenlos aus"
+    }
+  },
+  "chooseProvider": "Um seine Magie zu entfalten, benötigt Kade einen API-Schlüssel.",
+  "providerSignup": {
+    "rooCloudProvider": "Roo Code Cloud Provider",
+    "rooCloudDescription": "Der einfachste Weg, Roo zu nutzen. Eine kuratierte Mischung aus kostenlosen und bezahlten Modellen zu niedrigen Kosten",
+    "learnMore": "mehr erfahren",
+    "useAnotherProvider": "Anderen Anbieter verwenden",
+    "useAnotherProviderDescription": "Gib einen API-Schlüssel ein und leg los.",
+    "noApiKeys": "Du möchtest dich nicht mit Schlüsseln herumschlagen? Geh mit dem Roo Code Cloud Provider.",
+    "getStarted": "Loslegen"
+  },
+  "waitingForCloud": {
+    "heading": "Wir bringen dich zu Roo Code Cloud...",
+    "description": "Wir bringen dich in deinen Browser, um dich für Roo Code Cloud zu registrieren. Dann bringen wir dich hierher zurück, um das Einrichten abzuschließen.",
+    "noPrompt": "Wenn du nicht aufgefordert wirst, eine URL zu öffnen, <clickHere>klick hier</clickHere>.",
+    "havingTrouble": "Wenn du die Anmeldung abgeschlossen hast, aber Probleme hast, <clickHere>klick hier</clickHere>.",
+    "pasteUrl": "Füge die Callback-URL aus deinem Browser ein:",
+    "invalidURL": "Das sieht nicht wie eine gültige Callback-URL aus. Bitte kopiere das, was Roo Code Cloud in deinem Browser anzeigt.",
+    "goBack": "Zurück"
+  },
+  "startRouter": "Wir empfehlen die Verwendung eines LLM-Routers:",
+  "startCustom": "Oder du kannst deinen eigenen API-Schlüssel verwenden:",
+  "telemetry": {
+    "helpImprove": "Hilf, Kade zu verbessern",
+    "helpImproveMessage": "Kade sammelt Fehler- und Nutzungsdaten, um uns bei der Fehlerbehebung und Verbesserung der Erweiterung zu helfen. Diese Telemetrie sammelt keinen Code, keine Prompts oder persönliche Informationen. Du kannst dies in den <settingsLink>Einstellungen</settingsLink> deaktivieren."
+  },
+  "importSettings": "Einstellungen importieren"
 }

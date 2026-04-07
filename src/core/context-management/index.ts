@@ -5,7 +5,6 @@ import { TelemetryService } from "@roo-code/telemetry"
 
 import { ApiHandler } from "../../api"
 import { MAX_CONDENSE_THRESHOLD, MIN_CONDENSE_THRESHOLD, summarizeConversation, SummarizeResponse } from "../condense"
-import { generateSmartContext } from "./SmartContextService"
 import { ApiMessage } from "../task-persistence/apiMessages"
 import { ANTHROPIC_DEFAULT_MAX_TOKENS } from "@roo-code/types"
 
@@ -297,22 +296,9 @@ export async function manageContext({
 	if (autoCondenseContext) {
 		const contextPercent = (100 * prevContextTokens) / contextWindow
 		if (contextPercent >= effectiveThreshold || prevContextTokens > allowedTokens) {
-			// Attempt to intelligently condense the context
-			// kade_change: Use Smart Context instead of LLM summarization
-			const smartContextMessages = generateSmartContext(messages, slidingWindowSize)
-
-			// We need to calculate the "cost" of this operation (0) and new token counts
-			// Since we don't have the exact token count of the new string comfortably here without async overhead,
-			// we can let the next turn handle recalculations or estimate it.
-			// Ideally we return the new messages.
-
-			return {
-				messages: smartContextMessages,
-				summary: "Smart Context Applied",
-				cost: 0,
-				prevContextTokens,
-				// We don't have truncation IDs here as it's a "summary" replacement
-			}
+			// Preserve the full real chat history until we actually exceed the hard token budget.
+			// Auto-condense thresholds are treated as early warning only; mutation happens only via
+			// the sliding-window fallback below when the request would otherwise overflow.
 		}
 	}
 

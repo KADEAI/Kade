@@ -100,59 +100,23 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 			return
 		}
 
-		let systemMessage: OpenAI.Chat.ChatCompletionSystemMessageParam = {
+		const systemMessage: OpenAI.Chat.ChatCompletionSystemMessageParam = {
 			role: "system",
 			content: systemPrompt,
 		}
 
 		if (this.options.openAiStreamingEnabled ?? true) {
-			let convertedMessages
+			let convertedMessages: OpenAI.Chat.ChatCompletionMessageParam[]
 
 			if (deepseekReasoner) {
 				convertedMessages = convertToR1Format([{ role: "user", content: systemPrompt }, ...messages])
 			} else if (ark || enabledLegacyFormat) {
 				convertedMessages = [systemMessage, ...convertToSimpleMessages(messages)]
 			} else {
-				if (modelInfo.supportsPromptCache) {
-					systemMessage = {
-						role: "system",
-						content: [
-							{
-								type: "text",
-								text: systemPrompt,
-								// @ts-ignore-next-line
-								cache_control: { type: "ephemeral" },
-							},
-						],
-					}
-				}
-
 				convertedMessages = [systemMessage, ...convertToOpenAiMessages(messages)]
 
 				if (modelInfo.supportsPromptCache) {
-					// Note: the following logic is copied from openrouter:
-					// Add cache_control to the last two user messages
-					// (note: this works because we only ever add one user message at a time, but if we added multiple we'd need to mark the user message before the last assistant message)
-					const lastTwoUserMessages = convertedMessages.filter((msg) => msg.role === "user").slice(-2)
-
-					lastTwoUserMessages.forEach((msg) => {
-						if (typeof msg.content === "string") {
-							msg.content = [{ type: "text", text: msg.content }]
-						}
-
-						if (Array.isArray(msg.content)) {
-							// NOTE: this is fine since env details will always be added at the end. but if it weren't there, and the user added a image_url type message, it would pop a text part before it and then move it after to the end.
-							let lastTextPart = msg.content.filter((part) => part.type === "text").pop()
-
-							if (!lastTextPart) {
-								lastTextPart = { type: "text", text: "..." }
-								msg.content.push(lastTextPart)
-							}
-
-							// @ts-ignore-next-line
-							lastTextPart["cache_control"] = { type: "ephemeral" }
-						}
-					})
+					this.applyOpenAiPromptCaching(systemPrompt, convertedMessages, modelInfo, metadata?.taskId)
 				}
 			}
 
@@ -167,7 +131,7 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 				...(reasoning && reasoning),
 				...(metadata?.tools && { tools: this.convertToolsForOpenAI(metadata.tools) }),
 				...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
-				...(metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN && {
+				...(metadata?.toolProtocol === TOOL_PROTOCOL.JSON && {
 					parallel_tool_calls: metadata.parallelToolCalls ?? false,
 				}),
 			}
@@ -195,9 +159,11 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 			)
 
 			let lastUsage
+			const activeToolCallIds = new Set<string>()
 
 			for await (const chunk of stream) {
-				const delta = chunk.choices?.[0]?.delta ?? {}
+				const choice = chunk.choices?.[0]
+				const delta = choice?.delta ?? {}
 
 				if (delta.content) {
 					for (const chunk of matcher.update(delta.content)) {
@@ -222,6 +188,9 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 
 				if (delta.tool_calls) {
 					for (const toolCall of delta.tool_calls) {
+						if (toolCall.id) {
+							activeToolCallIds.add(toolCall.id)
+						}
 						yield {
 							type: "tool_call_partial",
 							index: toolCall.index,
@@ -229,6 +198,18 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 							name: toolCall.function?.name,
 							arguments: toolCall.function?.arguments,
 						}
+					}
+				}
+
+				if (choice?.finish_reason) {
+					if (choice.finish_reason === "tool_calls") {
+						for (const id of activeToolCallIds) {
+							yield {
+								type: "tool_call_end",
+								id,
+							}
+						}
+						activeToolCallIds.clear()
 					}
 				}
 
@@ -254,7 +235,7 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 						: [systemMessage, ...convertToOpenAiMessages(messages)],
 				...(metadata?.tools && { tools: this.convertToolsForOpenAI(metadata.tools) }),
 				...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
-				...(metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN && {
+				...(metadata?.toolProtocol === TOOL_PROTOCOL.JSON && {
 					parallel_tool_calls: metadata.parallelToolCalls ?? false,
 				}),
 			}
@@ -390,7 +371,7 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 				temperature: undefined,
 				...(metadata?.tools && { tools: this.convertToolsForOpenAI(metadata.tools) }),
 				...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
-				...(metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN && {
+				...(metadata?.toolProtocol === TOOL_PROTOCOL.JSON && {
 					parallel_tool_calls: metadata.parallelToolCalls ?? false,
 				}),
 			}
@@ -425,7 +406,7 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 				temperature: undefined,
 				...(metadata?.tools && { tools: this.convertToolsForOpenAI(metadata.tools) }),
 				...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
-				...(metadata?.toolProtocol === TOOL_PROTOCOL.MARKDOWN && {
+				...(metadata?.toolProtocol === TOOL_PROTOCOL.JSON && {
 					parallel_tool_calls: metadata.parallelToolCalls ?? false,
 				}),
 			}
@@ -468,8 +449,11 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 	}
 
 	private async *handleStreamResponse(stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>): ApiStream {
+		const activeToolCallIds = new Set<string>()
+
 		for await (const chunk of stream) {
-			const delta = chunk.choices?.[0]?.delta
+			const choice = chunk.choices?.[0]
+			const delta = choice?.delta
 
 			if (delta) {
 				if (delta.content) {
@@ -482,6 +466,9 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 				// Emit raw tool call chunks - NativeToolCallParser handles state management
 				if (delta.tool_calls) {
 					for (const toolCall of delta.tool_calls) {
+						if (toolCall.id) {
+							activeToolCallIds.add(toolCall.id)
+						}
 						yield {
 							type: "tool_call_partial",
 							index: toolCall.index,
@@ -490,6 +477,18 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 							arguments: toolCall.function?.arguments,
 						}
 					}
+				}
+			}
+
+			if (choice?.finish_reason) {
+				if (choice.finish_reason === "tool_calls") {
+					for (const id of activeToolCallIds) {
+						yield {
+							type: "tool_call_end",
+							id,
+						}
+					}
+					activeToolCallIds.clear()
 				}
 			}
 

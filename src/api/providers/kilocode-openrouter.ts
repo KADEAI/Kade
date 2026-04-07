@@ -27,6 +27,7 @@ export class KilocodeOpenrouterHandler extends OpenRouterHandler {
 	protected override models: ModelRecord = {}
 	defaultModel: string = openRouterDefaultModelId
 	private apiFIMBase: string
+	private kiloModelFetchPromise?: Promise<void>
 
 	protected override get providerName() {
 		return "KiloCode" as const
@@ -44,6 +45,34 @@ export class KilocodeOpenrouterHandler extends OpenRouterHandler {
 		super(options)
 
 		this.apiFIMBase = baseApiUrl
+		this.kiloModelFetchPromise = this.loadKilocodeModels().catch((error) => {
+			console.error("[KilocodeOpenrouterHandler] Failed to load dynamic models:", error)
+			this.kiloModelFetchPromise = undefined
+		})
+	}
+
+	private async loadKilocodeModels(): Promise<void> {
+		if (!this.options.kilocodeToken || !this.options.openRouterBaseUrl) {
+			throw new Error(KILOCODE_TOKEN_REQUIRED_ERROR)
+		}
+
+		const [models, endpoints, defaultModel] = await Promise.all([
+			getModels({
+				provider: "kilocode",
+				kilocodeToken: this.options.kilocodeToken,
+				kilocodeOrganizationId: this.options.kilocodeOrganizationId,
+			}),
+			getModelEndpoints({
+				router: "openrouter",
+				modelId: this.options.kilocodeModel,
+				endpoint: this.options.openRouterSpecificProvider,
+			}),
+			getKilocodeDefaultModel(this.options.kilocodeToken, this.options.kilocodeOrganizationId, this.options),
+		])
+
+		this.models = models
+		this.endpoints = endpoints
+		this.defaultModel = defaultModel
 	}
 
 	public getRolloutHash(): number | undefined {
@@ -119,23 +148,19 @@ export class KilocodeOpenrouterHandler extends OpenRouterHandler {
 			throw new Error(KILOCODE_TOKEN_REQUIRED_ERROR)
 		}
 
-		const [models, endpoints, defaultModel] = await Promise.all([
-			getModels({
-				provider: "kilocode",
-				kilocodeToken: this.options.kilocodeToken,
-				kilocodeOrganizationId: this.options.kilocodeOrganizationId,
-			}),
-			getModelEndpoints({
-				router: "openrouter",
-				modelId: this.options.kilocodeModel,
-				endpoint: this.options.openRouterSpecificProvider,
-			}),
-			getKilocodeDefaultModel(this.options.kilocodeToken, this.options.kilocodeOrganizationId, this.options),
-		])
+		if (this.kiloModelFetchPromise) {
+			await this.kiloModelFetchPromise
+			this.kiloModelFetchPromise = undefined
+			return this.getModel()
+		}
 
-		this.models = models
-		this.endpoints = endpoints
-		this.defaultModel = defaultModel
+		if (Object.keys(this.models).length === 0) {
+			this.kiloModelFetchPromise = this.loadKilocodeModels().finally(() => {
+				this.kiloModelFetchPromise = undefined
+			})
+			await this.kiloModelFetchPromise
+		}
+
 		return this.getModel()
 	}
 

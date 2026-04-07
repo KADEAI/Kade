@@ -286,8 +286,8 @@ export const parseOpenRouterModel = ({
 			Object.keys(resolvedVersionedSettings).length > 0 ? resolvedVersionedSettings : (model.settings ?? {}),
 		),
 		// kade_change end
-		// Default to native tool protocol when native tools are supported
-		defaultToolProtocol: supportsNativeTools ? ("native" as const) : undefined,
+		// Default to the unified parser for all models, even when native tools exist internally.
+		defaultToolProtocol: supportsNativeTools ? ("unified" as const) : undefined,
 	}
 
 	if (OPEN_ROUTER_REASONING_BUDGET_MODELS.has(id)) {

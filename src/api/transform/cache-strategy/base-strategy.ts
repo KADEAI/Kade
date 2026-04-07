@@ -3,6 +3,16 @@ import { ContentBlock, SystemContentBlock, Message, ConversationRole } from "@aw
 import { CacheStrategyConfig, CacheResult, CachePointPlacement } from "./types"
 
 export abstract class CacheStrategy {
+	protected estimateTextTokenCount(text: string): number {
+		if (!text) return 0
+
+		const words = text.split(/\s+/).filter((word) => word.length > 0)
+		let tokenCount = words.length * 1.3
+		tokenCount += (text.match(/[.,!?;:()[\]{}""''`]/g) || []).length * 0.3
+		tokenCount += (text.match(/\n/g) || []).length * 0.5
+		return tokenCount
+	}
+
 	/**
 	 * Determine optimal cache point placements and return the formatted result
 	 */
@@ -30,16 +40,7 @@ export abstract class CacheStrategy {
 	protected calculateSystemTokens(): void {
 		if (this.config.systemPrompt) {
 			const text = this.config.systemPrompt
-
-			// Use a more accurate token estimation than simple character count
-			// Count words and add overhead for punctuation and special tokens
-			const words = text.split(/\s+/).filter((word) => word.length > 0)
-			// Average English word is ~1.3 tokens
-			let tokenCount = words.length * 1.3
-			// Add overhead for punctuation and special characters
-			tokenCount += (text.match(/[.,!?;:()[\]{}""''`]/g) || []).length * 0.3
-			// Add overhead for newlines
-			tokenCount += (text.match(/\n/g) || []).length * 0.5
+			let tokenCount = this.estimateTextTokenCount(text)
 			// Add a small overhead for system prompt structure
 			tokenCount += 5
 
@@ -106,34 +107,32 @@ export abstract class CacheStrategy {
 		if (Array.isArray(message.content)) {
 			for (const block of message.content) {
 				if (block.type === "text") {
-					// Use a more accurate token estimation than simple character count
-					// This is still an approximation but better than character/4
-					const text = block.text || ""
-					if (text.length > 0) {
-						// Count words and add overhead for punctuation and special tokens
-						const words = text.split(/\s+/).filter((word) => word.length > 0)
-						// Average English word is ~1.3 tokens
-						totalTokens += words.length * 1.3
-						// Add overhead for punctuation and special characters
-						totalTokens += (text.match(/[.,!?;:()[\]{}""''`]/g) || []).length * 0.3
-						// Add overhead for newlines
-						totalTokens += (text.match(/\n/g) || []).length * 0.5
-					}
+					totalTokens += this.estimateTextTokenCount(block.text || "")
 				} else if (block.type === "image") {
 					// For images, use a conservative estimate
 					totalTokens += 300
+				} else if (block.type === "tool_use") {
+					totalTokens += this.estimateTextTokenCount(block.name || "")
+					totalTokens += this.estimateTextTokenCount(JSON.stringify(block.input ?? {}))
+				} else if (block.type === "tool_result") {
+					if (typeof block.content === "string") {
+						totalTokens += this.estimateTextTokenCount(block.content)
+						continue
+					}
+
+					if (Array.isArray(block.content)) {
+						for (const item of block.content) {
+							if (item.type === "text") {
+								totalTokens += this.estimateTextTokenCount(item.text || "")
+							} else if (item.type === "image") {
+								totalTokens += 300
+							}
+						}
+					}
 				}
 			}
 		} else if (typeof message.content === "string") {
-			const text = message.content
-			// Count words and add overhead for punctuation and special tokens
-			const words = text.split(/\s+/).filter((word) => word.length > 0)
-			// Average English word is ~1.3 tokens
-			totalTokens += words.length * 1.3
-			// Add overhead for punctuation and special characters
-			totalTokens += (text.match(/[.,!?;:()[\]{}""''`]/g) || []).length * 0.3
-			// Add overhead for newlines
-			totalTokens += (text.match(/\n/g) || []).length * 0.5
+			totalTokens += this.estimateTextTokenCount(message.content)
 		}
 
 		// Add a small overhead for message structure

@@ -6,26 +6,154 @@ import React, {
   memo,
   useCallback,
 } from "react";
+import { Check } from "lucide-react";
 import styled, { keyframes, css } from "styled-components";
 import * as Diff from "diff";
 import { ToolMessageWrapper } from "./ToolMessageWrapper";
 import { ToolError } from "./ToolError";
 import { FileIcon } from "./FileIcon";
+import { HeaderActionTooltip } from "./HeaderActionTooltip";
 import { vscode } from "@/utils/vscode";
 import { useExtensionState } from "@/context/ExtensionStateContext";
 import { useUndo } from "../../../hooks/useUndo";
 import { getHighlighter, normalizeLanguage } from "@/utils/highlighter";
+import { getLanguageFromPath } from "@/utils/getLanguageFromPath";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { triggerConfetti } from "../../../utils/confetti";
 import { getEditErrorMessage } from "./editToolUtils";
+import { getVirtualizedLineWindow } from "./virtualizedToolContent";
+import {
+  toolHeaderBackgroundOverlayCss,
+  useToolHeaderBackground,
+} from "@/hooks/useToolHeaderBackground";
+import { resolveToolFilePath } from "./filePathResolver";
+
+const LARGE_EDIT_HIGHLIGHT_CHAR_LIMIT = 12000;
+const LARGE_EDIT_HIGHLIGHT_LINE_LIMIT = 300;
+const EDIT_LINE_HIGHLIGHT_CACHE_LIMIT = 512;
+const highlightedLineCache = new Map<string, React.ReactNode>();
+
+const setCachedHighlight = (
+  cache: Map<string, React.ReactNode>,
+  key: string,
+  value: React.ReactNode,
+) => {
+  cache.set(key, value);
+
+  if (cache.size > EDIT_LINE_HIGHLIGHT_CACHE_LIMIT) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey !== undefined) {
+      cache.delete(oldestKey);
+    }
+  }
+};
+
+const getDiffLineType = (line: string): "add" | "remove" | "context" => {
+  if (line.startsWith("-")) return "remove";
+  if (line.startsWith("+")) return "add";
+  return "context";
+};
+
+interface RenderedDiffLine {
+  key: string;
+  type: "add" | "remove" | "context";
+  content: string;
+}
+
+const getDiffStatsFromContent = (content: string) => {
+  if (!content) {
+    return null;
+  }
+
+  let added = 0;
+  let removed = 0;
+
+  for (const line of content.split("\n")) {
+    if (
+      line.startsWith("+++") ||
+      line.startsWith("---") ||
+      line.startsWith("\\")
+    ) {
+      continue;
+    }
+
+    if (line.startsWith("+")) {
+      added++;
+    } else if (line.startsWith("-")) {
+      removed++;
+    }
+  }
+
+  if (added === 0 && removed === 0) {
+    return null;
+  }
+
+  return { added, removed };
+};
+
+const getLineCount = (content: string | undefined) => {
+  if (!content) {
+    return 0;
+  }
+
+  return content.split("\n").length;
+};
+
+const getDiffStatsFromEdits = (edits: any[]) => {
+  if (!Array.isArray(edits) || edits.length === 0) {
+    return null;
+  }
+
+  let added = 0;
+  let removed = 0;
+
+  for (const edit of edits) {
+    added += getLineCount(edit?.newText || "");
+    removed += getLineCount(edit?.oldText || "");
+  }
+
+  if (added === 0 && removed === 0) {
+    return null;
+  }
+
+  return { added, removed };
+};
+
+const getDiffStatsFromStructuredPatch = (structuredPatch: any) => {
+  if (!Array.isArray(structuredPatch) || structuredPatch.length === 0) {
+    return null;
+  }
+
+  let added = 0;
+  let removed = 0;
+
+  for (const hunk of structuredPatch) {
+    for (const line of hunk?.lines || []) {
+      if (
+        line.startsWith("+++") ||
+        line.startsWith("---") ||
+        line.startsWith("\\")
+      ) {
+        continue;
+      }
+
+      if (line.startsWith("+")) {
+        added++;
+      } else if (line.startsWith("-")) {
+        removed++;
+      }
+    }
+  }
+
+  if (added === 0 && removed === 0) {
+    return null;
+  }
+
+  return { added, removed };
+};
 
 // --- ANIMATIONS ---
-
-const loadingSweep = keyframes`
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-`;
 
 const glowGreen = keyframes`
     from { filter: drop-shadow(0 0 1px var(--vscode-testing-iconPassed)); opacity: 0.7; }
@@ -159,24 +287,19 @@ const EditCardContainer = styled.div<{
   $isError?: boolean;
   $shouldAnimate?: boolean;
   $justCompleted?: boolean;
+  $isActive?: boolean;
 }>`
   display: flex;
   flex-direction: column;
   position: relative;
-  border-radius: 8px;
+  border-radius: 10.6px;
   overflow: hidden;
-  margin: ${({ $isError }) => ($isError ? "0" : "px 0")};
+  margin-top: 1px;
+  margin-bottom: 2px;
   width: 100%;
 
   /* Clean, modern dark surface */
-  background: ${({ $isError }) =>
-    $isError
-      ? "linear-gradient(145deg, rgba(45, 10, 10, 0.5) 0%, rgba(30, 10, 10, 0.3) 100%)"
-      : "var(--vscode-editor-background)"};
-  background-color: color-mix(
-    in srgb,
-    var(--vscode-editor-background) 80%,
-    transparent
+  background: "rgba(201, 34, 34, 1)"
   );
 
   /* No external border or shadow for seamless look */
@@ -187,6 +310,38 @@ const EditCardContainer = styled.div<{
   backface-visibility: hidden;
   contain: layout style paint;
   will-change: transform, opacity;
+  isolation: isolate;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--angle),
+      transparent 0deg,
+      transparent 60deg,
+      rgba(74, 222, 128, 0.18) 72deg,
+      rgba(255, 255, 255, 0.42) 84deg,
+      transparent 96deg,
+      transparent 220deg,
+      rgba(74, 222, 128, 0.14) 232deg,
+      rgba(255, 255, 255, 0.3) 244deg,
+      transparent 256deg,
+      transparent 360deg
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: ${({ $isActive }) => ($isActive ? 1 : 0)};
+    transition: opacity 0.18s ease;
+    animation: rotateBorderVar 5.6s linear infinite;
+    pointer-events: none;
+    z-index: 4;
+  }
 
   /* Sleek fade-in animation */
   ${({ $shouldAnimate }) =>
@@ -220,21 +375,37 @@ const CardHeader = styled.div<{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
+  padding: 0 10.6px;
+  flex-shrink: 0;
+  min-width: 0;
 
   /* Solid header - Slightly brighter for high-tech feel */
   background: ${({ $isError }) =>
-    $isError ? "rgba(52, 0, 0, 0.45)" : "rgba(225, 225, 225, 0.041)"};
+    $isError ? "rgba(255, 70, 70, 0.12)" : "rgba(24, 24, 24, 1)"};
 
-  /* No separator for ultra-seamless look */
-  border-bottom: none;
+  /* Opaque mix: transparent borders fade at BL/BR joins vs the body below */
+  border: 1.5px solid rgba(82, 82, 82, 0.22);
+    color-mix(in srgb, var(--vscode-widget-border) 60%, var(--vscode-editor-background));
+  /* Collapsed: full radius so the card clip doesn’t slice the header’s bottom border
+     (square bottom + parent overflow:hidden looked like faint BL/BR). Expanded: top
+     only so the body stacks flush (CardBody has bottom radius). */
+  border-radius: ${({ $isExpanded }) =>
+    $isExpanded ? "10.6px 10.6px 0 0" : "10.6px"};
 
-  height: 34px;
+  /* Subtle top highlight for the metallic header treatment */
+  box-shadow: inset 0 0px 0 rgba(255, 255, 255, 0);
+
+  height: 33px !important;
+  min-height: 33px !important;
   cursor: default;
-  overflow: hidden;
-  gap: 0px;
-  z-index: 0;
-  transition: background 0.15s ease;
+  /* Avoid clipping the border at rounded corners; truncation lives on FileInfo. */
+  overflow: visible;
+  gap: 4px;
+  z-index: 1;
+  transition:
+    background 0.15s ease,
+    border-radius 0.2s ease;
+  ${toolHeaderBackgroundOverlayCss}
 
   ${({ $isError }) =>
     $isError &&
@@ -242,7 +413,6 @@ const CardHeader = styled.div<{
       height: auto;
       min-height: 26px;
       padding: 3px 12px;
-      border-bottom: none;
     `}
 
   ${({ $clickable }) =>
@@ -252,34 +422,13 @@ const CardHeader = styled.div<{
     `}
 `;
 
-const LoadingBarContainer = styled.div`
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  overflow: hidden;
-  z-index: 10;
-`;
-
-const LoadingBar = styled.div`
-  height: 100%;
-  width: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--vscode-testing-iconPassed, #4ade80) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: ${loadingSweep} 2s ease-in-out infinite;
-`;
-
 // HeaderContent removed as it was causing nesting overflow issues
 
 const TitleSection = styled.div<{
   $status: "editing" | "edited" | "failed" | "normal" | "error-subtle";
 }>`
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -348,21 +497,20 @@ const FileName = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--vscode-foreground);
-  opacity: 0.57;
+  color: color-mix(in srgb, var(--vscode-foreground) 51%, transparent);
   cursor: pointer;
   max-width: 100%;
-  transition: all 0.2s ease;
-
-  /* Selection/Chip style */
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: -2px; /* Pull back slightly to align with icon visually */
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
 
   &:hover {
-    opacity: 0.75;
-    background: rgba(128, 128, 128, 0.15);
-    text-decoration: none;
+    color: var(--vscode-textLink-foreground);
+  }
+
+  &:hover > span:first-child {
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 `;
 
@@ -377,6 +525,8 @@ const DryRunBadge = styled.span`
 `;
 
 const StatusSection = styled.div`
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -431,6 +581,66 @@ const ActionButton = styled.div<{
   $clickable?: boolean;
   $isRedo?: boolean;
 }>`
+  &[data-tooltip] {
+    position: relative;
+  }
+
+  &[data-tooltip]::before,
+  &[data-tooltip]::after {
+    position: absolute;
+    left: 50%;
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      opacity 0.16s ease,
+      transform 0.16s ease;
+    z-index: 8;
+  }
+
+  &[data-tooltip]::before {
+    content: "";
+    bottom: calc(100% + 2px);
+    border-width: 4px;
+    border-style: solid;
+    border-color: rgba(10, 10, 10, 0.92) transparent transparent transparent;
+    transform: translateX(-50%) translateY(2px);
+  }
+
+  &[data-tooltip]::after {
+    content: attr(data-tooltip);
+    bottom: calc(100% + 9px);
+    transform: translateX(-50%) translateY(3px);
+    padding: 5px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(10, 10, 10, 0.92);
+    color: rgba(255, 255, 255, 0.94);
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0;
+    white-space: nowrap;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  &[data-tooltip]:hover::before,
+  &[data-tooltip]:hover::after,
+  &[data-tooltip]:focus-visible::before,
+  &[data-tooltip]:focus-visible::after {
+    opacity: 1;
+  }
+
+  &[data-tooltip]:hover::before,
+  &[data-tooltip]:focus-visible::before {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  &[data-tooltip]:hover::after,
+  &[data-tooltip]:focus-visible::after {
+    transform: translateX(-50%) translateY(0);
+  }
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -552,6 +762,8 @@ const _ErrorText = styled.div`
 
 const CardBody = styled.div`
   background: var(--vscode-editor-background);
+  border-radius: 0 0 10.6px 10.6px;
+  overflow: hidden;
 `;
 
 const ReplaceOption = styled.div`
@@ -975,21 +1187,54 @@ const _StreamingText = styled.div<{ $type: "old" | "new" }>`
 import { AnimatedAccordion } from "../../common/AnimatedAccordion";
 
 const HighlightedLine = memo(
-  ({ content, language }: { content: string; language: string }) => {
+  ({
+    content,
+    language,
+    shouldHighlight,
+  }: {
+    content: string;
+    language: string;
+    shouldHighlight: boolean;
+  }) => {
     const [elements, setElements] = useState<React.ReactNode>(null);
 
     useEffect(() => {
+      setElements(content);
+    }, [content]);
+
+    useEffect(() => {
+      if (!shouldHighlight || !content) {
+        setElements(content);
+        return;
+      }
+
       let isMounted = true;
+      let highlightTimeout: number | null = null;
+
       const highlight = async () => {
         try {
-          const highlighter = await getHighlighter(language);
-          if (!isMounted) return;
-
           const theme = document.body.className.toLowerCase().includes("light")
             ? "light-plus"
             : "dark-plus";
+          const normalizedLanguage = normalizeLanguage(language);
+          const cacheKey =
+            content.length <= 400
+              ? `${theme}:${normalizedLanguage}:${content}`
+              : null;
+
+          if (cacheKey) {
+            const cachedResult = highlightedLineCache.get(cacheKey);
+            if (cachedResult) {
+              setElements(cachedResult);
+              return;
+            }
+          }
+
+          const highlighter = await getHighlighter(language);
+          if (!isMounted) return;
+
           const hast = await highlighter.codeToHast(content || " ", {
-            lang: normalizeLanguage(language),
+            lang: normalizedLanguage,
             theme: theme,
             transformers: [
               {
@@ -1043,19 +1288,38 @@ const HighlightedLine = memo(
                 jsxs,
               },
             );
-            if (isMounted) setElements(reactElements);
+            if (isMounted) {
+              if (cacheKey) {
+                setCachedHighlight(
+                  highlightedLineCache,
+                  cacheKey,
+                  reactElements,
+                );
+              }
+              setElements(reactElements);
+            }
           } else {
             if (isMounted) setElements(content);
           }
         } catch (e) {
           console.error("Highlight error:", e);
+          if (isMounted) {
+            setElements(content);
+          }
         }
       };
-      highlight();
+
+      highlightTimeout = window.setTimeout(() => {
+        void highlight();
+      }, 16);
+
       return () => {
         isMounted = false;
+        if (highlightTimeout !== null) {
+          window.clearTimeout(highlightTimeout);
+        }
       };
-    }, [content, language]);
+    }, [content, language, shouldHighlight]);
 
     return <>{elements || <span>{content}</span>}</>;
   },
@@ -1164,10 +1428,46 @@ const EditToolComponent: React.FC<EditToolProps> = ({
   autoApprovalEnabled,
 }) => {
   const { collapseCodeToolsByDefault = false } = useExtensionState();
+  const headerBackground = useToolHeaderBackground("edit");
   const { isUndone, handleUndo, handleRedo } = useUndo(tool?.id);
+  const editInstanceKey = useMemo(() => {
+    if (tool?.id) return `id:${tool.id}`;
+
+    const fallbackPath = resolveToolFilePath(tool, toolResult);
+    const fallbackEdits = Array.isArray(tool?.edits)
+      ? tool.edits
+      : Array.isArray(tool?.edit)
+        ? tool.edit
+        : Array.isArray(tool?.params?.edits)
+          ? tool.params.edits
+          : Array.isArray(tool?.params?.edit)
+            ? tool.params.edit
+            : Array.isArray(tool?.nativeArgs?.edits)
+              ? tool.nativeArgs.edits
+              : Array.isArray(tool?.nativeArgs?.edit)
+                ? tool.nativeArgs.edit
+                : [];
+    const fallbackOld =
+      tool?.oldText ||
+      tool?.old_string ||
+      tool?.params?.old_string ||
+      tool?.params?.old_text ||
+      "";
+    const fallbackNew =
+      tool?.newText ||
+      tool?.new_string ||
+      tool?.params?.new_string ||
+      tool?.params?.new_text ||
+      "";
+
+    return `fallback:${fallbackPath}:${JSON.stringify(fallbackEdits)}:${fallbackOld}:${fallbackNew}`;
+  }, [tool]);
 
   // kade_change: Handlers for manual permission buttons
   const [actionPending, setActionPending] = useState(false);
+  const [actionFlash, setActionFlash] = useState<"undone" | "redone" | null>(
+    null,
+  );
   const [showPartialSuccessDetails, setShowPartialSuccessDetails] =
     useState(false);
 
@@ -1208,14 +1508,27 @@ const EditToolComponent: React.FC<EditToolProps> = ({
     return !!errorMessage;
   }, [errorMessage]);
 
-  const [isExpanded, setIsExpanded] = useState(!collapseCodeToolsByDefault);
+  const [isExpanded, setIsExpanded] = useState(
+    !collapseCodeToolsByDefault && !isError,
+  );
+
+  // Auto-collapse when error occurs
+  useEffect(() => {
+    if (isError) {
+      setIsExpanded(false);
+    }
+  }, [isError]);
   const [showErrorDetails, setShowErrorDetails] = useState(false);
 
   // Refs for scrolling
   const contentRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
 
   // Derived States
-  const filePath = useMemo(() => tool.path || tool.file_path || "", [tool]);
+  const filePath = useMemo(
+    () => resolveToolFilePath(tool, toolResult),
+    [tool, toolResult],
+  );
 
   const fileName = useMemo(() => {
     if (!filePath) return "Unknown File";
@@ -1224,20 +1537,31 @@ const EditToolComponent: React.FC<EditToolProps> = ({
   }, [filePath]);
 
   const replaceAll = tool.replace_all;
+  const shouldRenderBody = isExpanded;
+  const diffLanguage = useMemo(
+    () => getLanguageFromPath(filePath) || "text",
+    [filePath],
+  );
 
   // Cache to prevent flickering when tool updates
   const lastRawContentRef = useRef("");
 
   // Normalize edits for VS Code diff view
   const normalizedEdits = useMemo(() => {
-    // Check tool.edits first (from streaming ClineSayTool), then params.edits, then nativeArgs.edits
+    // Support both `edits` and singular `edit` payload shapes across streaming/finalized tool blocks.
     const editsArray = Array.isArray(tool.edits)
       ? tool.edits
-      : Array.isArray(tool.params?.edits)
-        ? tool.params.edits
-        : Array.isArray(tool.nativeArgs?.edits)
-          ? tool.nativeArgs.edits
-          : [];
+      : Array.isArray(tool.edit)
+        ? tool.edit
+        : Array.isArray(tool.params?.edits)
+          ? tool.params.edits
+          : Array.isArray(tool.params?.edit)
+            ? tool.params.edit
+            : Array.isArray(tool.nativeArgs?.edits)
+              ? tool.nativeArgs.edits
+              : Array.isArray(tool.nativeArgs?.edit)
+                ? tool.nativeArgs.edit
+                : [];
 
     if (editsArray.length > 0) {
       return editsArray.map((edit: any) => ({
@@ -1387,6 +1711,10 @@ const EditToolComponent: React.FC<EditToolProps> = ({
 
   // Structured Patch Logic
   const structuredPatch = useMemo(() => {
+    if (isError) {
+      return null;
+    }
+
     // 1. Check toolResult (output from tool execution)
     if (toolResult?.structuredPatch) {
       return toolResult.structuredPatch;
@@ -1468,28 +1796,27 @@ const EditToolComponent: React.FC<EditToolProps> = ({
   const hasDiffViewRef = useRef(false);
 
   useEffect(() => {
-    if (hasDiffViewRaw) {
+    if (shouldRenderBody && hasDiffViewRaw) {
       hasDiffViewRef.current = true;
     }
-  }, [hasDiffViewRaw]);
+  }, [hasDiffViewRaw, shouldRenderBody]);
 
   const hasDiffView = useMemo(() => {
+    if (!shouldRenderBody) {
+      return false;
+    }
+
     return hasDiffViewRef.current || hasDiffViewRaw;
-  }, [hasDiffViewRaw]);
+  }, [hasDiffViewRaw, shouldRenderBody]);
 
   // Stats
   const diffStats = useMemo(() => {
-    if (!structuredPatch) return null;
-    let added = 0,
-      removed = 0;
-    structuredPatch.forEach((hunk: any) => {
-      hunk.lines.forEach((line: string) => {
-        if (line.startsWith("+")) added++;
-        if (line.startsWith("-")) removed++;
-      });
-    });
-    return { added, removed };
-  }, [structuredPatch]);
+    return (
+      getDiffStatsFromStructuredPatch(structuredPatch) ||
+      getDiffStatsFromEdits(normalizedEdits) ||
+      getDiffStatsFromContent(rawContent)
+    );
+  }, [normalizedEdits, rawContent, structuredPatch]);
 
   // Status Text
 
@@ -1562,6 +1889,7 @@ const EditToolComponent: React.FC<EditToolProps> = ({
     const total = target.scrollHeight;
     const visible = target.clientHeight;
     const current = target.scrollTop;
+    setScrollTop(current);
 
     if (total > visible) {
       setScrollState({
@@ -1594,10 +1922,10 @@ const EditToolComponent: React.FC<EditToolProps> = ({
   // Lock diff view mode once streaming finishes to avoid view toggles/flicker
   const viewModeRef = useRef<"diff" | "raw" | null>(null);
   useEffect(() => {
-    if (!isStreaming && !viewModeRef.current) {
+    if (!isStreaming && shouldRenderBody && !viewModeRef.current) {
       viewModeRef.current = hasDiffViewRaw ? "diff" : "raw";
     }
-  }, [isStreaming, hasDiffViewRaw]);
+  }, [isStreaming, hasDiffViewRaw, shouldRenderBody]);
 
   const showDiffView = useMemo(() => {
     if (viewModeRef.current) {
@@ -1606,9 +1934,144 @@ const EditToolComponent: React.FC<EditToolProps> = ({
     return hasDiffView;
   }, [hasDiffView]);
 
+  const structuredDiffLines = useMemo<RenderedDiffLine[]>(() => {
+    if (!shouldRenderBody || !structuredPatch) {
+      return [];
+    }
+
+    return structuredPatch.flatMap((hunk: any, blockIndex: number) =>
+      hunk.lines
+        .filter((line: string) => {
+          return (
+            getDiffLineType(line) !== "context" &&
+            !line.startsWith("\\") &&
+            !line.includes("No newline at end of file")
+          );
+        })
+        .map((line: string, lineIndex: number) => ({
+          key: `${blockIndex}-${hunk.oldStart}-${hunk.newStart}-${lineIndex}`,
+          type: getDiffLineType(line),
+          content: line.substring(1),
+        })),
+    );
+  }, [shouldRenderBody, structuredPatch]);
+
+  const rawDiffLines = useMemo<RenderedDiffLine[]>(() => {
+    if (!shouldRenderBody || !rawContent) {
+      return [];
+    }
+
+    return rawContent
+      .split("\n")
+      .filter((line) => {
+        const type = getDiffLineType(line);
+        return (
+          type !== "context" &&
+          line.trim().length >
+            (line.startsWith("+") ||
+            line.startsWith("-") ||
+            line.startsWith(" ")
+              ? 1
+              : 0)
+        );
+      })
+      .map((line, index) => {
+        const type = getDiffLineType(line);
+        return {
+          key: `${index}-${type}`,
+          type,
+          content:
+            line.startsWith("+") || line.startsWith("-") || line.startsWith(" ")
+              ? line.substring(1)
+              : line,
+        };
+      });
+  }, [rawContent, shouldRenderBody]);
+
+  const renderedDiffLineCount = useMemo(() => {
+    if (!shouldRenderBody) {
+      return 0;
+    }
+
+    if (showDiffView) {
+      return structuredDiffLines.length;
+    }
+
+    return rawDiffLines.length;
+  }, [
+    rawDiffLines.length,
+    shouldRenderBody,
+    showDiffView,
+    structuredDiffLines.length,
+  ]);
+  const diffWindow = useMemo(
+    () =>
+      getVirtualizedLineWindow({
+        lineCount: renderedDiffLineCount,
+        scrollTop,
+      }),
+    [renderedDiffLineCount, scrollTop],
+  );
+  const visibleStructuredDiffLines = useMemo(() => {
+    if (!diffWindow.enabled) {
+      return structuredDiffLines;
+    }
+
+    return structuredDiffLines.slice(diffWindow.start, diffWindow.end);
+  }, [
+    diffWindow.enabled,
+    diffWindow.end,
+    diffWindow.start,
+    structuredDiffLines,
+  ]);
+  const visibleRawDiffLines = useMemo(() => {
+    if (!diffWindow.enabled) {
+      return rawDiffLines;
+    }
+
+    return rawDiffLines.slice(diffWindow.start, diffWindow.end);
+  }, [diffWindow.enabled, diffWindow.end, diffWindow.start, rawDiffLines]);
+
+  const shouldHighlightDiffLines = useMemo(() => {
+    if (!shouldRenderBody || isStreaming || !rawContent) {
+      return false;
+    }
+
+    return (
+      rawContent.length <= LARGE_EDIT_HIGHLIGHT_CHAR_LIMIT &&
+      renderedDiffLineCount <= LARGE_EDIT_HIGHLIGHT_LINE_LIMIT
+    );
+  }, [isStreaming, rawContent, renderedDiffLineCount, shouldRenderBody]);
+
   // Completion celebration state
   const [justCompleted, setJustCompleted] = useState(false);
+
+  useEffect(() => {
+    if (!actionFlash) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setActionFlash(null), 1400);
+    return () => window.clearTimeout(timeoutId);
+  }, [actionFlash]);
   const previousStreamingRef = useRef(isStreaming);
+
+  useEffect(() => {
+    lastRawContentRef.current = "";
+    hasDiffViewRef.current = false;
+    wasStreamingRef.current = false;
+    streamingEndedRef.current = false;
+    viewModeRef.current = null;
+    previousStreamingRef.current = false;
+
+    setActionPending(false);
+    setShowPartialSuccessDetails(false);
+    setShowErrorDetails(false);
+    setScrollTop(0);
+    setScrollState({ top: 0, height: 100 });
+    setJustCompleted(false);
+    setIsExpanded(!collapseCodeToolsByDefault && !isError);
+  }, [editInstanceKey, collapseCodeToolsByDefault, isError]);
 
   useEffect(() => {
     // Trigger celebration when streaming just finished
@@ -1625,7 +2088,7 @@ const EditToolComponent: React.FC<EditToolProps> = ({
     previousStreamingRef.current = isStreaming;
   }, [isStreaming, isError, toolResult]);
   useEffect(() => {
-    if (isStreaming && contentRef.current) {
+    if (isStreaming && shouldRenderBody && contentRef.current) {
       requestAnimationFrame(() => {
         if (contentRef.current) {
           contentRef.current.scrollTop = contentRef.current.scrollHeight;
@@ -1635,7 +2098,7 @@ const EditToolComponent: React.FC<EditToolProps> = ({
         }
       });
     }
-  }, [isStreaming, rawContent, normalizedEdits]);
+  }, [isStreaming, normalizedEdits, rawContent, shouldRenderBody]);
 
   const sendErrorsToAgent = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1649,12 +2112,6 @@ const EditToolComponent: React.FC<EditToolProps> = ({
       new CustomEvent("appendToChatInput", { detail: { text: errorText } }),
     );
     setShowErrorDetails(false);
-  };
-
-  const getDiffLineType = (line: string): "add" | "remove" | "context" => {
-    if (line.startsWith("-")) return "remove";
-    if (line.startsWith("+")) return "add";
-    return "context";
   };
 
   // Helper to calc continuous line numbers
@@ -1696,6 +2153,7 @@ const EditToolComponent: React.FC<EditToolProps> = ({
         $isError={isError}
         $shouldAnimate={didAnimate}
         $justCompleted={justCompleted}
+        $isActive={isStreaming || isPermissionRequest}
         style={
           justCompleted
             ? { transition: "box-shadow 120ms ease-out" }
@@ -1706,6 +2164,7 @@ const EditToolComponent: React.FC<EditToolProps> = ({
           $clickable={true}
           $isExpanded={isExpanded}
           $isError={isError}
+          style={headerBackground.style}
           onClick={() => {
             // Only toggle local expansion to show inline diff
             if (!isError) {
@@ -1713,12 +2172,6 @@ const EditToolComponent: React.FC<EditToolProps> = ({
             }
           }}
         >
-          {isPermissionRequest && (
-            <LoadingBarContainer>
-              <LoadingBar />
-            </LoadingBarContainer>
-          )}
-
           <TitleSection $status={statusClass}>
             {/* Icons removed for prohibited simplistic look */}
             <FileInfo>
@@ -1744,6 +2197,7 @@ const EditToolComponent: React.FC<EditToolProps> = ({
                     style={{
                       opacity: isStreaming ? 0 : 1,
                       transition: "opacity 0.15s ease-in",
+                      transform: "translateY(-0.94px)",
                     }}
                   >
                     <FileIcon fileName={filePath} size={14} />
@@ -1751,13 +2205,15 @@ const EditToolComponent: React.FC<EditToolProps> = ({
                 </div>
               )}
               <FileName
-                title={filePath}
                 className="truncate"
                 style={{ fontWeight: 400 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (normalizedEdits.length > 0) {
-                    // Open real diff editor with tool ID for accurate snapshots
+                  if (tool.id || normalizedEdits.length > 0) {
+                    // Open real diff editor with tool ID for accurate snapshots.
+                    // After finalization/formatting the UI may no longer retain
+                    // normalized edit blocks, but the extension can still reconstruct
+                    // the diff from the stored snapshot using toolId.
                     vscode.postMessage({
                       type: "openDiff",
                       text: filePath,
@@ -1835,6 +2291,7 @@ const EditToolComponent: React.FC<EditToolProps> = ({
                 position: "relative",
                 display: "flex",
                 alignItems: "center",
+                gap: "8px",
               }}
             >
               <div
@@ -1857,72 +2314,120 @@ const EditToolComponent: React.FC<EditToolProps> = ({
                 }}
               >
                 {isUndone ? (
-                  <ActionButton
-                    $clickable={true}
-                    $isRedo={true}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRedo();
-                      triggerConfetti(e.clientX, e.clientY, "#60a871");
-                    }}
-                    title="Redo Edit"
+                  <HeaderActionTooltip
+                    content={actionFlash === "undone" ? "Reverted" : "Redo"}
                   >
-                    <AnimIcon key="redo" $direction="cw">
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M21 7v6h-6" />
-                        <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
-                      </svg>
-                    </AnimIcon>
-                  </ActionButton>
-                ) : (
-                  <ActionButton
-                    $isError={isError}
-                    $clickable={!isError}
-                    onClick={(e) => {
-                      if (!isError) {
+                    <ActionButton
+                      $clickable={true}
+                      $isRedo={true}
+                      onClick={(e) => {
                         e.stopPropagation();
-                        handleUndo();
-                        triggerConfetti(e.clientX, e.clientY, "#ffb86c");
+                        setActionFlash("redone");
+                        handleRedo();
+                        triggerConfetti(e.clientX, e.clientY, "#60a871");
+                      }}
+                      aria-label={
+                        actionFlash === "undone" ? "Reverted" : "Redo"
                       }
-                    }}
-                    title={
+                    >
+                      {actionFlash === "undone" ? (
+                        <AnimIcon key="undone" $direction="cw">
+                          <Check size={16} strokeWidth={2.2} />
+                        </AnimIcon>
+                      ) : (
+                        <AnimIcon key="redo" $direction="cw">
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M21 7v6h-6" />
+                            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
+                          </svg>
+                        </AnimIcon>
+                      )}
+                    </ActionButton>
+                  </HeaderActionTooltip>
+                ) : (
+                  <HeaderActionTooltip
+                    content={
                       isError
-                        ? "The model performed a malformed edit. LLMs are not perfect and may occasionally fail to generate precise patch instructions."
-                        : "Undo Edits"
+                        ? undefined
+                        : actionFlash === "redone"
+                          ? "Reapplied"
+                          : "Undo"
                     }
                   >
-                    {isError ? (
-                      <span
-                        className="codicon codicon-info"
-                        style={{ color: "var(--vscode-editor-foreground)" }}
-                      ></span>
-                    ) : (
-                      <AnimIcon key="undo" $direction="ccw">
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M3 7v6h6" />
-                          <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3l-3 2.7" />
-                        </svg>
-                      </AnimIcon>
-                    )}
-                  </ActionButton>
+                    <ActionButton
+                      $isError={isError}
+                      $clickable={true}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActionFlash("undone");
+                        handleUndo();
+                        triggerConfetti(
+                          e.clientX,
+                          e.clientY,
+                          isError ? "#ff4646" : "#ffb86c",
+                        );
+                      }}
+                      aria-label={
+                        isError
+                          ? undefined
+                          : actionFlash === "redone"
+                            ? "Reapplied"
+                            : "Undo"
+                      }
+                      title={
+                        isError
+                          ? "The model performed a malformed edit. LLMs are not perfect and may occasionally fail to generate precise patch instructions."
+                          : undefined
+                      }
+                    >
+                      {isError ? (
+                        <AnimIcon key="undo" $direction="ccw">
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 7v6h6" />
+                            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3l-3 2.7" />
+                          </svg>
+                        </AnimIcon>
+                      ) : actionFlash === "redone" ? (
+                        <AnimIcon key="redone" $direction="cw">
+                          <Check size={16} strokeWidth={2.2} />
+                        </AnimIcon>
+                      ) : (
+                        <AnimIcon key="undo" $direction="ccw">
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 7v6h6" />
+                            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3l-3 2.7" />
+                          </svg>
+                        </AnimIcon>
+                      )}
+                    </ActionButton>
+                  </HeaderActionTooltip>
                 )}
               </div>
             </div>
@@ -2003,13 +2508,9 @@ const EditToolComponent: React.FC<EditToolProps> = ({
         )}
 
         {/* Diff Body */}
-        <AnimatedAccordion isExpanded={isExpanded}>
+        <AnimatedAccordion isExpanded={isExpanded} unmountWhenCollapsed={true}>
           <CardBody>
-            {isError ? (
-              <div style={{ padding: "12px 16px" }}>
-                <ToolError toolResult={displayResult} />
-              </div>
-            ) : (
+            {!isError && (
               <>
                 {replaceAll && (
                   <ReplaceOption>
@@ -2027,39 +2528,43 @@ const EditToolComponent: React.FC<EditToolProps> = ({
                           ref={contentRef}
                           onScroll={handleContentScroll}
                         >
-                          {structuredPatch?.map((hunk: any, i: number) => (
-                            <div key={i} className="diff-block">
-                              <DiffLines>
-                                {hunk.lines
-                                  .filter((line: string) => {
-                                    return (
-                                      getDiffLineType(line) !== "context" &&
-                                      !line.startsWith("\\") &&
-                                      !line.includes(
-                                        "No newline at end of file",
-                                      )
-                                    );
-                                  })
-                                  .map((line: string, j: number) => (
-                                    <DiffLine
-                                      key={j}
-                                      $type={getDiffLineType(line)}
-                                      $isStreaming={isStreaming}
-                                      $isUndone={isUndone}
-                                    >
-                                      <LineContent>
-                                        <HighlightedLine
-                                          content={line.substring(1)}
-                                          language={
-                                            filePath.split(".").pop() || "text"
-                                          }
-                                        />
-                                      </LineContent>
-                                    </DiffLine>
-                                  ))}
-                              </DiffLines>
-                            </div>
-                          ))}
+                          <DiffLines>
+                            {diffWindow.enabled &&
+                              diffWindow.topSpacerHeight > 0 && (
+                                <div
+                                  aria-hidden="true"
+                                  style={{ height: diffWindow.topSpacerHeight }}
+                                />
+                              )}
+                            {visibleStructuredDiffLines.map((line) => (
+                              <DiffLine
+                                key={line.key}
+                                $type={line.type}
+                                $isStreaming={isStreaming}
+                                $isUndone={isUndone}
+                              >
+                                <LineContent>
+                                  <HighlightedLine
+                                    content={line.content}
+                                    language={diffLanguage}
+                                    shouldHighlight={
+                                      shouldHighlightDiffLines &&
+                                      !diffWindow.enabled
+                                    }
+                                  />
+                                </LineContent>
+                              </DiffLine>
+                            ))}
+                            {diffWindow.enabled &&
+                              diffWindow.bottomSpacerHeight > 0 && (
+                                <div
+                                  aria-hidden="true"
+                                  style={{
+                                    height: diffWindow.bottomSpacerHeight,
+                                  }}
+                                />
+                              )}
+                          </DiffLines>
                         </DiffContent>
                         <CustomScrollbarTrack>
                           <CustomScrollbarThumb
@@ -2080,52 +2585,47 @@ const EditToolComponent: React.FC<EditToolProps> = ({
                           onScroll={handleContentScroll}
                         >
                           <DiffLines>
-                            {rawContent
-                              .split("\n")
-                              .filter((l) => {
-                                const type = getDiffLineType(l);
-                                return (
-                                  type !== "context" &&
-                                  l.trim().length >
-                                    (l.startsWith("+") ||
-                                    l.startsWith("-") ||
-                                    l.startsWith(" ")
-                                      ? 1
-                                      : 0)
-                                );
-                              })
-                              .map((l, i) => {
-                                const type = getDiffLineType(l);
-                                // Trim diff markers for display to match final output style
-                                let displayLine = l;
-                                if (
-                                  l.startsWith("+") ||
-                                  l.startsWith("-") ||
-                                  l.startsWith(" ")
-                                ) {
-                                  displayLine = l.substring(1);
-                                }
-
-                                return (
-                                  <DiffLine
-                                    key={i}
-                                    $type={type}
-                                    $isStreaming={isStreaming}
-                                    $isUndone={isUndone}
-                                  >
-                                    <LineContent>
-                                      <HighlightedLine
-                                        content={displayLine}
-                                        language={
-                                          filePath.split(".").pop() || "text"
-                                        }
-                                      />
-                                    </LineContent>
-                                  </DiffLine>
-                                );
-                              })}
+                            {diffWindow.enabled &&
+                              diffWindow.topSpacerHeight > 0 && (
+                                <div
+                                  aria-hidden="true"
+                                  style={{ height: diffWindow.topSpacerHeight }}
+                                />
+                              )}
+                            {visibleRawDiffLines.map((line) => (
+                              <DiffLine
+                                key={line.key}
+                                $type={line.type}
+                                $isStreaming={isStreaming}
+                                $isUndone={isUndone}
+                              >
+                                <LineContent>
+                                  <HighlightedLine
+                                    content={line.content}
+                                    language={diffLanguage}
+                                    shouldHighlight={
+                                      shouldHighlightDiffLines &&
+                                      !diffWindow.enabled
+                                    }
+                                  />
+                                </LineContent>
+                              </DiffLine>
+                            ))}
+                            {diffWindow.enabled &&
+                              diffWindow.bottomSpacerHeight > 0 && (
+                                <div
+                                  aria-hidden="true"
+                                  style={{
+                                    height: diffWindow.bottomSpacerHeight,
+                                  }}
+                                />
+                              )}
                           </DiffLines>
-                          {isPermissionRequest && <TypingCursor />}
+                          {isPermissionRequest &&
+                            (!diffWindow.enabled ||
+                              diffWindow.end === rawDiffLines.length) && (
+                              <TypingCursor />
+                            )}
                         </DiffContent>
                         <CustomScrollbarTrack>
                           <CustomScrollbarThumb

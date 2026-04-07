@@ -208,9 +208,9 @@ function formatDirectoryContent(dirPath: string, files: Array<{ filename: string
 
 	return files
 		.map((file) => {
-			return `# Rules from ${file.filename}:\n${file.content}`
+			return `# Rules from ${file.filename}:${file.content}`
 		})
-		.join("\n\n")
+		.join("")
 }
 
 /**
@@ -235,7 +235,7 @@ export async function loadRuleFiles(cwd: string): Promise<string> {
 
 	// If we found rules in .roo/rules/ directories, return them
 	if (rules.length > 0) {
-		return "\n" + rules.join("\n\n")
+		return "" + rules.join("")
 	}
 
 	// Fall back to existing behavior for legacy .roorules/.clinerules files
@@ -251,7 +251,7 @@ export async function loadRuleFiles(cwd: string): Promise<string> {
 				)
 				hasShownNonKilocodeRulesMessage = true
 			} // kade_change end
-			return `\n# Rules from ${file}:\n${content}\n`
+			return `# Rules from ${file}:${content}`
 		}
 	}
 
@@ -296,13 +296,52 @@ async function loadAgentRulesFile(cwd: string): Promise<string> {
 			// Read the content from the resolved path
 			const content = await safeReadFile(resolvedPath)
 			if (content) {
-				return `# Agent Rules Standard (${filename}):\n${content}`
+				return `# Agent Rules Standard (${filename}):${content}`
 			}
 		} catch (err) {
 			// Silently ignore errors - agent rules files are optional
 		}
 	}
 	return ""
+}
+
+function stripMarkdownSection(content: string, sectionTitles: string[]): string {
+	const normalizedTitles = new Set(sectionTitles.map((title) => title.trim().toLowerCase()))
+	const lines = content.split("")
+	const result: string[] = []
+	let skipLevel: number | null = null
+
+	for (const line of lines) {
+		const headingMatch = line.match(/^(#{1,6})\s+(.*?)\s*$/)
+
+		if (headingMatch) {
+			const level = headingMatch[1]?.length ?? 0
+			const title = headingMatch[2]?.trim().toLowerCase() ?? ""
+
+			if (skipLevel !== null && level <= skipLevel) {
+				skipLevel = null
+			}
+
+			if (skipLevel === null && normalizedTitles.has(title)) {
+				skipLevel = level
+				continue
+			}
+		}
+
+		if (skipLevel === null) {
+			result.push(line)
+		}
+	}
+
+	return result.join("").replace(/\n{3,}/g, "").trim()
+}
+
+export function stripInactiveSkillsInstructions(content: string, enabledSkills?: string[]): string {
+	if (!content.trim() || (enabledSkills?.length ?? 0) > 0) {
+		return content
+	}
+
+	return stripMarkdownSection(content, ["skills"])
 }
 
 export async function addCustomInstructions(
@@ -317,10 +356,12 @@ export async function addCustomInstructions(
 		localRulesToggleState?: ClineRulesToggles
 		globalRulesToggleState?: ClineRulesToggles
 		settings?: SystemPromptSettings
+		enabledSkills?: string[]
 	} = {},
 	// kade_change end
 ): Promise<string> {
 	const sections = []
+	const instructionBullets: string[] = []
 
 	// Load mode-specific rules if mode is provided
 	let modeRuleContent = ""
@@ -344,7 +385,7 @@ export async function addCustomInstructions(
 
 		// If we found mode-specific rules in .roo/rules-${mode}/ directories, use them
 		if (modeRules.length > 0) {
-			modeRuleContent = "\n" + modeRules.join("\n\n")
+			modeRuleContent = "" + modeRules.join("")
 			usedRuleFile = `rules-${mode} directories`
 		} else {
 			// Fall back to existing behavior for legacy files
@@ -359,19 +400,21 @@ export async function addCustomInstructions(
 	// Add language preference if provided
 	if (options.language) {
 		const languageName = isLanguage(options.language) ? LANGUAGES[options.language] : options.language
-		sections.push(
-			`Language: ${languageName}`,
-		)
+		instructionBullets.push(`- **Language:** ${languageName}`)
 	}
 
 	// Add global instructions first
 	if (typeof globalCustomInstructions === "string" && globalCustomInstructions.trim()) {
-		sections.push(`Global Instructions:\n${globalCustomInstructions.trim()}`)
+		sections.push(`Global Instructions:${globalCustomInstructions.trim()}`)
 	}
 
 	// Add mode-specific instructions after
 	if (typeof modeCustomInstructions === "string" && modeCustomInstructions.trim()) {
-		sections.push(`Mode-specific Instructions:\n${modeCustomInstructions.trim()}`)
+		instructionBullets.push(`- **Mode Instructions**: ${modeCustomInstructions.trim()}`)
+	}
+
+	if (instructionBullets.length > 0) {
+		sections.push(instructionBullets.join("\n"))
 	}
 
 	// Add rules - include both mode-specific and generic rules if they exist
@@ -382,7 +425,7 @@ export async function addCustomInstructions(
 		if (usedRuleFile.includes(path.join(".kilocode", `rules-${mode}`))) {
 			rules.push(modeRuleContent.trim())
 		} else {
-			rules.push(`# Rules from ${usedRuleFile}:\n${modeRuleContent}`)
+			rules.push(`# Rules from ${usedRuleFile}:${modeRuleContent}`)
 		}
 	}
 
@@ -393,8 +436,9 @@ export async function addCustomInstructions(
 	// Add AGENTS.md content if enabled (default: true)
 	if (options.settings?.useAgentRules !== false) {
 		const agentRulesContent = await loadAgentRulesFile(cwd)
-		if (agentRulesContent && agentRulesContent.trim()) {
-			rules.push(agentRulesContent.trim())
+		const sanitizedAgentRulesContent = stripInactiveSkillsInstructions(agentRulesContent, options.enabledSkills)
+		if (sanitizedAgentRulesContent && sanitizedAgentRulesContent.trim()) {
+			rules.push(sanitizedAgentRulesContent.trim())
 		}
 	}
 
@@ -423,22 +467,12 @@ export async function addCustomInstructions(
 	// kade_change end
 
 	if (rules.length > 0) {
-		sections.push(`Rules:\n\n${rules.join("\n\n")}`)
+		sections.push(`Rules:${rules.join("")}`)
 	}
 
-	const joinedSections = sections.join("\n\n")
-
-	const effectiveProtocol = getEffectiveProtocol(options.settings?.toolProtocol)
+	const joinedSections = sections.filter((section) => section.trim().length > 0).join("\n")
 
 	return joinedSections
-		? `
-====
-
-CUSTOM INSTRUCTIONS FROM THE USER
-
-${joinedSections}
-`
-		: ""
 }
 
 /**

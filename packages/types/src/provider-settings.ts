@@ -31,6 +31,7 @@ import {
 	minimaxModels,
 	openAiCodexModels,
 	antigravityModels,
+	zedModels,
 	kiroModels,
 } from "./providers/index.js"
 
@@ -59,6 +60,7 @@ export const dynamicProviders = [
 	"synthetic",
 	"sap-ai-core",
 	"antigravity", // kade_change
+	"zed",
 	"apertis",
 	"poe",
 	"zenmux",
@@ -69,6 +71,7 @@ export const dynamicProviders = [
 	"unbound",
 	"glama", // kade_change
 	"aihubmix", // added aihubmix
+	"bluesminds",
 	"corethink",
 	"roo",
 	"chutes",
@@ -213,7 +216,7 @@ const baseProviderSettingsSchema = z.object({
 	verbosity: verbosityLevelsSchema.optional(),
 
 	// Tool protocol override for this profile.
-	toolProtocol: z.enum(["xml", "native", "unified", "markdown"]).optional(),
+	toolProtocol: z.enum(["xml", "native", "json", "unified", "markdown"]).optional(),
 
 	// Unified format variant: "structured" (default, tool:name(args)) or "simple" (tool name args)
 	unifiedFormatVariant: z.enum(["simple", "structured"]).optional(),
@@ -482,6 +485,11 @@ const aihubmixSchema = baseProviderSettingsSchema.extend({
 	aihubmixBaseUrl: z.string().optional(),
 })
 
+const bluesmindsSchema = baseProviderSettingsSchema.extend({
+	bluesmindsApiKey: z.string().optional(),
+	bluesmindsBaseUrl: z.string().optional(),
+})
+
 const corethinkSchema = baseProviderSettingsSchema.extend({
 	corethinkApiKey: z.string().optional(),
 	corethinkBaseUrl: z.string().optional(),
@@ -567,6 +575,10 @@ const antigravitySchema = apiModelIdProviderModelSchema.extend({
 	// Antigravity specific settings can be added here if needed
 })
 
+const zedSchema = apiModelIdProviderModelSchema.extend({
+	// Zed-specific settings can be added here if needed
+})
+
 const kiroSchema = baseProviderSettingsSchema.extend({
 	kiroApiKey: z.string().optional(),
 	kiroBaseUrl: z.string().optional(),
@@ -626,8 +638,10 @@ export const providerSettingsSchemaDiscriminated = z.discriminatedUnion("apiProv
 	inceptionSchema.merge(z.object({ apiProvider: z.literal("inception") })),
 	opencodeSchema.merge(z.object({ apiProvider: z.literal("opencode") })),
 	antigravitySchema.merge(z.object({ apiProvider: z.literal("antigravity") })),
+	zedSchema.merge(z.object({ apiProvider: z.literal("zed") })),
 	kiroSchema.merge(z.object({ apiProvider: z.literal("kiro") })),
 	aihubmixSchema.merge(z.object({ apiProvider: z.literal("aihubmix") })),
+	bluesmindsSchema.merge(z.object({ apiProvider: z.literal("bluesminds") })),
 	corethinkSchema.merge(z.object({ apiProvider: z.literal("corethink") })),
 	// kade_change end
 	groqSchema.merge(z.object({ apiProvider: z.literal("groq") })),
@@ -672,8 +686,10 @@ export const providerSettingsSchema = z.object({
 	...ovhcloudSchema.shape,
 	...inceptionSchema.shape,
 	...opencodeSchema.shape,
+	...zedSchema.shape,
 	...kiroSchema.shape,
 	...aihubmixSchema.shape,
+	...bluesmindsSchema.shape,
 	...corethinkSchema.shape,
 	// kade_change end
 	...openAiNativeSchema.shape,
@@ -781,6 +797,7 @@ export const modelIdKeysByProvider: Record<TypicalProvider, ModelIdKey> = {
 	antigravity: "apiModelId", // kade_change
 	apertis: "apiModelId",
 	aihubmix: "apiModelId",
+	bluesminds: "apiModelId",
 	corethink: "apiModelId",
 	poe: "apiModelId",
 	zenmux: "apiModelId",
@@ -818,6 +835,7 @@ export const modelIdKeysByProvider: Record<TypicalProvider, ModelIdKey> = {
 	"virtual-quota-fallback": "apiModelId",
 	"cli-proxy": "apiModelId",
 	"openai-codex": "apiModelId",
+	zed: "apiModelId",
 }
 
 /**
@@ -978,9 +996,11 @@ export const MODELS_BY_PROVIDER: Record<
 	inception: { id: "inception", label: "Inception", models: [] },
 	kilocode: { id: "kilocode", label: "Kilocode", models: [] },
 	antigravity: { id: "antigravity", label: "Antigravity", models: Object.keys(antigravityModels) }, // kade_change
+	zed: { id: "zed", label: "Zed", models: Object.keys(zedModels) },
 	"virtual-quota-fallback": { id: "virtual-quota-fallback", label: "Virtual Quota Fallback", models: [] },
 	"opencode": { id: "opencode", label: "OpenCode", models: [] },
 	"aihubmix": { id: "aihubmix", label: "AIHubMix", models: [] }, // added aihubmix
+	bluesminds: { id: "bluesminds", label: "Bluesminds", models: [] },
 	"corethink": { id: "corethink", label: "CoreThink", models: [] },
 	// kade_change end
 	deepinfra: { id: "deepinfra", label: "DeepInfra", models: [] },
