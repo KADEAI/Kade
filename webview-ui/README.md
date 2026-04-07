@@ -1,11 +1,4 @@
-# WebView UI - The Maze of Software Gore
-
-> **Warning**: This codebase is a perfect example of how NOT to structure a React application. Proceed with caution.
-
-## 🚨 Current State: Critical
-
-This frontend has evolved from a simple chat interface into a 1,700+ line monolithic nightmare. If you're here to fix or add features, you're in for a world of pain.
-
+(This readme.md is significantly outdated and was made in early development for Kade, roughly 3 months old, - 04.06.2026 ) 
 ## 📁 Directory Structure - The Bloody Maze
 
 ```
