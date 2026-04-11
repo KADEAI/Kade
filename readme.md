@@ -1,4 +1,4 @@
-# 🚀 Kade 3.0 - The Next Iteration of Agentic Coding
+# 🚀 Kade 4.0 - The Next Iteration of Agentic Coding
 
 Kade has gone open source! Feel free to contribute, open issues, and star the [GitHub repo](https://github.com/KADEAI/Kade).
 
@@ -6,7 +6,7 @@ Kade has gone open source! Feel free to contribute, open issues, and star the [G
   <img src="https://raw.githubusercontent.com/tadeonkipp-dev/repoforimgs/main/screenshot-top.png" width="400" alt="Kade AI Interface Preview" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);" />
 </p>
 
-## Kade 3.0 is here
+## Kade 4.0 is here
 
 **Completely redesigned, heavily upgraded, and built as the next major evolution of Kade.** This release overhauls basically every aspect of the UI, improves the overall workflow from top to bottom, introduces a new Agent Manager page, and delivers more than a thousand fixes across the product.
 
